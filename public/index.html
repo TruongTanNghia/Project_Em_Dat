@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hệ thống phân tích ảnh điện não đồ (EEG) chuyên nghiệp sử dụng AI - Phân tích sóng não, phát hiện bất thường, tư vấn thần kinh học.">
+    <title>🧠 EEG Brain Analysis - Hệ Thống Phân Tích Điện Não Đồ AI</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="header">
+    <div class="header-left">
+        <div class="logo">🧠</div>
+        <div class="header-title">
+            <h1>EEG Brain Analysis</h1>
+            <p>Hệ Thống Phân Tích Điện Não Đồ AI</p>
+        </div>
+    </div>
+    <div class="header-right">
+        <div class="mcp-status" id="modelStatusBtn">
+            <span class="mcp-dot" id="modelDot"></span>
+            <span id="modelStatusText">ML Model</span>
+        </div>
+        <div class="mcp-status" id="mcpStatusBtn" onclick="checkMcpStatus()">
+            <span class="mcp-dot" id="mcpDot"></span>
+            <span id="mcpStatusText">MCP Server</span>
+        </div>
+    </div>
+</header>
+
+<!-- ===== NAV TABS ===== -->
+<nav class="nav-tabs">
+    <button class="nav-tab active" data-tab="upload" onclick="switchTab('upload')">
+        📤 Upload & Phân Tích
+    </button>
+    <button class="nav-tab" data-tab="charts" onclick="switchTab('charts')">
+        📊 Biểu Đồ
+    </button>
+    <button class="nav-tab" data-tab="chat" onclick="switchTab('chat')">
+        💬 Chatbot Tư Vấn
+    </button>
+    <button class="nav-tab" data-tab="mcp" onclick="switchTab('mcp')">
+        🔌 MCP Server
+    </button>
+</nav>
+
+<!-- ===== MAIN CONTENT ===== -->
+<main class="main-container">
+
+    <!-- ===== TAB 1: UPLOAD & ANALYSIS ===== -->
+    <div class="tab-panel active" id="panel-upload">
+        <div class="upload-section">
+            <!-- Upload Zone -->
+            <div class="glass-card">
+                <div class="card-title"><span class="icon">📤</span> Upload File EEG</div>
+                <div style="display:flex; gap:8px; margin-bottom:16px;">
+                    <button class="btn btn-primary" id="modeEdfBtn" onclick="setUploadMode('edf')" style="flex:1; justify-content:center;">📁 File .EDF (Model AI)</button>
+                    <button class="btn btn-secondary" id="modeImgBtn" onclick="setUploadMode('image')" style="flex:1; justify-content:center;">🖼️ Ảnh EEG (GPT-4)</button>
+                </div>
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-content" id="uploadContent">
+                        <div class="upload-icon">🧠</div>
+                        <div class="upload-text">
+                            <h3 id="uploadTitle">Kéo thả file .EDF vào đây</h3>
+                            <p>hoặc <span class="browse-link" onclick="document.getElementById('fileInput').click()">chọn file</span></p>
+                            <p style="margin-top: 8px; font-size: 12px;" id="uploadHint">Hỗ trợ: File .EDF (European Data Format)</p>
+                        </div>
+                    </div>
+                    <div class="upload-preview" id="uploadPreview">
+                        <img id="previewImg" src="" alt="EEG Preview" style="display:none;">
+                        <div id="edfFileIcon" style="font-size:48px; display:none;">📄</div>
+                        <span class="file-info" id="fileInfo"></span>
+                        <button class="btn btn-danger" onclick="clearUpload(event)" style="font-size: 13px; padding: 8px 16px;">
+                            ✕ Xóa file
+                        </button>
+                    </div>
+                </div>
+                <input type="file" id="fileInput" accept=".edf" hidden>
+                <button class="btn btn-primary analyze-btn" id="analyzeBtn" onclick="analyzeEEG()" disabled>
+                    🔬 Phân Tích Điện Não Đồ
+                </button>
+            </div>
+
+            <!-- Preview Panel -->
+            <div class="preview-panel">
+                <div class="glass-card image-preview-card" id="previewCard">
+                    <div class="no-preview" id="noPreview">
+                        <span class="icon">🧠</span>
+                        <span>Kết quả dự đoán sẽ hiển thị ở đây</span>
+                    </div>
+                    <img id="mainPreviewImg" src="" alt="EEG" style="display:none; max-width:100%; max-height:320px; object-fit:contain;">
+                    <!-- EDF Prediction Result -->
+                    <div id="edfPredictionResult" style="display:none; padding:24px; text-align:center; width:100%;">
+                        <div id="predictionIcon" style="font-size:64px; margin-bottom:12px;"></div>
+                        <h2 id="predictionLabel" style="font-size:28px; font-weight:800; margin-bottom:8px;"></h2>
+                        <p id="predictionConfidence" style="color:var(--text-secondary); font-size:14px;"></p>
+                        <div style="margin-top:16px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                            <div style="padding:8px 16px; background:var(--bg-glass); border:1px solid var(--border-glass); border-radius:8px;">
+                                <span style="color:var(--text-muted); font-size:11px;">Thời lượng</span>
+                                <p style="font-weight:600;" id="predDuration">-</p>
+                            </div>
+                            <div style="padding:8px 16px; background:var(--bg-glass); border:1px solid var(--border-glass); border-radius:8px;">
+                                <span style="color:var(--text-muted); font-size:11px;">Kênh EEG</span>
+                                <p style="font-weight:600;" id="predChannels">-</p>
+                            </div>
+                            <div style="padding:8px 16px; background:var(--bg-glass); border:1px solid var(--border-glass); border-radius:8px;">
+                                <span style="color:var(--text-muted); font-size:11px;">Windows bất thường</span>
+                                <p style="font-weight:600;" id="predAbnormal">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass-card" id="quickStats" style="display:none;">
+                    <div class="card-title"><span class="icon">⚡</span> Thông Tin Nhanh</div>
+                    <div id="quickStatsContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section" id="resultsSection">
+            <!-- Assessment Header -->
+            <div class="result-header">
+                <div>
+                    <h2 style="font-size: 20px; font-weight: 700;">📋 Kết Quả Phân Tích</h2>
+                    <p style="color: var(--text-muted); font-size: 13px;" id="analysisTime"></p>
+                </div>
+                <span class="assessment-badge" id="assessmentBadge"></span>
+            </div>
+
+            <!-- Frequency Band Stats -->
+            <div class="stats-row" id="freqStats"></div>
+
+            <!-- Results Grid -->
+            <div class="results-grid">
+                <!-- Summary -->
+                <div class="glass-card">
+                    <div class="card-title"><span class="icon">📝</span> Tóm Tắt</div>
+                    <p class="detail-text" id="summaryText"></p>
+                </div>
+
+                <!-- Findings -->
+                <div class="glass-card">
+                    <div class="card-title"><span class="icon">🔍</span> Phát Hiện</div>
+                    <div id="findingsList"></div>
+                </div>
+
+                <!-- Abnormalities -->
+                <div class="glass-card">
+                    <div class="card-title"><span class="icon">⚠️</span> Bất Thường</div>
+                    <div id="abnormalitiesList"></div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="glass-card">
+                    <div class="card-title"><span class="icon">💡</span> Khuyến Nghị</div>
+                    <div id="recommendationsList"></div>
+                </div>
+
+                <!-- Detailed Analysis -->
+                <div class="glass-card" style="grid-column: 1 / -1;">
+                    <div class="card-title"><span class="icon">📖</span> Phân Tích Chi Tiết</div>
+                    <p class="detail-text" id="detailedText"></p>
+                </div>
+
+                <!-- Clinical Correlation -->
+                <div class="glass-card" style="grid-column: 1 / -1;">
+                    <div class="card-title"><span class="icon">🏥</span> Liên Hệ Lâm Sàng</div>
+                    <p class="detail-text" id="clinicalText"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TAB 2: CHARTS ===== -->
+    <div class="tab-panel" id="panel-charts">
+        <div id="chartsPlaceholder" class="glass-card" style="text-align:center; padding: 60px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+            <h3 style="margin-bottom: 8px;">Chưa có dữ liệu biểu đồ</h3>
+            <p style="color: var(--text-muted);">Hãy upload và phân tích file EEG để xem biểu đồ chuyên nghiệp</p>
+        </div>
+        <div id="chartsContent" style="display:none;">
+            
+            <!-- EEG WAVEFORM VISUALIZATION -->
+            <div class="glass-card" style="margin-bottom: 24px;" id="waveformSection">
+                <div class="card-title"><span class="icon">🧠</span> Tín Hiệu EEG Theo Thời Gian 
+                    <span style="font-size:12px; color:var(--text-muted); font-weight:400;"> — Vùng đỏ = Bất thường</span>
+                </div>
+                <div style="position:relative; width:100%; height:400px;">
+                    <canvas id="eegWaveformChart"></canvas>
+                </div>
+            </div>
+
+            <!-- ANOMALY PROBABILITY TIMELINE -->
+            <div class="glass-card" style="margin-bottom: 24px;" id="anomalySection">
+                <div class="card-title"><span class="icon">⚠️</span> Xác Suất Bất Thường Theo Thời Gian
+                    <span style="font-size:12px; color:var(--text-muted); font-weight:400;"> — Threshold: đường nét đứt</span>
+                </div>
+                <div style="position:relative; width:100%; height:250px;">
+                    <canvas id="anomalyTimelineChart"></canvas>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="glass-card">
+                    <div class="card-title"><span class="icon">📊</span> Phân Bố Năng Lượng Sóng Não</div>
+                    <div class="chart-container">
+                        <canvas id="freqBarChart"></canvas>
+                    </div>
+                </div>
+                <div class="glass-card">
+                    <div class="card-title"><span class="icon">🕸️</span> Radar Sóng Não</div>
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+                <div class="glass-card">
+                    <div class="card-title"><span class="icon">🥧</span> Tỉ Lệ Phân Bố Sóng</div>
+                    <div class="chart-container">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+                <div class="glass-card">
+                    <div class="card-title"><span class="icon">🧠</span> Hoạt Động Vùng Não</div>
+                    <div class="chart-container">
+                        <canvas id="regionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TAB 3: CHATBOT ===== -->
+    <div class="tab-panel" id="panel-chat">
+        <div class="chat-layout">
+            <div class="glass-card chat-main">
+                <div class="card-title"><span class="icon">🤖</span> Chatbot Tư Vấn Thần Kinh Học</div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message assistant">
+                        <div class="message-avatar">🧠</div>
+                        <div class="message-content">
+                            Xin chào! Tôi là chuyên gia AI về thần kinh học. 👋<br><br>
+                            Tôi có thể giúp bạn:<br>
+                            • Giải thích kết quả phân tích EEG<br>
+                            • Tư vấn về các dạng sóng não<br>
+                            • Thảo luận về bất thường và bệnh lý<br>
+                            • Giải đáp thắc mắc về điện não đồ<br><br>
+                            Hãy hỏi tôi bất cứ điều gì! 🔬
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" class="chat-input" id="chatInput" 
+                           placeholder="Nhập câu hỏi về điện não đồ..." 
+                           onkeypress="if(event.key==='Enter')sendChat()">
+                    <button class="chat-send-btn" onclick="sendChat()">➤</button>
+                </div>
+            </div>
+            <div class="chat-sidebar">
+                <div class="glass-card">
+                    <div class="card-title"><span class="icon">⚡</span> Câu Hỏi Gợi Ý</div>
+                    <div class="quick-prompts">
+                        <button class="prompt-btn" onclick="quickChat('Giải thích các loại sóng não Delta, Theta, Alpha, Beta, Gamma')">
+                            🧠 Giải thích các loại sóng não
+                        </button>
+                        <button class="prompt-btn" onclick="quickChat('Các dấu hiệu bất thường phổ biến trên EEG là gì?')">
+                            ⚠️ Dấu hiệu bất thường EEG
+                        </button>
+                        <button class="prompt-btn" onclick="quickChat('Phân tích chi tiết hơn kết quả EEG vừa rồi')">
+                            🔍 Phân tích chi tiết kết quả
+                        </button>
+                        <button class="prompt-btn" onclick="quickChat('Các bệnh lý thần kinh nào có thể liên quan đến kết quả EEG?')">
+                            🏥 Bệnh lý liên quan
+                        </button>
+                        <button class="prompt-btn" onclick="quickChat('Cần làm gì tiếp theo sau kết quả EEG này?')">
+                            💡 Khuyến nghị tiếp theo
+                        </button>
+                        <button class="prompt-btn" onclick="quickChat('EEG bình thường trông như thế nào?')">
+                            ✅ EEG bình thường
+                        </button>
+                    </div>
+                </div>
+                <div class="glass-card" id="chatAnalysisContext" style="display:none;">
+                    <div class="card-title"><span class="icon">📋</span> Context Phân Tích</div>
+                    <p id="chatContextText" style="font-size:13px; color:var(--text-secondary);"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TAB 4: MCP SERVER ===== -->
+    <div class="tab-panel" id="panel-mcp">
+        <div class="glass-card" style="margin-bottom: 24px;">
+            <div class="card-title"><span class="icon">🔌</span> MCP Server Dashboard</div>
+            <div style="display:flex; gap: 24px; flex-wrap:wrap;">
+                <div>
+                    <span style="color:var(--text-muted); font-size:13px;">Trạng thái</span>
+                    <p style="font-weight:600; display:flex; align-items:center; gap:8px;">
+                        <span class="mcp-dot" id="mcpDashDot"></span>
+                        <span id="mcpDashStatus">Đang kiểm tra...</span>
+                    </p>
+                </div>
+                <div>
+                    <span style="color:var(--text-muted); font-size:13px;">Server Name</span>
+                    <p style="font-weight:600;" id="mcpServerName">-</p>
+                </div>
+                <div>
+                    <span style="color:var(--text-muted); font-size:13px;">Version</span>
+                    <p style="font-weight:600;" id="mcpVersion">-</p>
+                </div>
+                <div>
+                    <span style="color:var(--text-muted); font-size:13px;">Số lần phân tích</span>
+                    <p style="font-weight:600;" id="mcpAnalysisCount">0</p>
+                </div>
+                <div>
+                    <span style="color:var(--text-muted); font-size:13px;">Uptime</span>
+                    <p style="font-weight:600;" id="mcpUptime">-</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-title" style="margin-bottom: 16px;"><span class="icon">🛠️</span> MCP Tools</div>
+        <div class="mcp-grid" id="mcpToolsGrid"></div>
+
+        <div class="glass-card" style="margin-top: 24px;">
+            <div class="card-title"><span class="icon">📜</span> MCP Logs</div>
+            <div class="mcp-log" id="mcpLog">
+                <div class="mcp-log-entry">
+                    <span class="mcp-log-time">[System]</span> Khởi tạo MCP Dashboard...
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- ===== LOADING OVERLAY ===== -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="brain-loader">
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+    </div>
+    <div class="loading-text" id="loadingText">🧠 Đang phân tích điện não đồ...</div>
+    <div class="loading-subtext">AI đang đọc và phân tích các sóng não như một chuyên gia</div>
+</div>
+
+<!-- ===== TOAST CONTAINER ===== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

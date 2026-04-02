@@ -1,0 +1,21 @@
+{
+  "name": "eeg-brain-analysis",
+  "version": "1.0.0",
+  "description": "EEG Brain Wave Analysis Web Application with OpenAI GPT-4 Vision",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "mcp": "node mcp-server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-ws": "^5.0.2",
+    "form-data": "^4.0.5",
+    "multer": "^1.4.5-lts.1",
+    "openai": "^4.77.0",
+    "uuid": "^11.1.0"
+  }
+}
