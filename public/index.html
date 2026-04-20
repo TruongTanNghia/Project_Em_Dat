@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="three.min.js"></script>
+    <script src="OrbitControls.js"></script>
 </head>
 <body>
 
@@ -191,8 +193,47 @@
                 <div class="card-title"><span class="icon">🧠</span> Tín Hiệu EEG Theo Thời Gian 
                     <span style="font-size:12px; color:var(--text-muted); font-weight:400;"> — Vùng đỏ = Bất thường</span>
                 </div>
-                <div style="position:relative; width:100%; height:400px;">
+                <div style="position:relative; width:100%; height:600px;">
                     <canvas id="eegWaveformChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 3D EEG VISUALIZATION -->
+            <div class="glass-card" style="margin-bottom: 24px;" id="eeg3dSection">
+                <div class="card-title"><span class="icon">🌐</span> Trực Quan Hóa EEG 3D 
+                    <span style="font-size:12px; color:var(--text-muted); font-weight:400;"> — Kéo chuột để xoay, scroll để zoom, click phải để di chuyển</span>
+                </div>
+                <div id="eeg3dContainer" style="position:relative; width:100%; height:550px; border-radius:12px; overflow:hidden; background: linear-gradient(135deg, #050510 0%, #0a0520 50%, #050a20 100%); cursor:grab;">
+                    <div id="eeg3dLoading" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#94a3b8; font-size:14px; z-index:10;">📊 Đang tải dữ liệu 3D...</div>
+                    <!-- Info overlay -->
+                    <div id="eeg3dInfo" style="position:absolute; top:12px; left:12px; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px 12px; font-size:11px; color:#94a3b8; z-index:5; display:none;">
+                        <div style="color:#8b5cf6; font-weight:600; margin-bottom:4px;">📊 EEG 3D Viewer</div>
+                        <div id="eeg3dInfoText">Kênh: - | Thời lượng: -</div>
+                    </div>
+                    <!-- Tooltip -->
+                    <div id="eeg3dTooltip" style="position:absolute; display:none; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); border:1px solid rgba(139,92,246,0.5); border-radius:8px; padding:8px 12px; font-size:12px; color:#e2e8f0; z-index:20; pointer-events:none; box-shadow:0 4px 20px rgba(139,92,246,0.2);"></div>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center;">
+                    <!-- View Presets -->
+                    <div style="display:flex; gap:4px; background:rgba(255,255,255,0.05); border-radius:8px; padding:3px;">
+                        <button class="btn btn-secondary" onclick="set3DView('perspective')" style="font-size:11px; padding:5px 10px; border-radius:6px;" title="Góc nhìn phối cảnh">🎥 Phối cảnh</button>
+                        <button class="btn btn-secondary" onclick="set3DView('top')" style="font-size:11px; padding:5px 10px; border-radius:6px;" title="Nhìn từ trên xuống">⬆️ Trên</button>
+                        <button class="btn btn-secondary" onclick="set3DView('side')" style="font-size:11px; padding:5px 10px; border-radius:6px;" title="Nhìn từ bên">➡️ Bên</button>
+                        <button class="btn btn-secondary" onclick="set3DView('front')" style="font-size:11px; padding:5px 10px; border-radius:6px;" title="Nhìn từ trước">🔽 Trước</button>
+                        <button class="btn btn-secondary" onclick="set3DView('cinematic')" style="font-size:11px; padding:5px 10px; border-radius:6px;" title="Góc nhìn điện ảnh">🎬 Cinematic</button>
+                    </div>
+                    <div style="width:1px; height:24px; background:rgba(255,255,255,0.1);"></div>
+                    <!-- Controls -->
+                    <button class="btn btn-secondary" onclick="toggle3DAnimation()" style="font-size:11px; padding:5px 10px;">⏯️ Xoay tự động</button>
+                    <button class="btn btn-secondary" onclick="toggle3DAbnormal()" style="font-size:11px; padding:5px 10px;">🔴 Bất thường</button>
+                    <button class="btn btn-secondary" onclick="toggle3DParticles()" style="font-size:11px; padding:5px 10px;">✨ Particles</button>
+                    <button class="btn btn-secondary" onclick="toggle3DSurface()" style="font-size:11px; padding:5px 10px;">🌊 Surface</button>
+                    <div style="flex:1;"></div>
+                    <div style="display:flex; align-items:center; gap:8px; font-size:10px; color:var(--text-muted);">
+                        <span style="display:inline-flex; align-items:center; gap:3px;"><span style="width:8px; height:8px; border-radius:50%; background:linear-gradient(135deg, #3b82f6, #06b6d4); display:inline-block;"></span>Bình thường</span>
+                        <span style="display:inline-flex; align-items:center; gap:3px;"><span style="width:8px; height:8px; border-radius:50%; background:linear-gradient(135deg, #ef4444, #f59e0b); display:inline-block;"></span>Bất thường</span>
+                        <span>X: Thời gian | Y: Biên độ | Z: Kênh</span>
+                    </div>
                 </div>
             </div>
 

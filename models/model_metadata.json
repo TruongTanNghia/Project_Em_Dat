@@ -1,0 +1,51 @@
+{
+  "architecture": "EEG_CNN_BiGRU_Attention",
+  "best_epoch": 14,
+  "best_val_f1": 0.4812124248496994,
+  "best_threshold": 0.4,
+  "roc_auc": 0.8387612484981594,
+  "pr_auc": 0.5291153465359297,
+  "epochs": 35,
+  "batch_size": 256,
+  "num_workers": 2,
+  "pin_memory": true,
+  "h5_compression": "None",
+  "weighted_sampler": false,
+  "data_parallel": true,
+  "torch_compile": true,
+  "bandpass": "0.5-40.0Hz",
+  "seizure_overlap": 0.75,
+  "normal_keep_prob": 0.15,
+  "focal_alpha": 0.75,
+  "focal_gamma": 2.0,
+  "patient_split": {
+    "train_patients": [
+      "chb01",
+      "chb02",
+      "chb03",
+      "chb04",
+      "chb05",
+      "chb06",
+      "chb09",
+      "chb10",
+      "chb12",
+      "chb13",
+      "chb14",
+      "chb16",
+      "chb17",
+      "chb18",
+      "chb19",
+      "chb21",
+      "chb22",
+      "chb23",
+      "chb24"
+    ],
+    "test_patients": [
+      "chb07",
+      "chb08",
+      "chb11",
+      "chb15",
+      "chb20"
+    ]
+  }
+}

@@ -1,3 +1,38 @@
+# Dependencies
 node_modules/
+
+# Environment
 .env
+
+# Uploads
 uploads/
+
+# Model files (too large for GitHub)
+models/*.pkl
+models/*.csv
+models/*.zip
+models/*.txt
+models/.virtual_documents/
+
+# Heavy model weights & datasets (kept locally, not pushed)
+1/
+*.pt
+*.h5
+*.pth
+*.edf
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dataset
+dataset/
