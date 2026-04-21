@@ -1,8 +1,9 @@
-require('dotenv').config();
+const path = require('path');
+const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
+require('dotenv').config({ path: path.join(PROJECT_ROOT, '.env') });
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const OpenAI = require('openai');
@@ -20,10 +21,10 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(PROJECT_ROOT, 'frontend')));
 
 // Upload config
-const uploadDir = path.join(__dirname, 'uploads');
+const uploadDir = path.join(PROJECT_ROOT, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -489,7 +490,7 @@ app.ws('/ws/chat', (ws, req) => {
 
 // SPA fallback
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(PROJECT_ROOT, 'frontend', 'index.html'));
 });
 
 // Start server

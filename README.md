@@ -96,14 +96,14 @@
 ### Bước 1: Clone & Cài đặt
 
 ```bash
-git clone https://github.com/TruongTanNghia/EEG-Brain-Analysis.git
-cd EEG-Brain-Analysis
+git clone https://github.com/TruongTanNghia/Project_Em_Dat.git
+cd Project_Em_Dat
 
 # Cài Node.js dependencies
-npm install
+cd backend/node && npm install && cd ../..
 
 # Cài Python dependencies
-pip install -r requirements.txt
+pip install -r backend/python/requirements.txt
 ```
 
 ### Bước 2: Cấu hình
@@ -137,15 +137,15 @@ Có 2 cách:
 
 ### Bước 4: Chạy
 
-Mở **2 terminal**:
+Mở **2 terminal** (chạy từ project root):
 
 ```bash
 # Terminal 1: Python API (ML Model)
-python python_api.py
+python backend/python/python_api.py
 # ✅ Output: 🧠 EEG Python API starting on port 5000...
 
 # Terminal 2: Node.js Server (Web)
-npm start
+cd backend/node && npm start
 # ✅ Output: 🧠 EEG Analysis Server running on http://localhost:3000
 ```
 
@@ -154,29 +154,45 @@ Mở trình duyệt → **http://localhost:3000** 🎉
 ## 📁 Cấu Trúc Dự Án
 
 ```
-EEG-Brain-Analysis/
-├── 📄 server.js              # Node.js backend (Express + WebSocket)
-├── 📄 python_api.py          # Python Flask API (ML prediction)
-├── 📄 mcp-server.js          # MCP Server protocol
-├── 📄 train_eeg_kaggle.py    # Script huấn luyện (Python)
-├── 📄 train_eeg_kaggle.ipynb # Notebook huấn luyện (Kaggle/Colab)
-├── 📄 requirements.txt       # Python dependencies
-├── 📄 package.json           # Node.js dependencies
-├── 📄 .env                   # Biến môi trường (API keys)
+Project_Em_Dat/
+├── 📂 backend/
+│   ├── 📂 node/                 # Node.js service (port 3000)
+│   │   ├── server.js            # Express + WebSocket + OpenAI proxy
+│   │   ├── mcp-server.js        # MCP Server (stdio)
+│   │   ├── package.json
+│   │   └── package-lock.json
+│   └── 📂 python/               # Python ML service (port 5000)
+│       ├── python_api.py        # Flask API — PyTorch inference
+│       ├── train_eeg_kaggle.py  # Script train (Kaggle/Colab)
+│       └── requirements.txt
 │
-├── 📂 public/                # Frontend
-│   ├── index.html            # Giao diện chính
-│   ├── app.js                # Logic frontend (upload, charts, chat)
-│   └── styles.css            # Dark theme UI
+├── 📂 frontend/                 # Giao diện web
+│   ├── index.html
+│   ├── 📂 css/
+│   │   └── styles.css           # Dark theme UI
+│   └── 📂 js/
+│       ├── app.js               # Logic upload/charts/chat
+│       └── 📂 vendor/
+│           ├── three.min.js
+│           └── OrbitControls.js # 3D brain viewer
 │
-├── 📂 models/                # ML Model files (không upload GitHub)
-│   ├── eeg_seizure_model.pkl
-│   ├── eeg_scaler.pkl
-│   ├── eeg_feature_names.pkl
-│   ├── eeg_features.csv
-│   └── ...
+├── 📂 models/                   # Model weights + metadata
+│   ├── best_cnn_model.pth       # PyTorch CNN+BiGRU+Attention
+│   ├── model_metadata.json
+│   └── evaluation_dl_charts.png
 │
-└── 📂 uploads/               # File upload tạm
+├── 📂 training/                 # Notebooks huấn luyện
+│   └── train_eeg_ver3.ipynb
+│
+├── 📂 docs/                     # Báo cáo đồ án
+│   ├── bao_cao_do_an.md
+│   └── bao_cao_do_an.pdf
+│
+├── 📂 uploads/                  # File upload runtime (gitignored)
+├── 📂 dataset/                  # CHB-MIT raw data (gitignored)
+├── 📄 .env                      # API keys (gitignored, root)
+├── 📄 .gitignore
+└── 📄 README.md
 ```
 
 ## 🧬 Chi Tiết Kỹ Thuật
