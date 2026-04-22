@@ -1204,7 +1204,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ===== 3D EEG VISUALIZATION — PREMIUM (Three.js) =====
 let scene3d, camera3d, renderer3d, controls3d;
-let eeg3dAnimating = true;
+let eeg3dAnimating = false;  // auto-rotate off by default; user toggles via button
 let eeg3dAbnormalVisible = true;
 let eeg3dParticlesVisible = true;
 let eeg3dSurfaceVisible = false;
@@ -1218,10 +1218,59 @@ let cameraLerping = false;
 let glowSpheres3d = [];
 let channelTubes3d = [];
 
+// Render-loop lifecycle: track the active RAF + observers so init3DScene
+// can be called repeatedly (per analysis) without stacking duplicate loops
+// or leaking listeners. Loop is paused when tab hidden or section offscreen.
+let animFrameId3d = null;
+let resizeObs3d = null;
+let intersectObs3d = null;
+let is3dVisible = true;
+
+function dispose3DObject(obj) {
+    if (!obj) return;
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+        if (Array.isArray(obj.material)) obj.material.forEach(m => m && m.dispose());
+        else obj.material.dispose();
+    }
+    if (obj.texture) obj.texture.dispose();
+}
+
+function teardown3DScene() {
+    if (animFrameId3d !== null) {
+        cancelAnimationFrame(animFrameId3d);
+        animFrameId3d = null;
+    }
+    if (resizeObs3d) { resizeObs3d.disconnect(); resizeObs3d = null; }
+    if (intersectObs3d) { intersectObs3d.disconnect(); intersectObs3d = null; }
+    if (scene3d) {
+        const remaining = [];
+        scene3d.traverse(c => remaining.push(c));
+        remaining.forEach(c => dispose3DObject(c));
+        scene3d.clear && scene3d.clear();
+    }
+    if (renderer3d) {
+        renderer3d.dispose();
+        if (renderer3d.forceContextLoss) renderer3d.forceContextLoss();
+        if (renderer3d.domElement && renderer3d.domElement.parentNode) {
+            renderer3d.domElement.parentNode.removeChild(renderer3d.domElement);
+        }
+        renderer3d = null;
+    }
+    scene3d = null;
+    camera3d = null;
+    controls3d = null;
+    particleSystem3d = null;
+    surfaceMesh3d = null;
+    abnormalMarkers3d = [];
+    glowSpheres3d = [];
+    channelTubes3d = [];
+}
+
 function init3DScene() {
     const container = document.getElementById('eeg3dContainer');
     if (!container) return;
-    
+
     if (typeof THREE === 'undefined') {
         console.warn('Three.js not loaded yet, retrying...');
         const ld = document.getElementById('eeg3dLoading');
@@ -1229,8 +1278,11 @@ function init3DScene() {
         setTimeout(init3DScene, 1000);
         return;
     }
-    
-    // Clear previous
+
+    // Fully tear down previous scene: cancels old RAF loop, disposes GPU
+    // resources, disconnects observers. Without this, each analysis stacked
+    // another render loop on top of the previous one.
+    teardown3DScene();
     while (container.querySelector('canvas')) container.querySelector('canvas').remove();
     
     let width = container.clientWidth;
@@ -1251,13 +1303,14 @@ function init3DScene() {
     camera3d = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
     camera3d.position.set(120, 60, 80);
     
-    // Renderer
-    renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    // Renderer — shadows off (nothing in the scene meaningfully receives them
+    // and PCFSoftShadowMap is one of the most expensive features in WebGL).
+    // Cap pixelRatio at 1.5 to halve fill rate on retina/4K without losing AA.
+    renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer3d.setSize(width, height);
-    renderer3d.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer3d.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer3d.setClearColor(0x000000, 0);
-    renderer3d.shadowMap.enabled = true;
-    renderer3d.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer3d.shadowMap.enabled = false;
     container.appendChild(renderer3d.domElement);
     
     // Controls
@@ -1269,26 +1322,20 @@ function init3DScene() {
     controls3d.target.set(25, 12, 15);
     controls3d.update();
     
-    // ===== PREMIUM LIGHTING =====
-    scene3d.add(new THREE.AmbientLight(0x202040, 0.4));
-    
-    const mainLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    // ===== LIGHTING (lean: 1 ambient + 1 directional + 1 accent point) =====
+    // Went from 5 lights (ambient + directional + 3 point) to 3. Phong runs
+    // per-pixel per-light, so halving the light count is a big win on GPUs
+    // that render many meshes (23 EEG ribbons × many verts). Bumped ambient
+    // slightly to compensate for the lost fill.
+    scene3d.add(new THREE.AmbientLight(0x303050, 0.55));
+
+    const mainLight = new THREE.DirectionalLight(0xffffff, 0.7);
     mainLight.position.set(40, 60, 30);
-    mainLight.castShadow = true;
     scene3d.add(mainLight);
-    
-    // Colored accent lights
-    const purpleLight = new THREE.PointLight(0x8b5cf6, 1.5, 100);
-    purpleLight.position.set(0, 30, 0);
+
+    const purpleLight = new THREE.PointLight(0x8b5cf6, 1.2, 90);
+    purpleLight.position.set(10, 30, 10);
     scene3d.add(purpleLight);
-    
-    const blueLight = new THREE.PointLight(0x3b82f6, 1.2, 80);
-    blueLight.position.set(50, 20, 30);
-    scene3d.add(blueLight);
-    
-    const cyanLight = new THREE.PointLight(0x06b6d4, 0.8, 60);
-    cyanLight.position.set(25, 5, 0);
-    scene3d.add(cyanLight);
     
     // ===== STAR FIELD BACKGROUND =====
     createStarField();
@@ -1328,29 +1375,43 @@ function init3DScene() {
     // ===== PARTICLE SYSTEM =====
     createParticleSystem();
     
-    // Handle resize
-    const resizeObs = new ResizeObserver(() => {
+    // Handle resize — stored at module level so teardown can disconnect it
+    resizeObs3d = new ResizeObserver(() => {
+        if (!camera3d || !renderer3d) return;
         const w = container.clientWidth, h = container.clientHeight;
+        if (w === 0 || h === 0) return;
         camera3d.aspect = w / h;
         camera3d.updateProjectionMatrix();
         renderer3d.setSize(w, h);
     });
-    resizeObs.observe(container);
-    
+    resizeObs3d.observe(container);
+
+    // Pause render loop when 3D container leaves viewport (user switched tab
+    // or scrolled away). Resume when it comes back.
+    intersectObs3d = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+            is3dVisible = entry.isIntersecting;
+            if (is3dVisible && animFrameId3d === null && renderer3d && !document.hidden) {
+                animate3D();
+            }
+        }
+    }, { threshold: 0.01 });
+    intersectObs3d.observe(container);
+
     // Hide loading
     const ld = document.getElementById('eeg3dLoading');
     if (ld) ld.style.display = 'none';
-    
+
     // Fly-in animation
     cameraLerping = true;
     cameraPos3d = { x: 60, y: 35, z: 50 };
     cameraTarget3d = { x: 25, y: 12, z: 15 };
-    
+
     animate3D();
 }
 
 function createStarField() {
-    const starCount = 2000;
+    const starCount = 800;  // was 2000 — background stars don't need that density
     const positions = new Float32Array(starCount * 3);
     const colors = new Float32Array(starCount * 3);
     const sizes = new Float32Array(starCount);
@@ -1387,7 +1448,7 @@ function createStarField() {
 }
 
 function createParticleSystem() {
-    const count = 300;
+    const count = 150;  // was 300 — each animated particle re-uploads to GPU every frame
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     
@@ -1467,10 +1528,15 @@ function render3DEEG(data) {
     if (!scene3d || !data.waveform) return;
     eeg3dData = data;
     
-    // Remove old EEG meshes
+    // Remove + dispose old EEG meshes. Without dispose(), repeatedly
+    // re-rendering after each analysis leaked geometry/material into VRAM,
+    // which eventually forced browser GC and caused frame hitches.
     const toRemove = [];
     scene3d.traverse(c => { if (c.userData.isEEG) toRemove.push(c); });
-    toRemove.forEach(o => scene3d.remove(o));
+    toRemove.forEach(o => {
+        scene3d.remove(o);
+        dispose3DObject(o);
+    });
     abnormalMarkers3d = [];
     glowSpheres3d = [];
     channelTubes3d = [];
@@ -1566,7 +1632,6 @@ function render3DEEG(data) {
         const mesh = new THREE.Mesh(geo, mat);
         mesh.userData.isEEG = true;
         mesh.userData.channelName = chName;
-        mesh.castShadow = true;
         scene3d.add(mesh);
         channelTubes3d.push(mesh);
         
@@ -1592,30 +1657,17 @@ function render3DEEG(data) {
         allChannelPoints.push(channelPoints);
     });
     
-    // ===== ABNORMAL REGION MARKERS (Animated Glow Spheres + Columns) =====
+    // ===== ABNORMAL REGION MARKERS (Glow Spheres only) =====
+    // Previously also drew large red BoxGeometry columns + a PointLight per
+    // region. With 70+ abnormal regions in a typical file those overlapped
+    // into a solid red pulsing wall and made WebGL juggle 70+ lights, which
+    // dominated the frame. Spheres alone still mark the locations clearly
+    // and they self-illuminate via emissive material without needing lights.
     abnormalRegions.forEach(region => {
         const xStart = (region.start / duration) * 50;
         const xEnd = (region.end / duration) * 50;
         const xMid = (xStart + xEnd) / 2;
-        const xWidth = Math.max(xEnd - xStart, 0.5);
-        
-        // Semi-transparent column
-        const colGeo = new THREE.BoxGeometry(xWidth, 32, nCh * 6 + 2);
-        const colMat = new THREE.MeshPhongMaterial({
-            color: 0xff2222,
-            transparent: true,
-            opacity: 0.04,
-            emissive: 0xff0000,
-            emissiveIntensity: 0.2
-        });
-        const col = new THREE.Mesh(colGeo, colMat);
-        col.position.set(xMid, 12, (nCh - 1) * 3);
-        col.userData.isEEG = true;
-        col.userData.isAbnormalMarker = true;
-        scene3d.add(col);
-        abnormalMarkers3d.push(col);
-        
-        // Glow sphere at each abnormal point
+
         const sphereGeo = new THREE.SphereGeometry(0.8, 16, 16);
         const sphereMat = new THREE.MeshPhongMaterial({
             color: 0xff4444,
@@ -1631,14 +1683,6 @@ function render3DEEG(data) {
         scene3d.add(sphere);
         glowSpheres3d.push(sphere);
         abnormalMarkers3d.push(sphere);
-        
-        // Point light at abnormal spot
-        const abnLight = new THREE.PointLight(0xff4444, 0.5, 15);
-        abnLight.position.set(xMid, 14, (nCh - 1) * 3);
-        abnLight.userData.isEEG = true;
-        abnLight.userData.isAbnormalMarker = true;
-        scene3d.add(abnLight);
-        abnormalMarkers3d.push(abnLight);
     });
     
     // ===== BUILD SURFACE MESH (hidden by default) =====
@@ -1731,12 +1775,17 @@ function createChannelLabel3D(text, x, y, z, color) {
 }
 
 // ===== ANIMATION LOOP =====
+// Single-owner loop: stops itself when renderer is torn down, tab is hidden,
+// or the 3D section scrolls out of view. Any of those cases pause work so the
+// GPU/CPU can idle. Resume is triggered by visibilitychange / intersection.
 function animate3D() {
-    if (!renderer3d) return;
-    requestAnimationFrame(animate3D);
-    
+    if (!renderer3d || !scene3d || !camera3d) { animFrameId3d = null; return; }
+    if (document.hidden || !is3dVisible) { animFrameId3d = null; return; }
+
+    animFrameId3d = requestAnimationFrame(animate3D);
+
     const time = Date.now() * 0.001;
-    
+
     // Smooth camera lerp
     if (cameraLerping) {
         camera3d.position.x += (cameraPos3d.x - camera3d.position.x) * 0.03;
@@ -1745,21 +1794,22 @@ function animate3D() {
         controls3d.target.x += (cameraTarget3d.x - controls3d.target.x) * 0.03;
         controls3d.target.y += (cameraTarget3d.y - controls3d.target.y) * 0.03;
         controls3d.target.z += (cameraTarget3d.z - controls3d.target.z) * 0.03;
-        
-        const dist = Math.abs(camera3d.position.x - cameraPos3d.x) + 
+
+        const dist = Math.abs(camera3d.position.x - cameraPos3d.x) +
                      Math.abs(camera3d.position.y - cameraPos3d.y) +
                      Math.abs(camera3d.position.z - cameraPos3d.z);
         if (dist < 0.5) cameraLerping = false;
     }
-    
+
     if (controls3d) {
         controls3d.autoRotate = eeg3dAnimating;
         controls3d.autoRotateSpeed = 0.4;
         controls3d.update();
     }
-    
-    // Animate particles
-    if (particleSystem3d && particleSystem3d.visible) {
+
+    // Animate particles only when visible — skipping this avoids a 300-vertex
+    // GPU buffer reupload every frame when particles are toggled off.
+    if (particleSystem3d && particleSystem3d.visible && eeg3dParticlesVisible) {
         const pos = particleSystem3d.geometry.attributes.position.array;
         for (let i = 0; i < pos.length; i += 3) {
             pos[i + 1] += Math.sin(time + pos[i] * 0.1) * 0.01;
@@ -1767,7 +1817,7 @@ function animate3D() {
         }
         particleSystem3d.geometry.attributes.position.needsUpdate = true;
     }
-    
+
     // Pulse glow spheres
     glowSpheres3d.forEach((sphere, idx) => {
         if (!sphere.visible) return;
@@ -1775,17 +1825,17 @@ function animate3D() {
         sphere.scale.set(scale, scale, scale);
         sphere.material.emissiveIntensity = 0.5 + Math.sin(time * 2.5 + idx * 0.7) * 0.4;
     });
-    
-    // Pulse abnormal column markers
-    abnormalMarkers3d.forEach(m => {
-        if (!m.visible || !m.material) return;
-        if (m.userData.isAbnormalMarker && m.material.opacity !== undefined && m.geometry && m.geometry.type === 'BoxGeometry') {
-            m.material.opacity = 0.03 + Math.sin(time * 1.5) * 0.02;
-        }
-    });
-    
+
     renderer3d.render(scene3d, camera3d);
 }
+
+// Resume the loop when the user returns to the tab. If the scene was torn
+// down or the section is offscreen, animate3D() will no-op on its own.
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && renderer3d && is3dVisible && animFrameId3d === null) {
+        animate3D();
+    }
+});
 
 // ===== VIEW PRESETS =====
 function set3DView(preset) {
@@ -1821,7 +1871,18 @@ function reset3DCamera() {
 
 function toggle3DAnimation() {
     eeg3dAnimating = !eeg3dAnimating;
-    showToast(eeg3dAnimating ? '⏯️ Auto-rotate: BẬT' : '⏸️ Auto-rotate: TẮT', 'info');
+    const btn = document.getElementById('btnToggle3DRotate');
+    if (btn) {
+        btn.textContent = eeg3dAnimating ? '⏸️ Dừng xoay' : '▶️ Bật xoay';
+        btn.style.background = eeg3dAnimating ? 'rgba(139, 92, 246, 0.25)' : '';
+        btn.style.borderColor = eeg3dAnimating ? '#8b5cf6' : '';
+    }
+    // If the loop paused (e.g. scene stood still and was torn down), kick it
+    // back on so the autorotate state takes effect immediately.
+    if (eeg3dAnimating && renderer3d && is3dVisible && !document.hidden && animFrameId3d === null) {
+        animate3D();
+    }
+    showToast(eeg3dAnimating ? '⏯️ Bật xoay tự động' : '⏸️ Đã dừng xoay', 'info');
 }
 
 function toggle3DAbnormal() {
