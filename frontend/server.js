@@ -1,5 +1,5 @@
 const path = require('path');
-const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
+const PROJECT_ROOT = path.resolve(__dirname, '..');
 require('dotenv').config({ path: path.join(PROJECT_ROOT, '.env') });
 const express = require('express');
 const cors = require('cors');
@@ -21,7 +21,12 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
-app.use(express.static(path.join(PROJECT_ROOT, 'frontend')));
+// Whitelist static asset directories — server.js sits in the same dir as
+// index.html so serving `__dirname` would also expose server.js / package.json
+// over HTTP. Only /css and /js are public; index.html is routed explicitly.
+app.use('/css', express.static(path.join(__dirname, 'css')));
+app.use('/js', express.static(path.join(__dirname, 'js')));
+app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 // Upload config
 const uploadDir = path.join(PROJECT_ROOT, 'uploads');
@@ -490,7 +495,7 @@ app.ws('/ws/chat', (ws, req) => {
 
 // SPA fallback
 app.get('*', (req, res) => {
-    res.sendFile(path.join(PROJECT_ROOT, 'frontend', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Start server

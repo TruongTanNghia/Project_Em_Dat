@@ -12,24 +12,26 @@ GitHub: `git@github.com:TruongTanNghia/Project_Em_Dat.git` (was `EEG-Brain-Analy
 
 | Service | File | Port | Stack |
 |---|---|---|---|
-| Web + chat + proxy | [backend/node/server.js](../../../backend/node/server.js) | 3000 | Node.js, Express, express-ws, OpenAI GPT-4o |
-| ML inference API | [backend/python/python_api.py](../../../backend/python/python_api.py) | 5000 | Flask, PyTorch, pyedflib, scipy |
-| MCP standalone | [backend/node/mcp-server.js](../../../backend/node/mcp-server.js) | stdio | 4 tools: analyze_eeg, generate_report, get_analysis_history, compare_analyses |
-| Frontend | [frontend/](../../../frontend/) | — | Vanilla HTML/JS + Chart.js + Three.js (orbit-controlled 3D brain) |
+| Web + chat + proxy | [frontend/server.js](../../../frontend/server.js) | 3000 | Node.js, Express, express-ws, OpenAI GPT-4o |
+| ML inference API | [backend/python_api.py](../../../backend/python_api.py) | 5000 | Flask, PyTorch, pyedflib, scipy |
+| MCP standalone | [frontend/mcp-server.js](../../../frontend/mcp-server.js) | stdio | 4 tools: analyze_eeg, generate_report, get_analysis_history, compare_analyses |
+| UI assets | [frontend/](../../../frontend/) | — | Vanilla HTML/JS + Chart.js + Three.js |
+
+**Convention**: `backend/` is Python-only (Flask ML service). Node lives inside `frontend/` because its primary job is serving the UI + proxying to Python — Node isn't a standalone API server here. Static serving is whitelisted to `/css` and `/js` so `server.js` / `package.json` are not exposed over HTTP.
 
 Node proxies `/api/predict-edf` to Python via `PYTHON_API` env (default `http://localhost:5000`). Image analysis (`/api/analyze`) and chat (`/api/chat`) stay inside Node via OpenAI.
 
 ## Run commands
 
 ```bash
-# Terminal 1 — ML API (run from project root OR backend/python)
-python backend/python/python_api.py
+# Terminal 1 — ML API
+python backend/python_api.py
 
 # Terminal 2 — Web
-cd backend/node && npm start      # = node server.js
+cd frontend && npm start          # = node server.js
 
 # MCP only
-cd backend/node && npm run mcp    # = node mcp-server.js
+cd frontend && npm run mcp        # = node mcp-server.js
 ```
 
 `.env` lives at **project root** and is loaded by both services:
@@ -40,7 +42,7 @@ Required keys: `OPENAI_API_KEY`, `PYTHON_API=http://localhost:5000`, `PORT=3000`
 
 ## ML Model — IMPORTANT: README is out of date
 
-README still describes GradientBoosting + 33 qEEG features. **Actual current model is PyTorch deep learning** — see [python_api.py:40-123](../../../python_api.py#L40-L123):
+README still describes GradientBoosting + 33 qEEG features. **Actual current model is PyTorch deep learning** — see [backend/python_api.py](../../../backend/python_api.py):
 
 - **Architecture**: `EEG_CNN_BiGRU_Attention` = 1D-CNN (3 blocks) → 2-layer BiGRU(64) → Temporal Attention → MLP classifier
 - **Input**: 23 channels × 1024 samples (4 s windows @ 256 Hz)
@@ -50,7 +52,7 @@ README still describes GradientBoosting + 33 qEEG features. **Actual current mod
 - **Device**: auto CUDA → CPU fallback
 - **DataParallel safe**: strips `module.` prefix on load
 
-### 4-tier per-window classification ([backend/python/python_api.py:170-186](../../../backend/python/python_api.py#L170-L186))
+### 4-tier per-window classification ([backend/python_api.py:171-187](../../../backend/python_api.py#L171-L187))
 
 | Prob (p) | Label | Color |
 |---|---|---|
@@ -79,21 +81,20 @@ The file-level verdict uses `best_threshold` from metadata (default 0.4). Window
 ## File layout
 
 ```
-backend/
-├── node/
-│   ├── server.js          Web + proxy + OpenAI + WebSocket (port 3000)
-│   ├── mcp-server.js      MCP stdio server
-│   ├── package.json       Node deps (runs from this dir)
-│   └── node_modules/      (gitignored)
-└── python/
-    ├── python_api.py      Flask ML API — PyTorch inference (port 5000)
-    ├── train_eeg_kaggle.py  Training script for Kaggle/Colab
-    └── requirements.txt
+backend/                    ← Python ONLY
+├── python_api.py           Flask ML API — PyTorch inference (port 5000)
+├── train_eeg_kaggle.py     Training script for Kaggle/Colab
+└── requirements.txt
 
-frontend/
-├── index.html
-├── css/styles.css
-└── js/
+frontend/                   ← UI + Node server (Node serves the UI)
+├── server.js               Web + proxy + OpenAI + WebSocket (port 3000)
+├── mcp-server.js           MCP stdio server
+├── package.json            Node deps (run npm install / npm start from here)
+├── package-lock.json
+├── node_modules/           (gitignored)
+├── index.html              Routed explicitly by Express
+├── css/                    Served via app.use('/css', static)
+└── js/                     Served via app.use('/js', static)
     ├── app.js
     └── vendor/{three.min.js, OrbitControls.js}
 
@@ -106,7 +107,9 @@ dataset/       CHB-MIT raw data (gitignored, ~900 MB)
 .env           OPENAI_API_KEY etc — at project root, loaded by both services
 ```
 
-**Path resolution**: Both Node and Python resolve from project root using `PROJECT_ROOT = path.resolve(__dirname, '..', '..')` / `os.path.join(os.path.dirname(__file__), '..', '..')`. Don't hardcode relative paths like `./models` inside service code.
+**Path resolution**: Both Node and Python resolve PROJECT_ROOT by walking up **one** level from their file — `path.resolve(__dirname, '..')` / `os.path.join(os.path.dirname(__file__), '..')`. Don't hardcode relative paths like `./models` inside service code.
+
+**Static serving whitelist**: `server.js` sits in `frontend/` next to `index.html`. Serving `__dirname` with `express.static` would also expose `server.js` and `package.json` over HTTP. Instead only `/css` and `/js` are served; `/` routes to `index.html`; everything else falls through to the SPA `*` handler (also `index.html`). **Do NOT add `app.use(express.static(__dirname))`** — it bypasses this isolation.
 
 ## Git / gitignore rules (important when adding files)
 
@@ -121,11 +124,11 @@ dataset/       CHB-MIT raw data (gitignored, ~900 MB)
 ## Conventions / gotchas
 
 - **Language**: All user-facing strings (labels, errors, chatbot replies) are Vietnamese. Keep that consistent when editing.
-- **Node 22 fetch conflict**: Proxy uses `form-data`'s `.submit()` instead of `fetch` — see [backend/node/server.js](../../../backend/node/server.js). Don't "modernize" this to `fetch`/`FormData` without testing.
-- **Chart.js + Three.js**: Frontend builds 4 chart types (waveform, anomaly timeline, band-power bar/radar/doughnut, band-power timeline) plus a Three.js 3D brain viewer with OrbitControls. Anomaly windows highlighted red.
+- **Node 22 fetch conflict**: Proxy uses `form-data`'s `.submit()` instead of `fetch` — see [frontend/server.js](../../../frontend/server.js). Don't "modernize" this to `fetch`/`FormData` without testing.
+- **Chart.js + Three.js**: Frontend builds 4 chart types (waveform, anomaly timeline, band-power bar/radar/doughnut, band-power timeline) plus a Three.js 3D brain viewer with OrbitControls. Anomaly windows highlighted red. The 3D viewer has a full RAF lifecycle (dispose + teardown on re-init, pause on tab hidden / section offscreen) — see `teardown3DScene()` and `animate3D()` in [frontend/js/app.js](../../../frontend/js/app.js).
 - **OpenAI model**: `gpt-4o` for vision and chat. API key read from `.env` via `dotenv` with explicit path to root.
-- **MCP**: stdio-based, see [backend/node/mcp-server.js](../../../backend/node/mcp-server.js). Tools are also reachable via `POST /api/mcp/execute` from the web UI.
-- **Training**: Do NOT try to train locally — use [backend/python/train_eeg_kaggle.py](../../../backend/python/train_eeg_kaggle.py) or [training/train_eeg_ver3.ipynb](../../../training/train_eeg_ver3.ipynb) on Kaggle with the CHB-MIT dataset. The script outputs `.pkl` artifacts for the legacy sklearn pipeline; the current `.pth` comes from the notebook.
+- **MCP**: stdio-based, see [frontend/mcp-server.js](../../../frontend/mcp-server.js). Tools are also reachable via `POST /api/mcp/execute` from the web UI.
+- **Training**: Do NOT try to train locally — use [backend/train_eeg_kaggle.py](../../../backend/train_eeg_kaggle.py) or [training/train_eeg_ver3.ipynb](../../../training/train_eeg_ver3.ipynb) on Kaggle with the CHB-MIT dataset. The script outputs `.pkl` artifacts for the legacy sklearn pipeline; the current `.pth` comes from the notebook.
 - **README drift**: README's ML section still mentions Gradient Boosting + 33 qEEG features + `eeg_seizure_model.pkl`. That path is legacy. If the user asks about the "current model", answer with the CNN+BiGRU+Attention description from `python_api.py`, not the README.
 
 ## Quick diagnosis cheats

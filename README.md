@@ -100,10 +100,10 @@ git clone https://github.com/TruongTanNghia/Project_Em_Dat.git
 cd Project_Em_Dat
 
 # Cài Node.js dependencies
-cd backend/node && npm install && cd ../..
+cd frontend && npm install && cd ..
 
 # Cài Python dependencies
-pip install -r backend/python/requirements.txt
+pip install -r backend/requirements.txt
 ```
 
 ### Bước 2: Cấu hình
@@ -141,11 +141,11 @@ Mở **2 terminal** (chạy từ project root):
 
 ```bash
 # Terminal 1: Python API (ML Model)
-python backend/python/python_api.py
+python backend/python_api.py
 # ✅ Output: 🧠 EEG Python API starting on port 5000...
 
 # Terminal 2: Node.js Server (Web)
-cd backend/node && npm start
+cd frontend && npm start
 # ✅ Output: 🧠 EEG Analysis Server running on http://localhost:3000
 ```
 
@@ -155,26 +155,24 @@ Mở trình duyệt → **http://localhost:3000** 🎉
 
 ```
 Project_Em_Dat/
-├── 📂 backend/
-│   ├── 📂 node/                 # Node.js service (port 3000)
-│   │   ├── server.js            # Express + WebSocket + OpenAI proxy
-│   │   ├── mcp-server.js        # MCP Server (stdio)
-│   │   ├── package.json
-│   │   └── package-lock.json
-│   └── 📂 python/               # Python ML service (port 5000)
-│       ├── python_api.py        # Flask API — PyTorch inference
-│       ├── train_eeg_kaggle.py  # Script train (Kaggle/Colab)
-│       └── requirements.txt
+├── 📂 backend/                  # Python ML service (port 5000)
+│   ├── python_api.py            # Flask API — PyTorch inference
+│   ├── train_eeg_kaggle.py      # Script train (Kaggle/Colab)
+│   └── requirements.txt
 │
-├── 📂 frontend/                 # Giao diện web
-│   ├── index.html
+├── 📂 frontend/                 # UI + Node server (port 3000)
+│   ├── server.js                # Express + WebSocket + OpenAI proxy
+│   ├── mcp-server.js            # MCP Server (stdio)
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── index.html               # Giao diện chính
 │   ├── 📂 css/
 │   │   └── styles.css           # Dark theme UI
 │   └── 📂 js/
-│       ├── app.js               # Logic upload/charts/chat
+│       ├── app.js               # Logic upload/charts/chat + Three.js 3D viewer
 │       └── 📂 vendor/
 │           ├── three.min.js
-│           └── OrbitControls.js # 3D brain viewer
+│           └── OrbitControls.js
 │
 ├── 📂 models/                   # Model weights + metadata
 │   ├── best_cnn_model.pth       # PyTorch CNN+BiGRU+Attention

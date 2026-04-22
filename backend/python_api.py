@@ -19,7 +19,7 @@ app = Flask(__name__)
 CORS(app)
 
 # ===== CONFIG =====
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 MODEL_DIR = os.path.join(PROJECT_ROOT, 'models')
 SAMPLING_RATE = 256
 WINDOW_SIZE = 4  # seconds
