@@ -5,3 +5,7 @@ numpy
 scipy
 pyedflib
 scikit-learn
+torch
+torchvision
+opencv-python
+Pillow

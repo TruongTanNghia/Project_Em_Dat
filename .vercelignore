@@ -1,0 +1,26 @@
+# Nothing in backend/ or node_modules goes to Vercel — FE-only deploy.
+# Vercel only needs frontend/ (set as outputDirectory in vercel.json).
+
+backend/
+frontend/server.js
+frontend/mcp-server.js
+frontend/package.json
+frontend/package-lock.json
+frontend/node_modules/
+
+# Data dirs (never deploy)
+uploads/
+dataset/
+models/
+training/
+1/
+
+# Docs
+docs/
+
+# Dev / misc
+.claude/
+.git/
+.gitignore
+README.md
+bao_cao_do_an.*

@@ -20,6 +20,11 @@ models/.virtual_documents/
 *.h5
 *.pth
 *.edf
+*.keras
+
+# Local demo / verification artifacts (not for repo)
+_mpr_demo/
+fetch_mpr_demo.py
 
 # Python
 __pycache__/

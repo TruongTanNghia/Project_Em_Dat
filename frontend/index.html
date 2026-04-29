@@ -11,8 +11,35 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="js/vendor/three.min.js"></script>
     <script src="js/vendor/OrbitControls.js"></script>
+    <script src="js/vendor/GLTFLoader.js"></script>
+    <script src="js/config.js"></script>
 </head>
 <body>
+
+<!-- ===== TOP NAVIGATION — 4 MODULES ===== -->
+<nav class="top-nav">
+    <div class="top-nav-brand">
+        <span class="top-nav-logo">🏥</span>
+        <span class="top-nav-title">Medical AI Suite</span>
+    </div>
+    <div class="top-nav-modules">
+        <button class="nav-module active" data-module="eeg" onclick="switchModule('eeg')">
+            🧠 <span>Điện não</span>
+        </button>
+        <button class="nav-module" data-module="brain" onclick="switchModule('brain')">
+            🧠 <span>U não MRI</span>
+        </button>
+        <button class="nav-module" data-module="lung" onclick="switchModule('lung')">
+            🫁 <span>U phổi CT</span>
+        </button>
+        <button class="nav-module" data-module="blood" onclick="switchModule('blood')">
+            🩸 <span>Xét nghiệm máu</span>
+        </button>
+    </div>
+</nav>
+
+<!-- ===== MODULE: EEG (existing, unchanged) ===== -->
+<div class="module-container" id="module-eeg">
 
 <!-- ===== HEADER ===== -->
 <header class="header">
@@ -225,7 +252,7 @@
                     <div style="width:1px; height:24px; background:rgba(255,255,255,0.1);"></div>
                     <!-- Controls -->
                     <button id="btnToggle3DRotate" class="btn btn-secondary" onclick="toggle3DAnimation()" style="font-size:11px; padding:5px 10px;">▶️ Bật xoay</button>
-                    <button class="btn btn-secondary" onclick="toggle3DAbnormal()" style="font-size:11px; padding:5px 10px;">🔴 Bất thường</button>
+                    <button id="btnToggle3DAbnormal" class="btn btn-secondary" onclick="toggle3DAbnormal()" style="font-size:11px; padding:5px 10px; background:rgba(239, 68, 68, 0.25); border-color:#ef4444;">🔴 Ẩn chấm đỏ</button>
                     <button class="btn btn-secondary" onclick="toggle3DParticles()" style="font-size:11px; padding:5px 10px;">✨ Particles</button>
                     <button class="btn btn-secondary" onclick="toggle3DSurface()" style="font-size:11px; padding:5px 10px;">🌊 Surface</button>
                     <div style="flex:1;"></div>
@@ -395,6 +422,542 @@
 
 <!-- ===== TOAST CONTAINER ===== -->
 <div class="toast-container" id="toastContainer"></div>
+
+</div><!-- /module-eeg -->
+
+<!-- =========================================================== -->
+<!-- ===== MODULE: BRAIN TUMOR (MRI) ===== -->
+<!-- =========================================================== -->
+<div class="module-container hidden" id="module-brain">
+    <header class="module-header brain-accent">
+        <div class="module-header-left">
+            <div class="module-logo">🧠</div>
+            <div>
+                <h1>PHÁT HIỆN KHỐI U NÃO &amp; TRỰC QUAN HÓA <span class="accent-gradient">3D</span></h1>
+                <p>AI-Powered Brain Tumor Detection</p>
+            </div>
+        </div>
+        <div class="module-header-right">
+            <div class="patient-chip"><span>Mã BN:</span> <b id="brainPatientId">—</b></div>
+            <div class="patient-chip"><span>Ngày chụp:</span> <b id="brainScanDate">—</b></div>
+        </div>
+    </header>
+
+    <div class="tumor-grid brain-grid">
+        <!-- Section 1: Input MRI Scan -->
+        <section class="card section-input">
+            <div class="section-title"><span class="section-num">1</span> INPUT MRI SCAN</div>
+
+            <div class="mri-views" id="brainMriViews">
+                <div class="mri-slot" data-slot="t1"><div class="mri-slot-empty">📎<br>T1</div></div>
+                <div class="mri-slot" data-slot="t1c"><div class="mri-slot-empty">📎<br>T1 Contrast</div></div>
+                <div class="mri-slot" data-slot="t2"><div class="mri-slot-empty">📎<br>T2</div></div>
+                <div class="mri-slot" data-slot="flair"><div class="mri-slot-empty">📎<br>FLAIR</div></div>
+            </div>
+
+            <input type="file" id="brainFileInput" accept="image/*" multiple hidden>
+            <button class="btn btn-primary btn-full" onclick="document.getElementById('brainFileInput').click()">
+                📎 Chọn ảnh MRI (1–4 ảnh)
+            </button>
+            <button class="btn btn-secondary btn-full" onclick="runBrainAnalysis()" style="margin-top:8px;">
+                🔍 Phân tích
+            </button>
+
+            <div class="patient-info-box">
+                <div class="patient-info-title">THÔNG TIN BỆNH NHÂN</div>
+                <dl class="patient-info-list">
+                    <dt>ID bệnh nhân</dt><dd id="brainInfoId">—</dd>
+                    <dt>Tuổi</dt><dd id="brainInfoAge">—</dd>
+                    <dt>Giới tính</dt><dd id="brainInfoSex">—</dd>
+                    <dt>Ngày chụp</dt><dd id="brainInfoDate">—</dd>
+                    <dt>Triệu chứng</dt><dd id="brainInfoSymptom">—</dd>
+                    <dt>Tiền sử</dt><dd id="brainInfoHistory">—</dd>
+                </dl>
+            </div>
+        </section>
+
+        <!-- Section 2: AI Detection -->
+        <section class="card section-detection">
+            <div class="section-title"><span class="section-num">2</span> AI DETECTION &amp; SEGMENTATION</div>
+
+            <div class="detection-canvas" id="brainDetectionCanvas">
+                <div class="detection-placeholder">Chưa có ảnh MRI — upload ảnh và bấm <b>Phân tích</b></div>
+            </div>
+
+            <div class="detection-legend">
+                <span class="legend-dot red"></span> Tumor (Detected)
+                <span class="legend-dot green" style="margin-left:14px;"></span> Vùng phân đoạn (Segmentation)
+            </div>
+
+            <div class="detection-stats">
+                <div class="stat-box">
+                    <div class="stat-label">Confidence Score</div>
+                    <div class="stat-value" id="brainConfidence">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Tumor Volume</div>
+                    <div class="stat-value" id="brainVolume">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Tumor Type</div>
+                    <div class="stat-value warn" id="brainType">—</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: 3D Visualization -->
+        <section class="card section-viz">
+            <div class="section-title"><span class="section-num">3</span> 3D VISUALIZATION</div>
+
+            <div class="viz-stage" id="brainVizStage">
+                <div class="viz-placeholder">🧠 Mô hình 3D não sẽ hiển thị tại đây</div>
+            </div>
+
+            <div class="viz-tools">
+                <button class="viz-tool" title="Xoay"><span>⟳</span><small>Xoay</small></button>
+                <button class="viz-tool" title="Zoom"><span>🔍</span><small>Zoom</small></button>
+                <button class="viz-tool" title="Pan"><span>✥</span><small>Pan</small></button>
+                <button class="viz-tool" title="Reset"><span>↺</span><small>Reset</small></button>
+            </div>
+
+            <div class="viz-slices">
+                <div class="slice-thumb"><div class="slice-box">Axial</div><small>Axial View</small></div>
+                <div class="slice-thumb"><div class="slice-box">Sagittal</div><small>Sagittal View</small></div>
+                <div class="slice-thumb"><div class="slice-box">Coronal</div><small>Coronal View</small></div>
+            </div>
+        </section>
+
+        <!-- Section 4: Tumor Analysis -->
+        <section class="card section-analysis brain-analysis-card">
+            <div class="section-title"><span class="section-num">4</span> PHÂN TÍCH KHỐI U</div>
+
+            <div class="analysis-row">
+                <div>
+                    <div class="meta-label">Kích thước khối u</div>
+                    <div class="meta-big" id="brainSize">—</div>
+                </div>
+                <div class="mini-3d" id="brainMini3d">
+                    <div class="mini-3d-placeholder">3D</div>
+                </div>
+            </div>
+
+            <dl class="analysis-list">
+                <dt>Vị trí</dt>
+                <dd><b id="brainLocation">—</b><small id="brainLocationSub"></small></dd>
+
+                <dt>Tọa độ (X, Y, Z)</dt>
+                <dd id="brainCoords">—</dd>
+
+                <dt>Mức độ ác tính (AI)</dt>
+                <dd><b class="danger" id="brainGrade">—</b></dd>
+            </dl>
+
+            <div class="subsection-title">Xác suất theo loại u</div>
+            <div class="prob-bars" id="brainProbBars">
+                <div class="prob-row empty">Chưa có dữ liệu</div>
+            </div>
+        </section>
+
+        <!-- Section 5: Progression -->
+        <section class="card section-progression">
+            <div class="section-title"><span class="section-num">5</span> SO SÁNH &amp; THEO DÕI TIẾN TRIỂN</div>
+
+            <div class="progression-row">
+                <div class="timeline" id="brainTimeline">
+                    <div class="timepoint empty">
+                        <div class="tp-date">—</div>
+                        <div class="tp-thumb"></div>
+                        <div class="tp-size">Thể tích: —</div>
+                    </div>
+                </div>
+                <div class="progression-chart-wrap">
+                    <div class="chart-caption">Biểu đồ phát triển khối u</div>
+                    <canvas id="brainProgressChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: Recommendations -->
+        <section class="card section-recommend brain-reco-card">
+            <div class="section-title"><span class="section-num">6</span> KHUYẾN NGHỊ (AI)</div>
+
+            <ul class="reco-list" id="brainRecoList">
+                <li class="reco-item empty">Phân tích ảnh để nhận khuyến nghị AI</li>
+            </ul>
+
+            <div class="disclaimer">⚠️ <b>Lưu ý:</b> Kết quả chỉ mang tính tham khảo, không thay thế chẩn đoán của bác sĩ.</div>
+        </section>
+    </div>
+</div><!-- /module-brain -->
+
+<!-- =========================================================== -->
+<!-- ===== MODULE: LUNG TUMOR (CT) ===== -->
+<!-- =========================================================== -->
+<div class="module-container hidden" id="module-lung">
+    <header class="module-header lung-accent">
+        <div class="module-header-left">
+            <div class="module-logo">🫁</div>
+            <div>
+                <h1>PHÁT HIỆN KHỐI U PHỔI &amp; TRỰC QUAN HÓA <span class="accent-gradient cyan">3D</span></h1>
+                <p>AI-Powered Lung Tumor Detection</p>
+            </div>
+        </div>
+        <div class="module-header-right">
+            <div class="patient-chip"><span>Mã BN:</span> <b id="lungPatientId">—</b></div>
+            <div class="patient-chip"><span>Ngày chụp:</span> <b id="lungScanDate">—</b></div>
+            <button class="btn btn-secondary btn-small">📄 Xem báo cáo</button>
+        </div>
+    </header>
+
+    <div class="tumor-grid lung-grid">
+        <!-- Section 1: Input CT Scan -->
+        <section class="card section-input">
+            <div class="section-title"><span class="section-num">1</span> INPUT CT SCAN (LUNG)</div>
+
+            <div class="ct-main-view" id="lungMainView" style="overflow:hidden;position:relative;">
+                <div class="detection-placeholder" id="lungPlaceholder">📎 Upload ảnh CT phổi</div>
+                <div class="ct-zoom-controls" id="lungZoomControls" style="display:none;">
+                    <button class="ct-zoom-btn" onclick="lungZoom(1.2)" title="Phóng to">🔍+</button>
+                    <button class="ct-zoom-btn" onclick="lungZoom(0.8)" title="Thu nhỏ">🔍−</button>
+                    <button class="ct-zoom-btn" onclick="lungZoom(0)" title="Reset">↺</button>
+                </div>
+            </div>
+
+            <div class="slice-slider">
+                <small>Slice:</small>
+                <input type="range" id="lungSliceRange" min="1" max="320" value="120" disabled>
+                <small><b id="lungSliceLabel">—</b></small>
+            </div>
+
+            <div class="ct-sub-views">
+                <div class="ct-sub-view">
+                    <div class="sub-box" id="lungCoronalBox"><span class="sub-empty">Coronal</span></div>
+                    <small>Coronal</small>
+                </div>
+                <div class="ct-sub-view">
+                    <div class="sub-box" id="lungSagittalBox"><span class="sub-empty">Sagittal</span></div>
+                    <small>Sagittal</small>
+                </div>
+                <div class="ct-sub-view">
+                    <div class="sub-box mini3d" id="lungPreview3DBox">
+                        <canvas id="lungPreview3DCanvas"></canvas>
+                        <span class="sub-empty mini3d-label">3D</span>
+                    </div>
+                    <small>3D Preview</small>
+                </div>
+            </div>
+
+            <input type="file" id="lungFileInput" accept="image/*" hidden>
+            <button class="btn btn-primary btn-full" onclick="document.getElementById('lungFileInput').click()" style="margin-top:10px;">
+                📎 Chọn ảnh CT
+            </button>
+            <button class="btn btn-secondary btn-full" onclick="runLungAnalysis()" style="margin-top:8px;">
+                🔍 Phân tích
+            </button>
+            <button class="btn btn-accent btn-full" onclick="openDatasetBrowser()" style="margin-top:8px;">
+                📂 Chọn từ Dataset LIDC
+            </button>
+
+            <div class="patient-info-box compact">
+                <div class="patient-info-title">THÔNG TIN BỆNH NHÂN</div>
+                <dl class="patient-info-list">
+                    <dt>Họ tên</dt><dd id="lungInfoName">—</dd>
+                    <dt>Tuổi</dt><dd id="lungInfoAge">—</dd>
+                    <dt>Giới tính</dt><dd id="lungInfoSex">—</dd>
+                    <dt>ID bệnh nhân</dt><dd id="lungInfoId">—</dd>
+                    <dt>Ngày chụp</dt><dd id="lungInfoDate">—</dd>
+                    <dt>Kỹ thuật</dt><dd id="lungInfoTech">—</dd>
+                    <dt>Bệnh viện</dt><dd id="lungInfoHospital">—</dd>
+                </dl>
+            </div>
+        </section>
+
+        <!-- Section 2: AI Detection -->
+        <section class="card section-detection">
+            <div class="section-title"><span class="section-num">2</span> PHÁT HIỆN &amp; PHÂN ĐOẠN KHỐI U (AI)</div>
+
+            <div class="detection-legend top">
+                <span class="legend-dot red"></span> Khối u phát hiện (AI)
+                <span class="legend-dot green" style="margin-left:14px;"></span> Vùng phân đoạn (Segmentation)
+            </div>
+
+            <div class="detection-canvas" id="lungDetectionCanvas">
+                <div class="detection-placeholder">Chưa có ảnh CT</div>
+            </div>
+
+            <div class="slice-strip" id="lungSliceStrip">
+                <div class="slice-thumb"><div class="slice-box">118</div><small>Slice 118</small></div>
+                <div class="slice-thumb active"><div class="slice-box">119</div><small>Slice 119</small></div>
+                <div class="slice-thumb center"><div class="slice-box">120</div><small>Slice 120</small></div>
+                <div class="slice-thumb"><div class="slice-box">121</div><small>Slice 121</small></div>
+                <div class="slice-thumb"><div class="slice-box">122</div><small>Slice 122</small></div>
+            </div>
+        </section>
+
+        <!-- Section 3: 3D Visualization -->
+        <section class="card section-viz">
+            <div class="section-title"><span class="section-num">3</span> TRỰC QUAN HÓA 3D</div>
+
+            <div class="viz-stage lung-stage" id="lungVizStage" style="position:relative;overflow:hidden;">
+                <canvas id="lung3dCanvas" style="width:100%;height:100%;display:block;"></canvas>
+                <div class="viz-placeholder" id="lungVizPlaceholder">🫁 Mô hình 3D phổi sẽ hiển thị tại đây</div>
+            </div>
+
+            <div class="viz-tools">
+                <button class="viz-tool" id="lungToolRotate" title="Tự động xoay"><span>⟳</span><small>Xoay</small></button>
+                <button class="viz-tool" id="lungToolZoom" title="Zoom"><span>🔍</span><small>Zoom</small></button>
+                <button class="viz-tool" id="lungToolPan" title="Pan"><span>✥</span><small>Pan</small></button>
+                <button class="viz-tool" id="lungToolReset" title="Reset camera"><span>↺</span><small>Reset</small></button>
+            </div>
+
+            <div class="viz-slices five">
+                <div class="slice-thumb" id="lungViewFront"><div class="slice-box">Front</div><small>Mặt trước</small></div>
+                <div class="slice-thumb" id="lungViewBack"><div class="slice-box">Back</div><small>Mặt sau</small></div>
+                <div class="slice-thumb" id="lungViewLeft"><div class="slice-box">Left</div><small>Bên trái</small></div>
+                <div class="slice-thumb" id="lungViewRight"><div class="slice-box">Right</div><small>Bên phải</small></div>
+                <div class="slice-thumb" id="lungViewTop"><div class="slice-box">Top</div><small>Trên xuống</small></div>
+            </div>
+        </section>
+
+        <!-- Section 4: Analysis -->
+        <section class="card section-analysis lung-analysis-card">
+            <div class="section-title"><span class="section-num">4</span> KẾT QUẢ PHÂN TÍCH</div>
+
+            <div class="analysis-row">
+                <div>
+                    <div class="meta-label">Kích thước khối u</div>
+                    <div class="meta-big" id="lungDiameter">—</div>
+                    <div class="meta-sub">(Đường kính lớn nhất)</div>
+                </div>
+                <div class="mini-3d" id="lungMini3d">
+                    <div class="mini-3d-placeholder">3D</div>
+                </div>
+            </div>
+
+            <dl class="analysis-list">
+                <dt>Thể tích khối u</dt>
+                <dd><b id="lungVolume">—</b></dd>
+
+                <dt>Vị trí</dt>
+                <dd><b id="lungLocation">—</b><small id="lungLocationSub"></small></dd>
+
+                <dt>Loại tổn thương (AI)</dt>
+                <dd><b class="danger" id="lungType">—</b></dd>
+
+                <dt>Xác suất ác tính</dt>
+                <dd>
+                    <b id="lungMalignancy">—</b>
+                    <div class="inline-bar"><div class="inline-bar-fill" id="lungMalignancyBar"></div></div>
+                </dd>
+
+                <dt>Xác đoạn nghi ngờ (AI)</dt>
+                <dd><b id="lungStage">—</b><small id="lungStageSub"></small></dd>
+
+                <dt>Hình dạng</dt>
+                <dd><b id="lungShape">—</b></dd>
+
+                <dt>Mật độ (HU)</dt>
+                <dd><b id="lungDensity">—</b></dd>
+
+                <dt>Độ tin cậy AI</dt>
+                <dd>
+                    <b id="lungConfidence">—</b>
+                    <div class="inline-bar"><div class="inline-bar-fill confidence-bar" id="lungConfidenceBar"></div></div>
+                </dd>
+            </dl>
+
+            <div class="risk-badge-wrap" id="lungRiskBadge" style="display:none;">
+                <div class="risk-badge low" id="lungRiskLevel">
+                    <span class="risk-icon">🟢</span>
+                    <span class="risk-text" id="lungRiskText">Nguy cơ thấp</span>
+                </div>
+            </div>
+
+            <div class="action-box" id="lungActionBox" style="display:none;">
+                <div class="action-title">📋 Đề xuất hành động</div>
+                <div class="action-content" id="lungActionContent">—</div>
+                <div class="action-followup">
+                    <span>🗓️ Tái khám:</span> <b id="lungFollowup">—</b>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Progression -->
+        <section class="card section-progression">
+            <div class="section-title"><span class="section-num">5</span> SO SÁNH &amp; THEO DÕI TIẾN TRIỂN</div>
+
+            <div class="progression-row">
+                <div class="timeline" id="lungTimeline">
+                    <div class="timepoint empty">
+                        <div class="tp-date">—</div>
+                        <div class="tp-thumb"></div>
+                        <div class="tp-size">Kích thước: —</div>
+                    </div>
+                </div>
+                <div class="progression-chart-wrap">
+                    <div class="chart-caption">Biểu đồ phát triển khối u</div>
+                    <canvas id="lungProgressChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: Recommendations -->
+        <section class="card section-recommend lung-reco-card">
+            <div class="section-title"><span class="section-num">6</span> KHUYẾN NGHỊ (AI)</div>
+
+            <ul class="reco-list" id="lungRecoList">
+                <li class="reco-item empty">Phân tích ảnh để nhận khuyến nghị AI</li>
+            </ul>
+
+            <div class="disclaimer">⚠️ <b>Lưu ý:</b> Kết quả chỉ mang tính tham khảo, không thay thế chẩn đoán của bác sĩ.</div>
+        </section>
+    </div>
+
+    <!-- Dataset Browser Modal -->
+    <div class="modal-overlay hidden" id="datasetModal">
+        <div class="modal-box dataset-modal">
+            <div class="modal-header">
+                <h3>📂 LIDC-IDRI Dataset Browser</h3>
+                <button class="modal-close" onclick="closeDatasetBrowser()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="dataset-controls">
+                    <select id="dsPatientSelect" onchange="onPatientChange()">
+                        <option value="">— Chọn bệnh nhân —</option>
+                    </select>
+                    <select id="dsNoduleSelect" onchange="onNoduleChange()">
+                        <option value="">— Chọn nodule —</option>
+                    </select>
+                </div>
+                <div class="dataset-slices" id="dsSliceGrid">
+                    <div class="ds-empty">Chọn bệnh nhân để xem danh sách slices</div>
+                </div>
+                <div class="dataset-info" id="dsInfo">
+                    <span id="dsInfoText"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDatasetBrowser()">Đóng</button>
+                <button class="btn btn-primary" id="dsAnalyzeBtn" onclick="analyzeDatasetSlice()" disabled>
+                    🔍 Phân tích slice đã chọn
+                </button>
+            </div>
+        </div>
+    </div>
+</div><!-- /module-lung -->
+
+<!-- =========================================================== -->
+<!-- ===== MODULE: BLOOD TEST ===== -->
+<!-- =========================================================== -->
+<div class="module-container hidden" id="module-blood">
+    <header class="module-header blood-accent">
+        <div class="module-header-left">
+            <div class="module-logo">🩸</div>
+            <div>
+                <h1>PHÂN TÍCH XÉT NGHIỆM MÁU <span class="accent-gradient pink">AI</span></h1>
+                <p>AI-Powered Blood Test Analysis — CBC + Sinh hoá + Nguy cơ bệnh</p>
+            </div>
+        </div>
+        <div class="module-header-right">
+            <div class="patient-chip"><span>Ngày xét nghiệm:</span> <b id="bloodTestDate">—</b></div>
+        </div>
+    </header>
+
+    <div class="blood-grid">
+        <!-- Section 1: Input form -->
+        <section class="card section-input">
+            <div class="section-title"><span class="section-num">1</span> NHẬP CHỈ SỐ XÉT NGHIỆM</div>
+
+            <div class="blood-form">
+                <div class="blood-form-group">
+                    <h4>🩸 Huyết học (CBC)</h4>
+                    <label>WBC (K/µL)<input type="number" step="0.01" id="b_wbc" placeholder="4.0 – 10.0"></label>
+                    <label>RBC (M/µL)<input type="number" step="0.01" id="b_rbc" placeholder="4.5 – 5.9"></label>
+                    <label>Hemoglobin (g/dL)<input type="number" step="0.1" id="b_hgb" placeholder="13.5 – 17.5"></label>
+                    <label>Hematocrit (%)<input type="number" step="0.1" id="b_hct" placeholder="41 – 53"></label>
+                    <label>Platelets (K/µL)<input type="number" step="1" id="b_plt" placeholder="150 – 400"></label>
+                </div>
+
+                <div class="blood-form-group">
+                    <h4>🍬 Sinh hoá máu</h4>
+                    <label>Glucose (mmol/L)<input type="number" step="0.01" id="b_glu" placeholder="3.9 – 6.1"></label>
+                    <label>HbA1c (%)<input type="number" step="0.1" id="b_hba1c" placeholder="< 5.7"></label>
+                    <label>Cholesterol (mmol/L)<input type="number" step="0.01" id="b_chol" placeholder="< 5.2"></label>
+                    <label>LDL (mmol/L)<input type="number" step="0.01" id="b_ldl" placeholder="< 3.4"></label>
+                    <label>HDL (mmol/L)<input type="number" step="0.01" id="b_hdl" placeholder="> 1.0"></label>
+                    <label>Triglycerides (mmol/L)<input type="number" step="0.01" id="b_trig" placeholder="< 1.7"></label>
+                </div>
+
+                <div class="blood-form-group">
+                    <h4>🧪 Gan &amp; Thận</h4>
+                    <label>ALT (U/L)<input type="number" step="1" id="b_alt" placeholder="7 – 55"></label>
+                    <label>AST (U/L)<input type="number" step="1" id="b_ast" placeholder="8 – 48"></label>
+                    <label>Creatinine (µmol/L)<input type="number" step="1" id="b_crea" placeholder="62 – 106"></label>
+                    <label>Ure / BUN (mmol/L)<input type="number" step="0.1" id="b_ure" placeholder="2.5 – 7.1"></label>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <button class="btn btn-secondary btn-full" onclick="fillDemoBlood()">🎲 Dữ liệu mẫu</button>
+                <button class="btn btn-primary btn-full" onclick="runBloodAnalysis()">🔍 Phân tích</button>
+            </div>
+        </section>
+
+        <!-- Section 2: Results table -->
+        <section class="card section-detection blood-results-card">
+            <div class="section-title"><span class="section-num">2</span> KẾT QUẢ CÁC CHỈ SỐ</div>
+
+            <div class="blood-summary" id="bloodSummary">
+                <div class="summary-item ok"><span class="dot"></span>Bình thường: <b id="bloodNormalCount">—</b></div>
+                <div class="summary-item warn"><span class="dot"></span>Cần chú ý: <b id="bloodMildCount">—</b></div>
+                <div class="summary-item danger"><span class="dot"></span>Bất thường: <b id="bloodAbnormalCount">—</b></div>
+            </div>
+
+            <div class="blood-table-wrap">
+                <table class="blood-table" id="bloodTable">
+                    <thead>
+                        <tr>
+                            <th>Chỉ số</th>
+                            <th>Giá trị</th>
+                            <th>Ngưỡng bình thường</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bloodTableBody">
+                        <tr><td colspan="4" class="empty">Chưa có dữ liệu — nhập và bấm Phân tích</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section 3: Risk assessment -->
+        <section class="card section-analysis blood-risk-card">
+            <div class="section-title"><span class="section-num">3</span> NGUY CƠ BỆNH (AI)</div>
+
+            <div class="prob-bars" id="bloodRiskBars">
+                <div class="prob-row empty">Chưa có dữ liệu</div>
+            </div>
+
+            <div class="subsection-title">Tổng quan nhóm</div>
+            <div class="blood-group-status" id="bloodGroupStatus">
+                <div class="group-status empty"><span>Huyết học</span><b>—</b></div>
+                <div class="group-status empty"><span>Sinh hoá</span><b>—</b></div>
+                <div class="group-status empty"><span>Gan / Thận</span><b>—</b></div>
+            </div>
+        </section>
+
+        <!-- Section 4: Recommendations -->
+        <section class="card section-recommend blood-reco-card">
+            <div class="section-title"><span class="section-num">4</span> KHUYẾN NGHỊ (AI)</div>
+
+            <ul class="reco-list" id="bloodRecoList">
+                <li class="reco-item empty">Nhập các chỉ số và bấm Phân tích để nhận khuyến nghị AI</li>
+            </ul>
+
+            <div class="disclaimer">⚠️ <b>Lưu ý:</b> Kết quả chỉ mang tính tham khảo, không thay thế chẩn đoán của bác sĩ.</div>
+        </section>
+    </div>
+</div><!-- /module-blood -->
 
 <script src="js/app.js"></script>
 </body>

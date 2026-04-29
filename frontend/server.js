@@ -26,6 +26,14 @@ app.use(express.json({ limit: '50mb' }));
 // over HTTP. Only /css and /js are public; index.html is routed explicitly.
 app.use('/css', express.static(path.join(__dirname, 'css')));
 app.use('/js', express.static(path.join(__dirname, 'js')));
+app.use('/models', express.static(path.join(__dirname, 'models'), {
+  setHeaders: function(res, filePath) {
+    if (filePath.endsWith('.glb')) {
+      res.setHeader('Content-Type', 'model/gltf-binary');
+    }
+  },
+  maxAge: '1d'
+}));
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 // Upload config
@@ -130,7 +138,123 @@ app.get('/api/model-status', async (req, res) => {
     }
 });
 
-// ==================== EEG ANALYSIS ENDPOINT ====================
+// ==================== LUNG CT PREDICT (PROXY TO PYTHON) ====================
+const uploadLungImage = multer({
+    dest: uploadDir,
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+    fileFilter: (req, file, cb) => {
+        const allowed = ['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, allowed.includes(ext));
+    }
+});
+
+app.post('/api/predict-lung', uploadLungImage.single('lungImage'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'Không có file ảnh CT được upload.' });
+    }
+
+    try {
+        const FormData = require('form-data');
+        const formData = new FormData();
+        formData.append('lungImage', fs.createReadStream(req.file.path), {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype || 'image/png'
+        });
+
+        const result = await new Promise((resolve, reject) => {
+            formData.submit(`${PYTHON_API}/api/predict-lung`, (err, response) => {
+                if (err) return reject(err);
+                let body = '';
+                response.on('data', chunk => body += chunk);
+                response.on('end', () => {
+                    try {
+                        resolve(JSON.parse(body));
+                    } catch (e) {
+                        reject(new Error(`Invalid response: ${body.substring(0, 200)}`));
+                    }
+                });
+                response.on('error', reject);
+            });
+        });
+
+        // Store in history
+        if (result.success) {
+            const record = {
+                id: uuidv4(),
+                timestamp: new Date().toISOString(),
+                type: 'lung-ct',
+                originalName: req.file.originalname,
+                prediction: result.tumorType,
+                analysis: {
+                    detected: result.detected,
+                    maxDiameterMm: result.maxDiameterMm,
+                    malignancy: result.malignancy,
+                    position: result.position
+                }
+            };
+            analysisHistory.push(record);
+            result.id = record.id;
+        }
+
+        res.json(result);
+    } catch (error) {
+        console.error('Lung predict error:', error);
+        res.status(500).json({
+            error: 'Không thể kết nối Python API. Hãy chắc chắn đã chạy: python python_api.py',
+            details: error.message
+        });
+    }
+});
+
+app.get('/api/lung-model-status', async (req, res) => {
+    try {
+        const response = await fetch(`${PYTHON_API}/api/lung-model-info`);
+        const data = await response.json();
+        res.json({ ...data, pythonApi: PYTHON_API });
+    } catch {
+        res.json({ status: 'offline', pythonApi: PYTHON_API });
+    }
+});
+
+// Dataset browser proxy
+app.get('/api/lung-dataset', async (req, res) => {
+    try {
+        const response = await fetch(`${PYTHON_API}/api/lung-dataset`);
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        res.status(500).json({ error: 'Python API offline: ' + e.message });
+    }
+});
+
+app.post('/api/predict-lung-dataset', async (req, res) => {
+    try {
+        const response = await fetch(`${PYTHON_API}/api/predict-lung-dataset`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body)
+        });
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        res.status(500).json({ error: 'Python API offline: ' + e.message });
+    }
+});
+
+app.get('/api/lung-dataset-image', async (req, res) => {
+    try {
+        const { patient, nodule, slice } = req.query;
+        const response = await fetch(`${PYTHON_API}/api/lung-dataset-image?patient=${patient}&nodule=${nodule || 'nodule-0'}&slice=${slice || 0}`);
+        if (!response.ok) return res.status(response.status).send('Not found');
+        const buffer = await response.arrayBuffer();
+        res.setHeader('Content-Type', 'image/png');
+        res.send(Buffer.from(buffer));
+    } catch (e) {
+        res.status(500).send('Error');
+    }
+});
+
 app.post('/api/analyze', upload.single('eegImage'), async (req, res) => {
     try {
         if (!req.file) {
