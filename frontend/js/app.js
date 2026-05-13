@@ -2118,91 +2118,1905 @@ function switchModule(name) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ============ BRAIN TUMOR (MRI) — mock analysis ============
-function runBrainAnalysis() {
-    const result = {
-        confidence: 0.96,
-        volume: 32.7,
-        type: 'Glioma',
-        grade: 'Cao (High Grade)',
-        location: 'Thùy trán',
-        locationSub: 'Trái (Frontal Lobe - Left)',
-        coords: '-32.4, 45.6, 28.1',
-        probs: [
-            { label: 'Glioma (High Grade)', value: 0.82, color: '#ef4444' },
-            { label: 'Meningioma',          value: 0.11, color: '#f59e0b' },
-            { label: 'Pituitary Tumor',     value: 0.04, color: '#10b981' },
-            { label: 'Others',              value: 0.03, color: '#3b82f6' },
-        ],
-        patient: {
-            id: '230514_001', age: 45, sex: 'Nam',
-            date: '14/05/2024',
-            symptom: 'Đau đầu, chóng mặt',
-            history: 'Không có'
-        },
-        progression: [
-            { date: '01/03/2024', volume: 8.2 },
-            { date: '01/04/2024', volume: 16.3 },
-            { date: '01/05/2024', volume: 16.1 },
-            { date: '14/05/2024', volume: 32.7, current: true },
-        ],
-        recommendations: [
-            'Nên tham khảo ý kiến bác sĩ chuyên khoa Thần kinh.',
-            'Khối u có dấu hiệu phát triển, cần theo dõi và điều trị sớm.',
-            'Đề xuất: Chụp MRI định kỳ và đánh giá lại sau 4 tuần.',
-        ]
+// ============ BRAIN FILE INPUT FEEDBACK (upload visual confirmation) ============
+(function () {
+    if (window.__brainFileWired) return;
+    window.__brainFileWired = true;
+
+    function detectModalitySlot(filename) {
+        var n = (filename || '').toLowerCase();
+        // Reject segmentation ground-truth files — they're labels, not MRI
+        if (/_?seg(\.|_|$)/.test(n)) return 'reject-seg';
+        if (n.indexOf('t1ce') >= 0 || n.indexOf('t1c') >= 0 || n.indexOf('t1gd') >= 0) return 't1c';
+        if (n.indexOf('flair') >= 0) return 'flair';
+        if (n.indexOf('t2') >= 0) return 't2';
+        if (n.indexOf('t1') >= 0) return 't1';
+        return null;
+    }
+
+    function shortName(name, max) {
+        max = max || 18;
+        if (!name) return '';
+        if (name.length <= max) return name;
+        var ext = '';
+        var dot = name.lastIndexOf('.');
+        if (dot > 0 && name.length - dot < 8) { ext = name.slice(dot); name = name.slice(0, dot); }
+        return name.slice(0, max - ext.length - 1) + '…' + ext;
+    }
+
+    function _setBrainMode(mode) {
+        var m2d = document.getElementById('brainInputMode2D');
+        var mni = document.getElementById('brainInputModeNifti');
+        if (m2d) m2d.classList.toggle('is-active', mode === '2d');
+        if (mni) mni.classList.toggle('is-active', mode === 'nifti');
+    }
+
+    // U-Net tab — 4 MRI slots
+    var brainFi = document.getElementById('brainFileInput');
+    if (brainFi) {
+        brainFi.addEventListener('change', function (e) {
+            var files = Array.from(e.target.files || []);
+            if (files.length === 0) return;
+
+            // Filter out seg files (BraTS ground truth, not a modality input)
+            var rejectedSeg = files.filter(function (f) {
+                return /_?seg(\.|_|$)/.test(f.name.toLowerCase());
+            });
+            files = files.filter(function (f) {
+                return !/_?seg(\.|_|$)/.test(f.name.toLowerCase());
+            });
+            if (rejectedSeg.length > 0) {
+                showToast('Bỏ qua ' + rejectedSeg.length + ' file *_seg.nii.gz (đó là nhãn ground truth, không phải MRI)', 'error');
+            }
+            if (files.length === 0) {
+                showToast('Vui lòng chọn file MRI modality (flair/t1/t1ce/t2), không phải *_seg', 'error');
+                e.target.value = '';
+                return;
+            }
+
+            var isNifti = files.some(function (f) { return /\.nii(\.gz)?$/i.test(f.name); });
+            _setBrainMode(isNifti ? 'nifti' : '2d');
+
+            // Reset every slot to empty state
+            document.querySelectorAll('#brainMriViews .mri-slot').forEach(function (s) {
+                s.classList.remove('has-file');
+                var name = s.getAttribute('data-slot') || '';
+                var label = ({ t1: 'T1', t1c: 'T1c', t2: 'T2', flair: 'FLAIR' })[name] || name.toUpperCase();
+                var empty = s.querySelector('.mri-slot-empty');
+                if (empty) empty.innerHTML = '📎<br>' + label;
+            });
+
+            // 2D mode: only show preview in the first slot (others stay placeholder
+            // since the BE replicates the single image to all 4 channels anyway).
+            if (!isNifti && files.length === 1) {
+                var f0 = files[0];
+                var slotEl = document.querySelector('#brainMriViews .mri-slot[data-slot="t1"]');
+                if (slotEl) {
+                    slotEl.classList.add('has-file');
+                    var url = URL.createObjectURL(f0);
+                    var empty = slotEl.querySelector('.mri-slot-empty');
+                    if (empty) {
+                        empty.innerHTML = '<div class="slot-preview" style="background-image:url(\'' + url + '\');"></div>' +
+                            '<small class="fname">' + shortName(f0.name) + '</small>';
+                    }
+                }
+                showToast('Demo 2D · 1 ảnh → 4 channels', 'success');
+                return;
+            }
+
+            // Assign files to slots
+            var slotOrder = ['t1', 't1c', 't2', 'flair'];
+            var nextFallback = 0;
+            files.forEach(function (f) {
+                var slot = detectModalitySlot(f.name);
+                if (!slot || document.querySelector('#brainMriViews .mri-slot[data-slot="' + slot + '"].has-file')) {
+                    // Couldn't detect, or slot already taken — use next empty slot
+                    while (nextFallback < slotOrder.length) {
+                        var candidate = slotOrder[nextFallback++];
+                        var elc = document.querySelector('#brainMriViews .mri-slot[data-slot="' + candidate + '"]');
+                        if (elc && !elc.classList.contains('has-file')) { slot = candidate; break; }
+                    }
+                }
+                var slotEl = document.querySelector('#brainMriViews .mri-slot[data-slot="' + slot + '"]');
+                if (slotEl) {
+                    slotEl.classList.add('has-file');
+                    var empty = slotEl.querySelector('.mri-slot-empty');
+                    if (empty) {
+                        empty.innerHTML = '<span class="check">✓</span><br>' +
+                            '<small class="fname">' + shortName(f.name) + '</small>';
+                    }
+                }
+            });
+
+            showToast('Đã chọn ' + files.length + ' file MRI', 'success');
+        });
+    }
+
+    // YOLO tab — single image preview
+    var yoloFi = document.getElementById('yoloFileInput');
+    if (yoloFi) {
+        yoloFi.addEventListener('change', function (e) {
+            var f = e.target.files && e.target.files[0];
+            if (!f) return;
+            var canvas = document.getElementById('yoloCanvas');
+            if (canvas) {
+                var url = URL.createObjectURL(f);
+                canvas.innerHTML = '<img src="' + url + '" alt="Selected">' +
+                    '<div class="yolo-file-tag">📎 ' + shortName(f.name, 32) + '</div>';
+            }
+            showToast('Đã chọn ' + shortName(f.name, 28), 'success');
+        });
+    }
+})();
+
+// ============ SKETCHFAB GLASS BRAIN — Viewer API integration ============
+// Loads the Glass Brain Sketchfab model into #brainSketchfabFrame via their
+// Viewer API. After analysis, we animate the camera + show a floating
+// "Khối u · X mm" overlay near the brain (we can't inject a custom 3D mesh
+// into Sketchfab's sandboxed scene, but camera control + overlay works).
+var brainSketchfabApi = null;
+var brainSketchfabReady = false;
+var brainSketchfabInitTries = 0;
+
+function initBrainSketchfab() {
+    if (brainSketchfabApi || brainSketchfabReady) return;
+    if (typeof Sketchfab === 'undefined') {
+        // SDK still loading — retry up to 10× over ~5s
+        if (brainSketchfabInitTries++ < 10) {
+            setTimeout(initBrainSketchfab, 500);
+        } else {
+            console.warn('[BrainSketchfab] SDK never loaded');
+        }
+        return;
+    }
+    var iframe = document.getElementById('brainSketchfabFrame');
+    if (!iframe) return;
+    var uid = '9bcd3705024146cb9b482bd65295f040';     // Glass Brain
+    try {
+        var client = new Sketchfab('1.12.1', iframe);
+        client.init(uid, {
+            success: function (api) {
+                api.start();
+                api.addEventListener('viewerready', function () {
+                    brainSketchfabApi = api;
+                    brainSketchfabReady = true;
+                    api.setAutoRotate(0.4, function () {});
+                    // Override background color to match our dark theme.
+                    // We're using transparent: 0 because Glass Brain (translucent
+                    // material) needs an environment to render visibly — but we
+                    // can still recolor the background to integrate with the UI.
+                    try {
+                        if (api.setBackground) {
+                            api.setBackground({ color: [0.045, 0.063, 0.110, 1.0] }, function () {});
+                        }
+                    } catch (e) {}
+                    console.log('[BrainSketchfab] viewer ready');
+                });
+            },
+            error: function () { console.error('[BrainSketchfab] init error'); },
+            ui_theme: 'dark',
+            ui_infos: 0,
+            ui_inspector: 0,
+            ui_help: 0,
+            ui_settings: 0,
+            ui_watermark: 0,
+            ui_watermark_link: 0,
+            ui_hint: 0,
+            ui_ar: 0,
+            ui_vr: 0,
+            ui_animations: 0,
+            ui_stop: 0,
+            ui_controls: 1,
+            ui_fullscreen: 1,
+            autostart: 1,
+            // transparent: 0 — Glass Brain needs an environment to reflect;
+            // a transparent background makes the translucent model render invisible.
+            transparent: 0,
+            preload: 1,
+        });
+    } catch (e) {
+        console.error('[BrainSketchfab] init exception:', e);
+    }
+}
+
+// Sketchfab init is now lazy — only fires when the user explicitly switches
+// to the "Glass Brain (Sketchfab)" tab. The Glass Brain model is intentionally
+// translucent and may render invisible under our theme, so the safer default
+// is the Custom Three.js brain (always controllable + always visible).
+// Pre-init the Custom Three.js brain when user opens the Brain module so
+// they immediately see a 3D brain (even without running analysis).
+(function () {
+    if (window.__brainModuleNavWired) return;
+    window.__brainModuleNavWired = true;
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('.nav-module');
+        if (!btn) return;
+        if (btn.dataset && btn.dataset.module === 'brain') {
+            setTimeout(function () { initBrainCustom3D(null); }, 120);
+        }
+    });
+    // Also kick off on page-load if Brain module is the currently visible one
+    function maybeInit() {
+        var mb = document.getElementById('module-brain');
+        if (mb && !mb.classList.contains('hidden') && !brainCustomInited) {
+            initBrainCustom3D(null);
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { setTimeout(maybeInit, 200); });
+    } else {
+        setTimeout(maybeInit, 200);
+    }
+})();
+
+// ============ CUSTOM THREE.JS BRAIN — fallback ellipsoid + 3D tumor mesh ====
+// Option B: a fully-controlled scene where we can inject a red tumor mesh
+// inside the brain at the segmentation centroid. Loads /models/brain.glb if
+// the user provides one, otherwise renders an ellipsoid stand-in.
+var brainCustomScene, brainCustomCamera, brainCustomRenderer, brainCustomControls;
+var brainCustomAnimId = null;
+var brainCustomInited = false;
+var brainCustomTumorParts = [];
+var brainCustomModel = null;
+
+function disposeBrainCustom3D() {
+    if (brainCustomAnimId) { cancelAnimationFrame(brainCustomAnimId); brainCustomAnimId = null; }
+    if (brainCustomRenderer) { try { brainCustomRenderer.dispose(); } catch (e) {} brainCustomRenderer = null; }
+    brainCustomScene = null;
+    brainCustomCamera = null;
+    brainCustomControls = null;
+    brainCustomTumorParts = [];
+    brainCustomModel = null;
+    brainCustomInited = false;
+}
+
+function initBrainCustom3D(tumorData) {
+    try {
+        var stage = document.getElementById('brainCustom3DStage');
+        var canvas = document.getElementById('brainCustom3DCanvas');
+        var ph = document.getElementById('brainCustom3DPlaceholder');
+        if (!stage || !canvas || typeof THREE === 'undefined') return;
+        if (ph) ph.style.display = 'none';
+        disposeBrainCustom3D();
+
+        var rect = stage.getBoundingClientRect();
+        var w = Math.max(rect.width, 320), h = Math.max(rect.height, 240);
+
+        brainCustomScene = new THREE.Scene();
+        brainCustomScene.background = null;
+        brainCustomCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 500);
+        brainCustomCamera.position.set(0, 4, 32);
+        brainCustomCamera.lookAt(0, 0, 0);
+
+        brainCustomRenderer = new THREE.WebGLRenderer({
+            canvas: canvas, antialias: true, alpha: true,
+        });
+        brainCustomRenderer.setClearColor(0x000000, 0);
+        brainCustomRenderer.setSize(w, h, false);
+        brainCustomRenderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
+
+        brainCustomControls = new THREE.OrbitControls(brainCustomCamera, canvas);
+        brainCustomControls.enableDamping = true;
+        brainCustomControls.autoRotate = true;
+        brainCustomControls.autoRotateSpeed = 0.6;
+        brainCustomControls.target.set(0, 0, 0);
+
+        // Warm clinical lighting: key from upper-right, soft fill from front,
+        // cool rim from back. Reads the cortex wrinkles as brain tissue.
+        brainCustomScene.add(new THREE.AmbientLight(0xffeede, 0.45));
+        var dl = new THREE.DirectionalLight(0xfff2e8, 1.4);
+        dl.position.set(18, 22, 20);
+        brainCustomScene.add(dl);
+        var fill = new THREE.DirectionalLight(0xfde0d4, 0.65);
+        fill.position.set(-15, 8, 18);
+        brainCustomScene.add(fill);
+        var rim = new THREE.DirectionalLight(0xc0d4ff, 0.75);
+        rim.position.set(0, -3, -25);
+        brainCustomScene.add(rim);
+        var top = new THREE.HemisphereLight(0xfff5ec, 0x3a2030, 0.35);
+        brainCustomScene.add(top);
+
+        function addEllipsoidBrain() {
+            // Procedural brain: take a hi-poly sphere and displace its
+            // vertices using a sum of sinusoidal "noise" terms — gives
+            // the surface a sulci/gyri (cortical wrinkle) look that reads
+            // as a real brain instead of a smooth ellipsoid.
+            function buildBrainGeo(seed) {
+                var geo = new THREE.SphereGeometry(1, 160, 110);
+                var pos = geo.attributes.position;
+                var color = new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3);
+                var v = new THREE.Vector3();
+                for (var i = 0; i < pos.count; i++) {
+                    v.fromBufferAttribute(pos, i);
+                    var x = v.x, y = v.y, z = v.z;
+                    // Multi-octave sinusoid → wrinkle pattern
+                    var w1 = Math.sin(x * 6.2 + seed) * Math.cos(y * 5.8) * Math.sin(z * 7.1) * 0.085;
+                    var w2 = Math.sin(x * 11.3 + 0.7) * Math.cos(y * 12.1 + seed * 0.3) * Math.sin(z * 10.7) * 0.045;
+                    var w3 = Math.sin(x * 19.7) * Math.cos(y * 22.3) * Math.sin(z * 18.5 + seed * 0.5) * 0.022;
+                    var w4 = Math.sin(x * 34) * Math.cos(y * 31) * Math.sin(z * 36) * 0.010;
+                    var d = 1 + w1 + w2 + w3 + w4;
+                    // Central fissure: dent along x=0 line on top hemisphere
+                    var fissure = Math.exp(-x * x * 30) * Math.max(0, y) * 0.05;
+                    d -= fissure;
+                    v.multiplyScalar(d);
+                    pos.setXYZ(i, v.x, v.y, v.z);
+                    // Vertex color: darker in valleys (low d), lighter on peaks
+                    var t = (d - 0.85) / 0.30;
+                    t = Math.max(0, Math.min(1, t));
+                    // Cream/pink brain tissue palette
+                    var r = 0.78 + t * 0.16;
+                    var g = 0.62 + t * 0.18;
+                    var b = 0.66 + t * 0.16;
+                    color.setXYZ(i, r, g, b);
+                }
+                geo.setAttribute('color', color);
+                geo.computeVertexNormals();
+                return geo;
+            }
+
+            var mat = new THREE.MeshPhongMaterial({
+                vertexColors: true,
+                transparent: true, opacity: 0.78,
+                emissive: 0x442233, emissiveIntensity: 0.12,
+                side: THREE.FrontSide,
+                shininess: 22, specular: 0xffe6e0,
+                flatShading: false,
+            });
+            var brainGeo = buildBrainGeo(1.0);
+            var brain = new THREE.Mesh(brainGeo, mat);
+            brain.scale.set(6.6, 5.6, 7.6);
+            brainCustomScene.add(brain);
+
+            // Inner glow shell — tumor LIGHTS UP through the translucent cortex
+            var innerGlow = new THREE.Mesh(
+                new THREE.SphereGeometry(1, 48, 32),
+                new THREE.MeshBasicMaterial({
+                    color: 0xff4466, transparent: true, opacity: 0.04,
+                    side: THREE.BackSide, depthWrite: false,
+                })
+            );
+            innerGlow.scale.copy(brain.scale).multiplyScalar(0.94);
+            brainCustomScene.add(innerGlow);
+
+            // Cerebellum: smaller wrinkled blob at posterior-inferior
+            var cereGeo = buildBrainGeo(7.3);
+            var cere = new THREE.Mesh(cereGeo, mat.clone());
+            cere.scale.set(2.6, 1.7, 2.3);
+            cere.position.set(0, -4.4, -3.4);
+            brainCustomScene.add(cere);
+
+            // Brainstem: smooth cylinder tapering to spinal cord
+            var stemMat = new THREE.MeshPhongMaterial({
+                color: 0xc89a8e, transparent: true, opacity: 0.85,
+                shininess: 18, specular: 0xffe6e0,
+            });
+            var stem = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.85, 1.15, 3.6, 32), stemMat
+            );
+            stem.position.set(0, -5.5, -0.2);
+            brainCustomScene.add(stem);
+
+            brainCustomModel = brain;
+            window._brainBounds = { x: 6.6, y: 5.6, z: 7.6 };
+        }
+
+        function tryLoadGLB(onDone) {
+            if (typeof THREE.GLTFLoader === 'undefined') { addEllipsoidBrain(); return onDone(); }
+            var loader = new THREE.GLTFLoader();
+            // Probe known brain GLB paths in order — first one that loads wins.
+            // Project-root /models/brain/human-brain.glb is served via a
+            // server.js fallback static handler.
+            var candidates = [
+                '/models/brain/human-brain.glb',
+                '/models/brain.glb',
+            ];
+
+            function tryNext(idx) {
+                if (idx >= candidates.length) {
+                    console.warn('[BrainCustom3D] No GLB found — using procedural fallback');
+                    addEllipsoidBrain();
+                    return onDone();
+                }
+                // Pre-flight: verify the URL actually returns a binary file,
+                // not HTML (catch-all routes can silently serve index.html for
+                // a missing asset, which GLTFLoader then chokes on).
+                fetch(candidates[idx], { method: 'HEAD' }).then(function (r) {
+                    var ct = (r.headers.get('Content-Type') || '').toLowerCase();
+                    if (!r.ok || ct.indexOf('html') >= 0) {
+                        console.warn('[BrainCustom3D] skip', candidates[idx],
+                                     '(status=' + r.status + ', type=' + ct + ')');
+                        return tryNext(idx + 1);
+                    }
+                    console.log('[BrainCustom3D] loading', candidates[idx],
+                                '(' + ct + ', ' + (r.headers.get('Content-Length') || '?') + ' bytes)');
+                    doLoad(idx);
+                }).catch(function () { doLoad(idx); });   // fall through if HEAD blocked
+            }
+            function doLoad(idx) {
+                loader.load(candidates[idx],
+                    function (gltf) {
+                        var m = gltf.scene;
+                        m.traverse(function (c) {
+                            if (c.isMesh) {
+                                // X-ray translucent brain — tumor inside MUST be
+                                // visible. Opacity ~0.28 lets red glow read through
+                                // strongly; depthWrite off prevents brain from
+                                // occluding the tumor's render order.
+                                c.material = new THREE.MeshPhongMaterial({
+                                    color: 0xe8c9bc, transparent: true, opacity: 0.28,
+                                    emissive: 0x2a1418, emissiveIntensity: 0.08,
+                                    side: THREE.DoubleSide, depthWrite: false,
+                                    shininess: 30, specular: 0xffe6e0,
+                                });
+                                c.renderOrder = 1;
+                            }
+                        });
+                        var box = new THREE.Box3().setFromObject(m);
+                        var sz = box.getSize(new THREE.Vector3());
+                        var ct = box.getCenter(new THREE.Vector3());
+                        var mx = Math.max(sz.x, sz.y, sz.z);
+                        var sc = 14 / mx;
+                        m.scale.setScalar(sc);
+                        m.position.set(-ct.x * sc, -ct.y * sc, -ct.z * sc);
+                        brainCustomScene.add(m);
+                        brainCustomModel = m;
+                        var fb = new THREE.Box3().setFromObject(m);
+                        window._brainBounds = {
+                            x: (fb.max.x - fb.min.x) / 2,
+                            y: (fb.max.y - fb.min.y) / 2,
+                            z: (fb.max.z - fb.min.z) / 2,
+                        };
+                        console.log('[BrainCustom3D] loaded GLB:', candidates[idx]);
+                        onDone();
+                    },
+                    undefined,
+                    function () { tryNext(idx + 1); }
+                );
+            }
+            tryNext(0);
+        }
+
+        tryLoadGLB(function () {
+            // Auto-fit camera to actual brain bounds so the model fills the
+            // viewport regardless of how the user's GLB was authored.
+            var b = window._brainBounds || { x: 7, y: 6, z: 8 };
+            var maxDim = Math.max(b.x, b.y, b.z);
+            var fitDist = maxDim / Math.tan((brainCustomCamera.fov / 2) * Math.PI / 180) * 1.35;
+            brainCustomCamera.position.set(0, maxDim * 0.4, fitDist);
+            brainCustomCamera.lookAt(0, 0, 0);
+            if (brainCustomControls) {
+                brainCustomControls.target.set(0, 0, 0);
+                brainCustomControls.update();
+            }
+
+            addBrainCustomTumor(tumorData);
+            animateBrainCustom();
+            brainCustomInited = true;
+        });
+    } catch (e) {
+        console.error('[BrainCustom3D] init failed:', e);
+    }
+}
+
+// Clear existing tumor parts (mesh + glows + light + line) so we can swap in
+// a new tumor without rebuilding the whole brain scene.
+function clearBrainCustomTumor() {
+    if (!brainCustomScene) return;
+    brainCustomTumorParts.forEach(function (obj) {
+        if (obj && brainCustomScene) brainCustomScene.remove(obj);
+        if (obj && obj.geometry && obj.geometry.dispose) obj.geometry.dispose();
+        if (obj && obj.material && obj.material.dispose) obj.material.dispose();
+    });
+    brainCustomTumorParts = [];
+}
+
+function updateBrainCustomTumor(tumorData) {
+    clearBrainCustomTumor();
+    addBrainCustomTumor(tumorData);
+}
+
+// Build a Three.js BufferGeometry mesh from a backend marching-cubes payload
+// (vertices in normalized [0,1] coords + face indices). One mesh per BraTS
+// class (NCR / ED / ET), each translucent and colored to match the 2D
+// segmentation overlay.
+function renderTumorMesh(tumorMesh, b) {
+    var maxB = Math.max(b.x, b.y, b.z);
+    var fill = 0.85;
+    // BraTS palette — must match the 2D nilearn overlay so the user can
+    // cross-reference what they see in the slice panels.
+    var palette = {
+        'ed':  { color: 0xffd84a, emissive: 0x554200, opacity: 0.45 },
+        'ncr': { color: 0xff2a44, emissive: 0x661018, opacity: 0.88 },
+        'et':  { color: 0xff44b4, emissive: 0x5a1244, opacity: 0.85 },
+    };
+    // Render ED first (large halo of edema) so NCR + ET show through on top
+    var renderOrder = { 'ed': 9, 'ncr': 11, 'et': 12 };
+
+    var totalFaces = 0;
+    var centroidSum = new THREE.Vector3();
+    var centroidCount = 0;
+
+    ['ed', 'ncr', 'et'].forEach(function (key) {
+        var data = (tumorMesh.classes || {})[key];
+        if (!data || !data.vertices || data.vertices.length === 0) return;
+
+        var scale = data.scale || 10000;     // inverse-quantization factor
+        var srcV = data.vertices;             // flat [x,y,z,...] × scale (0..scale)
+        var srcF = data.faces;                // flat [a,b,c,...]
+        var vCount = srcV.length / 3;
+        var positions = new Float32Array(srcV.length);
+
+        for (var i = 0; i < srcV.length; i += 3) {
+            // Normalized [0, 1] in voxel space
+            var nxN = srcV[i]     / scale;
+            var nyN = srcV[i + 1] / scale;
+            var nzN = srcV[i + 2] / scale;
+            // Centered [-1, +1]
+            var nx = nxN * 2 - 1;
+            var ny = nyN * 2 - 1;
+            var nz = nzN * 2 - 1;
+            // World coords (same mapping as voxel-cloud renderer)
+            positions[i]     = -nx * b.x * fill;   // radiological L/R flip
+            positions[i + 1] = -ny * b.y * fill;   // image-top → world-up
+            positions[i + 2] =  nz * b.z * fill;
+            centroidSum.x += positions[i];
+            centroidSum.y += positions[i + 1];
+            centroidSum.z += positions[i + 2];
+            centroidCount++;
+        }
+
+        var geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geo.setIndex(srcF);
+        geo.computeVertexNormals();
+        // Bounding sphere needed for frustum culling
+        geo.computeBoundingSphere();
+
+        var p = palette[key];
+        var mat = new THREE.MeshPhongMaterial({
+            color: p.color,
+            transparent: true, opacity: p.opacity,
+            emissive: p.emissive, emissiveIntensity: 0.55,
+            depthTest: false, depthWrite: false,
+            side: THREE.DoubleSide,
+            shininess: 35, specular: 0xffffff,
+            flatShading: false,
+        });
+        var mesh = new THREE.Mesh(geo, mat);
+        mesh.renderOrder = renderOrder[key];
+        mesh.userData.classKey = key;
+        mesh.userData.baseEmissive = 0.55;
+        brainCustomScene.add(mesh);
+        brainCustomTumorParts.push(mesh);
+        totalFaces += data.faceCount || (srcF.length / 3);
+    });
+
+    if (totalFaces === 0) {
+        console.warn('[BrainTumor] tumorMesh arrived but had 0 faces total');
+        return;
+    }
+
+    // Compute centroid of the whole tumor and add a small accent light.
+    // (Previously we drew a vertical indicator line from centroid → top of
+    // brain, but with translucent cortex it reads as a pink stick coming out
+    // of the tumor — anatomically misleading. Dropped.)
+    var centroid = centroidSum.divideScalar(centroidCount);
+    var light = new THREE.PointLight(0xff3355, 1.4, maxB * 1.4);
+    light.position.copy(centroid);
+    brainCustomScene.add(light);
+    brainCustomTumorParts.push(light);
+
+    console.log('[BrainTumor] mesh rendered — total faces:', totalFaces,
+                'centroid:', centroid.toArray().map(function (v) { return v.toFixed(2); }).join(','));
+}
+
+// Legacy voxel-cloud renderer — kept for older BE payloads that don't have
+// the marching-cubes mesh. Same color palette + scale rules.
+function renderTumorVoxelCloud(voxelCloud, b) {
+    var grid = voxelCloud.gridSize || 128;
+    var maxB = Math.max(b.x, b.y, b.z);
+    var fill = 0.85;   // keep cloud well inside the brain cortex
+
+    var ncrN = ((voxelCloud.ncr || []).length / 3) | 0;
+    var edN  = ((voxelCloud.ed  || []).length / 3) | 0;
+    var etN  = ((voxelCloud.et  || []).length / 3) | 0;
+    var total = ncrN + edN + etN;
+    if (total === 0) {
+        console.warn('[BrainTumor] voxelCloud arrived but empty — no shape to render');
+        return;
+    }
+
+    // Cube size scales inversely with sample density. With ~5500 sampled
+    // voxels filling a tumor bbox of ~50³ voxels (a 50mm tumor), the average
+    // spacing between sampled voxels is small enough that cubeSize = 4× the
+    // base voxel size in world units makes adjacent cubes overlap cleanly
+    // into a continuous "mass" — same shape as the 2D segmentation overlay.
+    var voxelWorld = (maxB * 2) / grid;        // size of 1 voxel in world units
+    var cubeSize = voxelWorld * 2.6;           // overlap factor for solid look
+
+    // BraTS-style color palette (matches the segmentation overlay on the left)
+    var classes = [
+        { key: 'ed',  color: 0xffd84a, emissive: 0x66520a, opacity: 0.70, label: 'ED'  },
+        { key: 'ncr', color: 0xff2a44, emissive: 0x661018, opacity: 0.92, label: 'NCR' },
+        { key: 'et',  color: 0xff44b4, emissive: 0x5a1244, opacity: 0.92, label: 'ET'  },
+    ];
+
+    classes.forEach(function (cls) {
+        var arr = voxelCloud[cls.key] || [];
+        var count = (arr.length / 3) | 0;
+        if (count === 0) return;
+
+        var geo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+        var mat = new THREE.MeshPhongMaterial({
+            color: cls.color, transparent: true, opacity: cls.opacity,
+            emissive: cls.emissive, emissiveIntensity: 0.85,
+            depthTest: false, depthWrite: false,
+            shininess: 20, specular: 0xffffff,
+        });
+        var mesh = new THREE.InstancedMesh(geo, mat, count);
+        mesh.renderOrder = 10;
+        mesh.userData.classKey = cls.key;
+        mesh.userData.baseEmissive = 0.85;
+
+        var dummy = new THREE.Object3D();
+        for (var i = 0; i < count; i++) {
+            var vx = arr[i * 3];
+            var vy = arr[i * 3 + 1];
+            var vz = arr[i * 3 + 2];
+            // Map voxel coord (0..grid) → normalized (-1..+1) → world (-b..+b)
+            var nx = (vx / grid) * 2 - 1;
+            var ny = (vy / grid) * 2 - 1;
+            var nz = (vz / grid) * 2 - 1;
+            dummy.position.set(
+                -nx * b.x * fill,    // radiological L/R flip
+                -ny * b.y * fill,    // image-top → world-up
+                 nz * b.z * fill,
+            );
+            // Random tilt per cube to break up the regular voxel grid look
+            dummy.rotation.set(
+                (vx * 0.37) % 1.2,
+                (vy * 0.53) % 1.2,
+                (vz * 0.41) % 1.2,
+            );
+            dummy.updateMatrix();
+            mesh.setMatrixAt(i, dummy.matrix);
+        }
+        mesh.instanceMatrix.needsUpdate = true;
+        brainCustomScene.add(mesh);
+        brainCustomTumorParts.push(mesh);
+    });
+
+    // Centroid for the indicator line + a small (not huge) accent point light.
+    // NO outer halo shells — they obscure the actual segmentation shape.
+    var allX = 0, allY = 0, allZ = 0, allN = 0;
+    classes.forEach(function (cls) {
+        var arr = voxelCloud[cls.key] || [];
+        for (var i = 0; i < arr.length; i += 3) {
+            allX += arr[i]; allY += arr[i + 1]; allZ += arr[i + 2]; allN++;
+        }
+    });
+    var ncx = (allX / allN / grid) * 2 - 1;
+    var ncy = (allY / allN / grid) * 2 - 1;
+    var ncz = (allZ / allN / grid) * 2 - 1;
+    var wpos = new THREE.Vector3(
+        -ncx * b.x * fill,
+        -ncy * b.y * fill,
+         ncz * b.z * fill,
+    );
+
+    // Subtle red point light to make surrounding cortex glow faintly
+    var light = new THREE.PointLight(0xff3355, 1.4, maxB * 1.4);
+    light.position.copy(wpos);
+    brainCustomScene.add(light);
+    brainCustomTumorParts.push(light);
+
+    console.log('[BrainTumor] voxel cloud rendered:',
+        'NCR=' + ncrN, 'ED=' + edN, 'ET=' + etN,
+        'cubeSize=' + cubeSize.toFixed(3),
+        'centroid=' + wpos.toArray().map(function (v) { return v.toFixed(2); }).join(','));
+}
+
+function addBrainCustomTumor(tumorData) {
+    if (!tumorData || !tumorData.detected) return;
+    var c = tumorData.centroid128 || { x: 64, y: 64, z: 64 };
+    var bbox = tumorData.bbox128 || { xmin: 54, xmax: 74, ymin: 54, ymax: 74, zmin: 54, zmax: 74 };
+    var b = window._brainBounds || { x: 7, y: 6, z: 8 };
+
+    // === DIAGNOSTIC: log exactly what the BE sent us so we can tell whether
+    // the marching-cubes path is being skipped because of a missing field,
+    // empty classes, or some other reason. ===
+    console.log('[BrainTumor:v2-mesh] === response inspection ===');
+    console.log('  top-level keys:', Object.keys(tumorData).join(', '));
+    if (tumorData.tumorMesh) {
+        var tm = tumorData.tumorMesh;
+        var cs = tm.classes || {};
+        console.log('  tumorMesh present. gridSize=' + tm.gridSize + '. Per-class:',
+            'NCR=' + ((cs.ncr || {}).faceCount || 0) + ' faces,',
+            'ED=' + ((cs.ed || {}).faceCount || 0) + ' faces,',
+            'ET=' + ((cs.et || {}).faceCount || 0) + ' faces');
+    } else {
+        console.warn('  tumorMesh field is MISSING — backend is on old code (restart needed)');
+    }
+    if (tumorData.voxelCloud) {
+        var vc = tumorData.voxelCloud;
+        console.log('  voxelCloud present:',
+            'NCR=' + ((vc.ncr || []).length / 3),
+            'ED=' + ((vc.ed || []).length / 3),
+            'ET=' + ((vc.et || []).length / 3));
+    } else {
+        console.warn('  voxelCloud field is MISSING');
+    }
+
+    // 1st choice: surface mesh from marching cubes (continuous smooth shape)
+    if (tumorData.tumorMesh && tumorData.tumorMesh.classes) {
+        var cls = tumorData.tumorMesh.classes;
+        var hasAny = (cls.ncr && cls.ncr.faceCount > 0) ||
+                     (cls.ed  && cls.ed.faceCount  > 0) ||
+                     (cls.et  && cls.et.faceCount  > 0);
+        if (hasAny) {
+            console.log('[BrainTumor] ✓ using marching-cubes mesh renderer');
+            renderTumorMesh(tumorData.tumorMesh, b);
+            return;
+        }
+        console.warn('[BrainTumor] tumorMesh present but ALL classes empty — falling back to voxel cloud');
+    }
+    // 2nd choice: voxel cloud (instanced cubes — approximation of shape)
+    if (tumorData.voxelCloud && tumorData.voxelCloud.gridSize) {
+        console.log('[BrainTumor] ✓ using voxel-cloud renderer');
+        renderTumorVoxelCloud(tumorData.voxelCloud, b);
+        return;
+    }
+    console.warn('[BrainTumor] ⚠ FALLBACK to single sphere — backend hasn\'t been restarted with new code');
+
+    // Map centroid from 128³ voxel space to brain world coords (within 55%
+    // of bounds so it stays solidly inside the brain volume, not on cortex).
+    var nx = (c.x / 128) * 2 - 1;        // -1..+1
+    var ny = (c.y / 128) * 2 - 1;
+    var nz = (c.z / 128) * 2 - 1;
+    var pos = {
+        x: -nx * b.x * 0.55,    // flip X for radiological consistency
+        y: -ny * b.y * 0.55,    // image-top → upper in 3D
+        z:  nz * b.z * 0.55,
     };
 
-    // Populate patient info
-    document.getElementById('brainPatientId').textContent = result.patient.id;
-    document.getElementById('brainScanDate').textContent = result.patient.date;
-    document.getElementById('brainInfoId').textContent = result.patient.id;
-    document.getElementById('brainInfoAge').textContent = result.patient.age;
-    document.getElementById('brainInfoSex').textContent = result.patient.sex;
-    document.getElementById('brainInfoDate').textContent = result.patient.date;
-    document.getElementById('brainInfoSymptom').textContent = result.patient.symptom;
-    document.getElementById('brainInfoHistory').textContent = result.patient.history;
+    // Tumor size proportional to bbox extent, with a higher floor so the
+    // tumor is ALWAYS clearly visible against the brain (even tiny LIDC
+    // nodules). Scaled relative to brain bounds, not absolute units.
+    var bw = bbox.xmax - bbox.xmin + 1;
+    var bh = bbox.ymax - bbox.ymin + 1;
+    var bd = bbox.zmax - bbox.zmin + 1;
+    var minVis = Math.min(b.x, b.y, b.z) * 0.06;   // ≥6% of brain min half-axis
+    var maxVis = Math.min(b.x, b.y, b.z) * 0.22;   // ≤22% (was 45 — too big, ate the whole brain)
+    var sizeX = Math.max(minVis, Math.min(maxVis, bw / 128 * b.x * 0.9));
+    var sizeY = Math.max(minVis, Math.min(maxVis, bh / 128 * b.y * 0.9));
+    var sizeZ = Math.max(minVis, Math.min(maxVis, bd / 128 * b.z * 0.9));
 
-    // Detection stats
-    document.getElementById('brainConfidence').textContent = result.confidence.toFixed(2);
-    document.getElementById('brainVolume').textContent = result.volume + ' cm³';
-    document.getElementById('brainType').textContent = result.type + ' (High Grade)';
+    // Irregular tumor blob — start from a sphere then vertex-displace using
+    // multi-octave sinusoidal noise. Not as accurate as a marching-cubes
+    // mesh, but reads as a tumor-shaped MASS rather than a perfect ball.
+    var blobGeo = new THREE.SphereGeometry(1, 56, 36);
+    var pAttr = blobGeo.attributes.position;
+    var v = new THREE.Vector3();
+    for (var i = 0; i < pAttr.count; i++) {
+        v.fromBufferAttribute(pAttr, i);
+        var lx = v.x, ly = v.y, lz = v.z;
+        var d = 1
+            + Math.sin(lx * 4.0) * Math.cos(ly * 3.7) * Math.sin(lz * 4.3) * 0.18
+            + Math.sin(lx * 7.3 + 1.2) * Math.cos(ly * 8.1) * Math.sin(lz * 6.9) * 0.10
+            + Math.sin(lx * 13.7) * Math.cos(ly * 12.3) * Math.sin(lz * 14.1) * 0.05;
+        v.multiplyScalar(d);
+        pAttr.setXYZ(i, v.x, v.y, v.z);
+    }
+    blobGeo.computeVertexNormals();
+    var tumor = new THREE.Mesh(blobGeo, new THREE.MeshPhongMaterial({
+        color: 0xff2a44, transparent: true, opacity: 0.92,
+        emissive: 0xaa0011, emissiveIntensity: 0.75,
+        shininess: 50, specular: 0xff8888,
+        depthTest: false, depthWrite: false,
+    }));
+    tumor.scale.set(sizeX, sizeY, sizeZ);
+    tumor.position.set(pos.x, pos.y, pos.z);
+    tumor.renderOrder = 10;
+    brainCustomScene.add(tumor);
+    brainCustomTumorParts.push(tumor);
 
-    // Analysis
-    document.getElementById('brainSize').textContent = result.volume + ' cm³';
-    document.getElementById('brainLocation').textContent = result.location;
-    document.getElementById('brainLocationSub').textContent = result.locationSub;
-    document.getElementById('brainCoords').textContent = result.coords;
-    document.getElementById('brainGrade').textContent = result.grade;
+    // Single subtle glow halo (was 4 shells — too big, ate the whole brain)
+    var glowR = Math.max(sizeX, sizeY, sizeZ);
+    var halo = new THREE.Mesh(
+        new THREE.SphereGeometry(glowR * 1.4, 24, 16),
+        new THREE.MeshBasicMaterial({
+            color: 0xff3355, transparent: true, opacity: 0.20,
+            side: THREE.BackSide,
+            depthTest: false, depthWrite: false,
+        })
+    );
+    halo.position.copy(tumor.position);
+    halo.renderOrder = 9;
+    brainCustomScene.add(halo);
+    brainCustomTumorParts.push(halo);
 
-    // Prob bars
-    const probEl = document.getElementById('brainProbBars');
-    probEl.innerHTML = result.probs.map(p => `
-        <div class="prob-row">
-            <span>${p.label}</span>
-            <div class="prob-bar-track"><div class="prob-bar-fill" style="width:${p.value*100}%; background:${p.color};"></div></div>
-            <span class="pct">${p.value.toFixed(2)}</span>
-        </div>
-    `).join('');
+    // Point light at tumor — illuminates surrounding cortex with red glow
+    var light = new THREE.PointLight(0xff2244, 1.6, glowR * 4);
+    light.position.copy(tumor.position);
+    brainCustomScene.add(light);
+    brainCustomTumorParts.push(light);
 
-    // Timeline
-    const tlEl = document.getElementById('brainTimeline');
-    tlEl.innerHTML = result.progression.map(p => `
-        <div class="timepoint ${p.current ? 'current' : ''}">
-            <div class="tp-date">${p.date}${p.current ? ' (Hiện tại)' : ''}</div>
-            <div class="tp-thumb"></div>
-            <div class="tp-size">Thể tích: <b>${p.volume} cm³</b></div>
-        </div>
-    `).join('');
+    console.log('[BrainTumor] placed at', pos, 'size', [sizeX, sizeY, sizeZ],
+                'brain bounds', b);
+}
 
-    // Progression chart
-    renderProgressionChart('brainProgressChart', result.progression, 'cm³', '#06b6d4');
+function animateBrainCustom() {
+    if (!brainCustomInited && !brainCustomScene) return;
+    brainCustomAnimId = requestAnimationFrame(animateBrainCustom);
+    var t = performance.now() * 0.001;
+
+    // Pulse tumor cluster — emissive intensity ripple across all class meshes
+    // (NCR / ED / ET), plus subtle scale pulse on the first part to give the
+    // whole cluster a "living" feel through the translucent brain.
+    if (brainCustomTumorParts.length > 0) {
+        var emPulse = 0.55 + Math.sin(t * 2.0) * 0.30;
+        brainCustomTumorParts.forEach(function (part, idx) {
+            if (part.material && part.material.emissive &&
+                part.userData && part.userData.baseEmissive != null) {
+                part.material.emissiveIntensity = emPulse;
+            }
+        });
+        var lead = brainCustomTumorParts[0];
+        if (lead && lead.isInstancedMesh) {
+            if (!lead.userData.baseScale) lead.userData.baseScale = lead.scale.clone();
+            var bs = lead.userData.baseScale;
+            var pulse = 1 + Math.sin(t * 2.4) * 0.04;
+            lead.scale.set(bs.x * pulse, bs.y * pulse, bs.z * pulse);
+        }
+    }
+
+    // Position L/R labels
+    if (brainCustomRenderer && brainCustomCamera) {
+        var stage = document.getElementById('brainCustom3DStage');
+        if (stage) {
+            var rect = stage.getBoundingClientRect();
+            var b = window._brainBounds || { x: 7, y: 6, z: 8 };
+            function place(elId, world) {
+                var el = document.getElementById(elId);
+                if (!el) return;
+                var p = world.clone().project(brainCustomCamera);
+                var sx = (p.x * 0.5 + 0.5) * rect.width;
+                var sy = (-p.y * 0.5 + 0.5) * rect.height;
+                el.style.transform = 'translate(' + (sx - 8) + 'px, ' + (sy - 8) + 'px)';
+                el.style.opacity = (p.z > -1 && p.z < 1) ? '0.7' : '0';
+            }
+            place('brainCustomLabelL', new THREE.Vector3(-b.x * 0.7, 0, 0));
+            place('brainCustomLabelR', new THREE.Vector3(+b.x * 0.7, 0, 0));
+        }
+    }
+
+    if (brainCustomControls) brainCustomControls.update();
+    if (brainCustomRenderer && brainCustomScene && brainCustomCamera) {
+        brainCustomRenderer.render(brainCustomScene, brainCustomCamera);
+    }
+}
+
+// ============ BRAIN 3D MODE SWITCHER (Sketchfab / Custom) ============
+function setBrain3DMode(mode) {
+    var root = document.getElementById('brainVizStage');
+    if (!root) return;
+    root.querySelectorAll('.brain-3d-mode').forEach(function (b) {
+        b.classList.toggle('is-active', b.getAttribute('data-3d-mode') === mode);
+    });
+    root.querySelectorAll('.brain-3d-pane').forEach(function (p) {
+        p.classList.toggle('is-active', p.getAttribute('data-3d-pane') === mode);
+        if (p.hasAttribute('hidden') !== false) { p.hidden = false; }
+        if (p.getAttribute('data-3d-pane') !== mode) p.hidden = true;
+        else p.hidden = false;
+    });
+    // Re-fit Three.js canvas when its pane becomes visible. Also lazy-init
+    // Sketchfab the first time user picks that tab — we no longer auto-init
+    // on page load because the Glass Brain model often renders invisible.
+    if (mode === 'custom') {
+        setTimeout(function () {
+            var stage = document.getElementById('brainCustom3DStage');
+            if (stage && brainCustomRenderer && brainCustomCamera) {
+                var r = stage.getBoundingClientRect();
+                brainCustomRenderer.setSize(r.width, r.height, false);
+                brainCustomCamera.aspect = r.width / r.height;
+                brainCustomCamera.updateProjectionMatrix();
+            } else if (!brainCustomInited) {
+                initBrainCustom3D(null);
+            }
+        }, 50);
+    } else if (mode === 'sketchfab') {
+        setTimeout(initBrainSketchfab, 80);
+    }
+}
+(function () {
+    if (window.__brain3DModeWired) return;
+    window.__brain3DModeWired = true;
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('.brain-3d-mode');
+        if (!btn) return;
+        var mode = btn.getAttribute('data-3d-mode');
+        if (mode) setBrain3DMode(mode);
+    });
+})();
+
+// Track Sketchfab annotation IDs so we can clear them on re-analysis
+var brainSketchfabAnnotationIds = [];
+
+// Three.js overlay scene that paints a red tumor ON TOP of the Sketchfab
+// iframe and stays synced with their camera — this is how we get a
+// "tumor inside the brain" effect even though we can't inject geometry
+// into the sandboxed iframe.
+var brainSfOverlay = {
+    scene: null, camera: null, renderer: null,
+    tumor: null, glows: [],
+    rafId: null, polling: false,
+    // Geometry state
+    tumorOffset: null,       // {x,y,z} normalized in [-0.5, 0.5] relative to brain radius
+    tumorRadiusNorm: 0.08,   // tumor radius as fraction of brain radius
+    scaleRef: 0,             // brain radius in Sketchfab world units (locked on 1st valid poll)
+    pollTick: 0,             // count for periodic FOV resync
+};
+
+function disposeBrainSfOverlay() {
+    if (brainSfOverlay.rafId) { cancelAnimationFrame(brainSfOverlay.rafId); brainSfOverlay.rafId = null; }
+    if (brainSfOverlay.renderer) { try { brainSfOverlay.renderer.dispose(); } catch (e) {} brainSfOverlay.renderer = null; }
+    brainSfOverlay.scene = null;
+    brainSfOverlay.camera = null;
+    brainSfOverlay.tumor = null;
+    brainSfOverlay.glows = [];
+    brainSfOverlay.tumorOffset = null;
+    brainSfOverlay.scaleRef = 0;
+    brainSfOverlay.brainCenter = null;
+    brainSfOverlay.pollTick = 0;
+}
+
+function initBrainSfTumorOverlay(tumorData) {
+    if (typeof THREE === 'undefined') return;
+    var canvas = document.getElementById('brainSfTumorOverlay');
+    var stage = document.getElementById('brainVizStage');
+    if (!canvas || !stage) return;
+    if (!brainSketchfabApi) {
+        // Sketchfab not ready yet — retry shortly
+        setTimeout(function () { initBrainSfTumorOverlay(tumorData); }, 600);
+        return;
+    }
+
+    disposeBrainSfOverlay();
+    var rect = stage.getBoundingClientRect();
+    var w = Math.max(rect.width, 320), h = Math.max(rect.height, 240);
+
+    brainSfOverlay.scene = new THREE.Scene();
+    brainSfOverlay.camera = new THREE.PerspectiveCamera(45, w / h, 0.001, 1000);
+    brainSfOverlay.renderer = new THREE.WebGLRenderer({
+        canvas: canvas, antialias: true, alpha: true,
+    });
+    brainSfOverlay.renderer.setClearColor(0x000000, 0);
+    brainSfOverlay.renderer.setSize(w, h, false);
+    brainSfOverlay.renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
+
+    // Normalize tumor centroid (BraTS 128³ voxel space) → axis-swapped offset
+    // suitable for a Y-up viewer:
+    //   voxel x (R-L)   → world x  (flipped: voxel +x is anatomical-left → world -x)
+    //   voxel z (S-I)   → world y  (superior up)
+    //   voxel y (A-P)   → world z  (anterior toward viewer)
+    var c = tumorData && tumorData.centroid128 ? tumorData.centroid128 : { x: 64, y: 64, z: 64 };
+    var nx = (c.x / 128) - 0.5;   // [-0.5, 0.5]
+    var ny = (c.y / 128) - 0.5;
+    var nz = (c.z / 128) - 0.5;
+    brainSfOverlay.tumorOffset = {
+        x: -nx * 0.95,
+        y:  nz * 0.85,
+        z:  ny * 0.85,
+    };
+
+    // Tumor size scales with detected volume (kept conservative so it stays
+    // visibly inside the brain even when our scaleRef heuristic is off).
+    var volume = (tumorData && tumorData.volumeCm3) ? tumorData.volumeCm3 : 20;
+    brainSfOverlay.tumorRadiusNorm = Math.max(0.06, Math.min(0.14, Math.log(volume + 1) * 0.035));
+
+    // Tumor core (unit sphere — scaled per-frame in poll)
+    brainSfOverlay.tumor = new THREE.Mesh(
+        new THREE.SphereGeometry(1, 32, 24),
+        new THREE.MeshBasicMaterial({
+            color: 0xff3355, transparent: true, opacity: 0.92,
+            depthTest: false, depthWrite: false,
+        })
+    );
+    brainSfOverlay.tumor.renderOrder = 10;
+    brainSfOverlay.scene.add(brainSfOverlay.tumor);
+
+    // Glow halo shells (BackSide so they read as radiance through tissue)
+    [1.6, 2.4, 3.2].forEach(function (s, i) {
+        var g = new THREE.Mesh(
+            new THREE.SphereGeometry(1, 20, 14),
+            new THREE.MeshBasicMaterial({
+                color: 0xff3355, transparent: true,
+                opacity: 0.25 - i * 0.07, side: THREE.BackSide,
+                depthTest: false, depthWrite: false,
+            })
+        );
+        g.renderOrder = 9 - i;
+        brainSfOverlay.scene.add(g);
+        brainSfOverlay.glows.push({ mesh: g, sFactor: s });
+    });
+
+    // Sync FOV once at init (kept refreshed in poll every ~30 frames)
+    if (brainSketchfabApi.getFov) {
+        try {
+            brainSketchfabApi.getFov(function (err, fov) {
+                if (!err && fov && brainSfOverlay.camera) {
+                    brainSfOverlay.camera.fov = fov;
+                    brainSfOverlay.camera.updateProjectionMatrix();
+                }
+            });
+        } catch (e) {}
+    }
+
+    brainSfOverlay.polling = true;
+    pollSketchfabCameraAndRender();
+}
+
+// Poll Sketchfab camera each frame + render overlay synced to it.
+// Sketchfab's getCameraLookAt is async (callback-based) — we kick off a new
+// poll on each callback to keep up with 60fps as best we can. The brain is
+// always at world origin in Sketchfab, so we anchor the tumor to (0,0,0)
+// scaled by a brain-radius reference computed from the initial camera dolly.
+function pollSketchfabCameraAndRender() {
+    if (!brainSfOverlay.polling || !brainSfOverlay.renderer || !brainSketchfabApi) {
+        return;
+    }
+    try {
+        brainSketchfabApi.getCameraLookAt(function (err, lookAt) {
+            if (err || !lookAt || !brainSfOverlay.camera) {
+                brainSfOverlay.rafId = requestAnimationFrame(pollSketchfabCameraAndRender);
+                return;
+            }
+            var cam = brainSfOverlay.camera;
+            var p = lookAt.position, tg = lookAt.target;
+            cam.position.set(p[0], p[1], p[2]);
+            cam.up.set(0, 1, 0);                       // Sketchfab default: Y-up
+            cam.lookAt(tg[0], tg[1], tg[2]);
+
+            // Lock brain center + scale on first valid poll. Sketchfab auto-fits
+            // the model so initial target ≈ model center, and initial
+            // |camera - target| ≈ 2.4 × brain radius. We use the target (not
+            // world origin) because some models aren't centered at (0,0,0).
+            var dx = p[0] - tg[0], dy = p[1] - tg[1], dz = p[2] - tg[2];
+            var distTarget = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            if (!brainSfOverlay.scaleRef && distTarget > 0.05) {
+                brainSfOverlay.scaleRef = distTarget / 2.4;
+                brainSfOverlay.brainCenter = [tg[0], tg[1], tg[2]];
+            }
+            var R = brainSfOverlay.scaleRef || (distTarget / 2.4) || 1.0;
+            var C = brainSfOverlay.brainCenter || [tg[0], tg[1], tg[2]];
+
+            // Periodically refresh FOV (user may have changed it via API/zoom)
+            brainSfOverlay.pollTick = (brainSfOverlay.pollTick || 0) + 1;
+            if (brainSfOverlay.pollTick % 30 === 0 && brainSketchfabApi.getFov) {
+                try {
+                    brainSketchfabApi.getFov(function (e2, fov) {
+                        if (!e2 && fov && brainSfOverlay.camera &&
+                            Math.abs(brainSfOverlay.camera.fov - fov) > 0.1) {
+                            brainSfOverlay.camera.fov = fov;
+                            brainSfOverlay.camera.updateProjectionMatrix();
+                        }
+                    });
+                } catch (e3) {}
+            }
+
+            // Resize if stage changed
+            var stage = document.getElementById('brainVizStage');
+            if (stage) {
+                var rect = stage.getBoundingClientRect();
+                if (Math.abs(brainSfOverlay.renderer.domElement.width - rect.width) > 1 ||
+                    Math.abs(brainSfOverlay.renderer.domElement.height - rect.height) > 1) {
+                    brainSfOverlay.renderer.setSize(rect.width, rect.height, false);
+                    cam.aspect = rect.width / rect.height;
+                    cam.updateProjectionMatrix();
+                }
+            }
+
+            // Tumor placement: world position = brainCenter + offset × R
+            var off = brainSfOverlay.tumorOffset || { x: 0, y: 0, z: 0 };
+            var wx = C[0] + off.x * R, wy = C[1] + off.y * R, wz = C[2] + off.z * R;
+            var rBase = brainSfOverlay.tumorRadiusNorm * R;
+
+            var t = performance.now() * 0.001;
+            var pulse = 1 + Math.sin(t * 2.4) * 0.12;
+            if (brainSfOverlay.tumor) {
+                brainSfOverlay.tumor.position.set(wx, wy, wz);
+                brainSfOverlay.tumor.scale.setScalar(rBase * pulse);
+            }
+            brainSfOverlay.glows.forEach(function (gi, i) {
+                gi.mesh.position.set(wx, wy, wz);
+                gi.mesh.scale.setScalar(rBase * gi.sFactor * pulse);
+                if (gi.mesh.material) {
+                    gi.mesh.material.opacity = (0.25 - i * 0.07) * (0.6 + Math.sin(t * 1.6 + i) * 0.35);
+                }
+            });
+
+            brainSfOverlay.renderer.render(brainSfOverlay.scene, brainSfOverlay.camera);
+            brainSfOverlay.rafId = requestAnimationFrame(pollSketchfabCameraAndRender);
+        });
+    } catch (e) {
+        brainSfOverlay.rafId = requestAnimationFrame(pollSketchfabCameraAndRender);
+    }
+}
+
+// Cinematic move + annotation + floating overlay when an analysis completes.
+// Camera move and annotation placement are deferred until the Three.js overlay
+// has computed the brain-radius reference (scaleRef) from Sketchfab's actual
+// camera distance — so the pin lands at the same world position as the red
+// tumor mesh we render in the overlay.
+function highlightBrainTumor(diameterMm, locationHint, tumorData) {
+    var ovEl = document.getElementById('brainSketchfabOverlay');
+    var szEl = document.getElementById('brainSketchfabOverlaySize');
+    if (ovEl && szEl) {
+        ovEl.hidden = false;
+        szEl.textContent = (typeof diameterMm === 'number'
+            ? diameterMm.toFixed(1) + ' mm' : (diameterMm || '—'));
+    }
+
+    if (!tumorData) return;
+
+    // Clear previous Sketchfab annotations first
+    if (brainSketchfabApi && brainSketchfabApi.removeAnnotation) {
+        brainSketchfabAnnotationIds.forEach(function (id) {
+            try { brainSketchfabApi.removeAnnotation(id, function () {}); } catch (e) {}
+        });
+        brainSketchfabAnnotationIds = [];
+    }
+
+    // Start the Three.js overlay (this kicks off polling + computes scaleRef)
+    initBrainSfTumorOverlay(tumorData);
+    // Custom mode: if brain already loaded, just swap the tumor (fast — no
+    // GLB reload). Otherwise do full init.
+    if (brainCustomInited && brainCustomModel) {
+        updateBrainCustomTumor(tumorData);
+    } else {
+        initBrainCustom3D(tumorData);
+    }
+
+    // Wait until scaleRef + brainCenter are known, then place annotation pin
+    // at the exact same world location as the Three.js tumor mesh.
+    // We deliberately do NOT call setCameraLookAt or gotoAnnotation here —
+    // those move the Sketchfab camera, and an incorrectly placed cinematic
+    // (or auto-goto annotation that snaps inside the model) makes the brain
+    // invisible. The overlay tumor follows whatever camera Sketchfab uses,
+    // so the user can orbit normally.
+    var waited = 0;
+    function placeWhenReady() {
+        if (!brainSketchfabApi || !brainSfOverlay.scaleRef ||
+            !brainSfOverlay.tumorOffset || !brainSfOverlay.brainCenter) {
+            if (waited++ < 40) {   // up to ~4s
+                setTimeout(placeWhenReady, 100);
+            }
+            return;
+        }
+        var R = brainSfOverlay.scaleRef;
+        var off = brainSfOverlay.tumorOffset;
+        var C = brainSfOverlay.brainCenter;
+        var wx = C[0] + off.x * R, wy = C[1] + off.y * R, wz = C[2] + off.z * R;
+
+        // Annotation pin at the tumor center (no auto-goto — leaving camera
+        // alone so the user keeps the default fit-to-view of the brain)
+        if (brainSketchfabApi.createAnnotationFromScenePosition) {
+            var cc = tumorData.classCounts || {};
+            var title = 'Khối u' + (typeof diameterMm === 'number' ? ' · ' + diameterMm.toFixed(1) + ' mm' : '');
+            var desc = 'Thể tích: ' + (tumorData.volumeCm3 || 0) + ' cm³\n' +
+                       'NCR: ' + (cc.NCR || 0) + ' · ED: ' + (cc.ED || 0) + ' · ET: ' + (cc.ET || 0) + '\n' +
+                       'Confidence: ' + (tumorData.confidence || 0) + '%';
+            try {
+                brainSketchfabApi.createAnnotationFromScenePosition(
+                    [wx, wy, wz], [0, 1, 0], title, desc, null,
+                    function (err, idx) {
+                        if (!err && idx != null) {
+                            brainSketchfabAnnotationIds.push(idx);
+                        }
+                    }
+                );
+            } catch (e) { console.warn('annotation failed:', e); }
+        }
+    }
+    setTimeout(placeWhenReady, 200);
+}
+
+// ============ BRAIN MODULE TABS (U-Net 3D / YOLOv8 2D) ============
+(function () {
+    if (window.__brainTabsWired) return;
+    window.__brainTabsWired = true;
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('.brain-tab');
+        if (!btn) return;
+        var tab = btn.getAttribute('data-brain-tab');
+        if (!tab) return;
+        var module = document.getElementById('module-brain');
+        module.querySelectorAll('.brain-tab').forEach(function (t) {
+            t.classList.toggle('is-active', t.getAttribute('data-brain-tab') === tab);
+        });
+        module.querySelectorAll('.brain-panel').forEach(function (p) {
+            p.classList.toggle('is-active', p.getAttribute('data-brain-panel') === tab);
+        });
+    });
+})();
+
+// ============ BRAIN YOLO (2D detection) ============
+async function runBrainYolo() {
+    var fi = document.getElementById('yoloFileInput');
+    if (!fi || !fi.files || fi.files.length === 0) {
+        showToast('Chọn ảnh MRI trước', 'error');
+        return;
+    }
+    var statusEl = document.getElementById('yoloStatus');
+    if (statusEl) { statusEl.hidden = true; statusEl.textContent = ''; }
+
+    // Use brain loading overlay but override steps for YOLO pipeline
+    BRAIN_LOADING_STEPS['yolo'] = [
+        { text: 'Đọc ảnh MRI...', tech: 'PIL · numpy', pct: 20 },
+        { text: 'Resize · letterbox 640×640...', tech: 'ultralytics preprocessing', pct: 40 },
+        { text: 'YOLOv8 detection inference...', tech: 'PyTorch · single-shot detector', pct: 75 },
+        { text: 'Non-max suppression · vẽ bounding box...', tech: 'NMS IoU=0.45', pct: 95 },
+    ];
+    startBrainLoading('yolo');
+
+    try {
+        var fd = new FormData();
+        fd.append('image', fi.files[0]);
+        var apiBase = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || '';
+        var resp = await fetch(apiBase + '/api/predict-brain-yolo', { method: 'POST', body: fd });
+        var r = await resp.json();
+        if (r.error) throw new Error(r.error + (r.detail ? ': ' + r.detail : ''));
+        displayYoloResult(r);
+        showToast('⚡ Phát hiện xong (' + (r.detections.length) + ' đối tượng)', 'success');
+    } catch (e) {
+        console.error('YOLO error:', e);
+        showToast('Lỗi: ' + e.message, 'error');
+    } finally {
+        stopBrainLoading();
+    }
+}
+
+function displayYoloResult(r) {
+    var canvas = document.getElementById('yoloCanvas');
+    if (canvas && r.overlayImage) {
+        canvas.innerHTML = '<img src="' + r.overlayImage + '" ' +
+            'style="width:100%;height:100%;object-fit:contain;border-radius:8px;" alt="YOLO Detection">';
+    }
+
+    document.getElementById('yoloCount').textContent = r.detections.length;
+    document.getElementById('yoloTopClass').textContent = r.topClass || '—';
+    document.getElementById('yoloTopConf').textContent = r.topConfidence
+        ? (r.topConfidence * 100).toFixed(1) + '%' : '—';
+    document.getElementById('yoloTime').textContent = (r.inferenceTimeS || 0).toFixed(2) + ' s';
+    document.getElementById('yoloModelName').textContent = (r.modelInfo && r.modelInfo.weights) || 'YOLOv8';
+
+    var list = document.getElementById('yoloDetectionList');
+    if (list) {
+        if (r.detections.length === 0) {
+            list.innerHTML = '<li class="reco-item empty">Không phát hiện đối tượng nào</li>';
+        } else {
+            list.innerHTML = r.detections.map(function (d, i) {
+                var bb = d.bbox.map(function (v) { return Math.round(v); }).join(', ');
+                return '<li class="reco-item">' +
+                    '<b>#' + (i + 1) + ' ' + d.class + '</b>' +
+                    ' · ' + (d.confidence * 100).toFixed(1) + '%' +
+                    ' <small style="display:block;color:var(--text-muted);font-family:monospace;">bbox: ' + bb + '</small>' +
+                    '</li>';
+            }).join('');
+        }
+    }
+
+    // Cinematic Sketchfab move + overlay (YOLO doesn't give 3D coords, use class as seed)
+    if (r.detections.length > 0) {
+        var bbCenter = r.detections[0].bbox;
+        var bboxDiag = Math.sqrt(
+            Math.pow(bbCenter[2] - bbCenter[0], 2) +
+            Math.pow(bbCenter[3] - bbCenter[1], 2)
+        );
+        // Synthesize a minimal tumorData for the 3D viewers (no 3D coords from YOLO)
+        var hash = 0, seed = r.topClass || 'yolo';
+        for (var i = 0; i < seed.length; i++) hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+        var fakeData = {
+            detected: true,
+            volumeCm3: Math.round(bboxDiag * 0.5),
+            confidence: Math.round((r.topConfidence || 0) * 100),
+            classCounts: { NCR: 0, ED: 0, ET: r.detections.length },
+            centroid128: {
+                x: 40 + ((hash & 0x7f) % 50),
+                y: 40 + (((hash >> 7) & 0x7f) % 50),
+                z: 50 + (((hash >> 14) & 0x7f) % 30),
+            },
+            bbox128: { xmin: 50, xmax: 78, ymin: 50, ymax: 78, zmin: 60, zmax: 75 },
+        };
+        highlightBrainTumor('~' + Math.round(bboxDiag) + ' px',
+                            'yolo-' + (r.topClass || ''), fakeData);
+    }
+
+    // Warning banner if fallback COCO model used
+    var statusEl = document.getElementById('yoloStatus');
+    if (statusEl && r.warning) {
+        statusEl.hidden = false;
+        statusEl.innerHTML = '⚠️ <b>Chưa có brain-tumor weights</b>. Đang dùng YOLOv8n COCO (detect đồ vật chung). ' +
+            'Tải weights brain-tumor về <code>models/brain/yolo_brain_tumor.pt</code> để kết quả chính xác.';
+    } else if (statusEl) {
+        statusEl.hidden = true;
+    }
+}
+
+// ============ BRAIN TUMOR (MRI) — Real AI (3D U-Net BraTS) ============
+// Detect modality from filename so we can label NIfTI uploads correctly.
+function _brainModalityFromFilename(name) {
+    var n = (name || '').toLowerCase();
+    if (n.indexOf('t1ce') >= 0 || n.indexOf('t1c') >= 0 || n.indexOf('t1gd') >= 0) return 't1ce';
+    if (n.indexOf('flair') >= 0) return 'flair';
+    if (n.indexOf('t2') >= 0) return 't2';
+    if (n.indexOf('t1') >= 0) return 't1';
+    return null;
+}
+
+// ============ BRAIN MODEL SELECTOR (hot-swap between checkpoints) ============
+async function loadBrainModelsList() {
+    var sel = document.getElementById('brainModelSelect');
+    var meta = document.getElementById('brainModelMeta');
+    var statusEl = document.getElementById('brainModelSelectorStatus');
+    if (!sel) return;
+    try {
+        var apiBase = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || '';
+        var resp = await fetch(apiBase + '/api/brain-models');
+        console.log('[BrainModel] /api/brain-models status:', resp.status);
+        var rawText = await resp.text();
+        console.log('[BrainModel] response (first 300 chars):', rawText.slice(0, 300));
+        if (!resp.ok) {
+            throw new Error('HTTP ' + resp.status + ': ' + rawText.slice(0, 100));
+        }
+        var data;
+        try { data = JSON.parse(rawText); }
+        catch (parseErr) { throw new Error('Invalid JSON: ' + rawText.slice(0, 100)); }
+        if (data.error) {
+            throw new Error(data.error + (data.detail ? ' (' + data.detail + ')' : ''));
+        }
+        if (!data || !Array.isArray(data.models)) {
+            throw new Error('Missing models field. Got keys: ' + Object.keys(data || {}).join(','));
+        }
+
+        sel.innerHTML = '';
+        var groups = { production: [], experimental: [], checkpoint: [] };
+        data.models.forEach(function (m) {
+            if (m.filename.indexOf('models_3D/') === 0) groups.checkpoint.push(m);
+            else if (m.badge === 'Experimental') groups.experimental.push(m);
+            else groups.production.push(m);
+        });
+
+        function appendGroup(label, items) {
+            if (!items.length) return;
+            var og = document.createElement('optgroup');
+            og.label = label;
+            items.forEach(function (m) {
+                var opt = document.createElement('option');
+                opt.value = m.filename;
+                var badge = m.badge ? ' [' + m.badge + ']' : '';
+                opt.textContent = m.displayName + ' — ' + m.subtitle + badge;
+                if (m.active) opt.selected = true;
+                og.appendChild(opt);
+            });
+            sel.appendChild(og);
+        }
+        appendGroup('Production', groups.production);
+        appendGroup('Experimental', groups.experimental);
+        appendGroup('2018 Training Checkpoints', groups.checkpoint);
+
+        var active = data.models.find(function (m) { return m.active; });
+        if (active && meta) {
+            meta.textContent = '✓ ' + active.displayName + ' · ' + active.sizeMb + ' MB';
+        }
+        if (statusEl) {
+            statusEl.textContent = data.currentLoaded ? 'Loaded' : 'Not loaded';
+            statusEl.className = 'brain-model-status ' + (data.currentLoaded ? 'is-ok' : 'is-warn');
+        }
+    } catch (e) {
+        console.error('[BrainModel] List failed:', e);
+        sel.innerHTML = '<option value="">— Lỗi load model list —</option>';
+        if (meta) meta.textContent = e.message;
+    }
+}
+
+async function switchBrainModel(filename) {
+    var sel = document.getElementById('brainModelSelect');
+    var meta = document.getElementById('brainModelMeta');
+    var statusEl = document.getElementById('brainModelSelectorStatus');
+    if (!sel || !filename) return;
+    sel.disabled = true;
+    if (meta) {
+        meta.textContent = '⏳ Đang load model...';
+        meta.classList.add('is-loading');
+    }
+    if (statusEl) {
+        statusEl.textContent = 'Switching';
+        statusEl.className = 'brain-model-status is-switching';
+    }
+    try {
+        var apiBase = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || '';
+        var resp = await fetch(apiBase + '/api/brain-model-switch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: filename }),
+        });
+        var data = await resp.json();
+        if (data.success) {
+            var sh = (data.inputShape || []).slice(1).join('×');
+            var p = (data.params || 0).toLocaleString();
+            var pipeBadge = data.pipelineType === '2d-seg' ? ' [2D]' :
+                            data.pipelineType === '3d-seg' ? ' [3D]' : '';
+            if (meta) meta.textContent = '✓ Loaded' + pipeBadge + ': ' + p + ' params · input ' + sh + ' · ' + data.loadTimeS + 's';
+            if (statusEl) {
+                statusEl.textContent = 'Loaded' + pipeBadge.trim();
+                statusEl.className = 'brain-model-status is-ok';
+            }
+            showToast('✓ Đã chuyển sang model mới' + pipeBadge, 'success');
+        } else {
+            var errMsg = data.error || 'Load failed';
+            // Detect "incompatible architecture" vs other failures
+            var incompat = (errMsg.indexOf('not a segmentation') >= 0 ||
+                           errMsg.indexOf('not compatible') >= 0 ||
+                           errMsg.indexOf('Classifier') >= 0);
+            if (meta) {
+                meta.innerHTML = '✗ <b>Incompatible</b><br>' +
+                    '<small style="opacity:0.7">' + errMsg.replace(/</g, '&lt;') + '</small>' +
+                    (data.inputShape ? '<br><code style="font-size:9px">input ' + data.inputShape.join('×') + ' → output ' + (data.outputShape || []).join('×') + '</code>' : '');
+            }
+            if (statusEl) {
+                statusEl.textContent = incompat ? 'Incompatible' : 'Error';
+                statusEl.className = 'brain-model-status is-error';
+            }
+            showToast(incompat
+                ? '⚠️ Model không tương thích pipeline segmentation'
+                : 'Lỗi: ' + errMsg, 'error');
+            // Reload list to show actual current model (rollback indicator)
+            await loadBrainModelsList();
+        }
+    } catch (e) {
+        if (meta) meta.textContent = '✗ Network error: ' + e.message;
+        showToast('Lỗi kết nối: ' + e.message, 'error');
+    } finally {
+        sel.disabled = false;
+        if (meta) meta.classList.remove('is-loading');
+    }
+}
+
+// Wire selector + auto-load on first brain-module open
+(function () {
+    if (window.__brainModelSelectorWired) return;
+    window.__brainModelSelectorWired = true;
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.id === 'brainModelSelect' && e.target.value) {
+            switchBrainModel(e.target.value);
+        }
+    });
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('.nav-module');
+        if (!btn) return;
+        if (btn.dataset && btn.dataset.module === 'brain') {
+            // Lazy-load model list once user opens the brain module
+            setTimeout(loadBrainModelsList, 250);
+        }
+    });
+    // Also load on DOM ready if brain module is already visible
+    function maybeLoad() {
+        var mb = document.getElementById('module-brain');
+        if (mb && !mb.classList.contains('hidden')) {
+            loadBrainModelsList();
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { setTimeout(maybeLoad, 400); });
+    } else {
+        setTimeout(maybeLoad, 400);
+    }
+})();
+
+async function runBrainAnalysis() {
+    // Fire loading IMMEDIATELY on click so the UI feels responsive — we use
+    // the 'init' pipeline (1 step) until we've validated input and know
+    // whether the user uploaded NIfTI or a single 2D image. Once known, we
+    // re-call startBrainLoading() with the correct pipeline.
+    startBrainLoading('init');
+    _setBrainAnalyzeBtnBusy(true);
+
+    var fi = document.getElementById('brainFileInput');
+    if (!fi || !fi.files || fi.files.length === 0) {
+        _abortBrainLoading();
+        showToast('Chọn ảnh MRI (NIfTI .nii/.nii.gz hoặc PNG/JPG) trước', 'error');
+        return;
+    }
+
+    // Split files: ground-truth seg goes in a separate field for Dice scoring,
+    // 4 MRI modalities are the actual model input.
+    var allFiles = Array.from(fi.files);
+    var segFile  = allFiles.find(function (f) { return /_?seg(\.|_|$)/.test(f.name.toLowerCase()); });
+    var files = allFiles.filter(function (f) { return f !== segFile; });
+    if (files.length === 0) {
+        _abortBrainLoading();
+        showToast('Chỉ có file *_seg — cần upload thêm 4 file MRI (flair/t1/t1ce/t2)', 'error');
+        return;
+    }
+    var fd = new FormData();
+    var isNiftiInput = files.some(f => /\.nii(\.gz)?$/i.test(f.name));
+
+    if (isNiftiInput) {
+        var assigned = {};
+        files.forEach(function (f, idx) {
+            if (!/\.nii(\.gz)?$/i.test(f.name)) return;
+            var mod = _brainModalityFromFilename(f.name);
+            if (!mod) {
+                mod = ['flair', 't1', 't1ce', 't2'][idx] || 'flair';
+            }
+            if (!assigned[mod]) {
+                fd.append(mod, f);
+                assigned[mod] = true;
+            }
+        });
+        if (Object.keys(assigned).length === 0) {
+            _abortBrainLoading();
+            showToast('Không nhận được file NIfTI hợp lệ', 'error');
+            return;
+        }
+        // Ground truth (if user uploaded it) — server uses for Dice scoring
+        if (segFile) {
+            fd.append('gt_seg', segFile);
+            console.log('[Brain] Ground-truth seg attached:', segFile.name);
+        }
+    } else {
+        fd.append('image', files[0]);
+    }
+
+    // Now we know the pipeline — switch loading steps from 'init' to real one
+    startBrainLoading(isNiftiInput ? 'nifti' : '2d');
+
+    try {
+        var apiBase = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || '';
+        var resp = await fetch(apiBase + '/api/predict-brain', { method: 'POST', body: fd });
+        var result = await resp.json();
+        if (result.error) throw new Error(result.error + (result.detail ? ': ' + result.detail : ''));
+        displayBrainResult(result, isNiftiInput);
+        showToast('🧠 Phân tích xong', 'success');
+    } catch (e) {
+        console.error('Brain analysis error:', e);
+        showToast('Lỗi: ' + e.message, 'error');
+    } finally {
+        stopBrainLoading();
+        _setBrainAnalyzeBtnBusy(false);
+    }
+}
+
+// Helper: toggle the "Phân tích bằng 3D U-Net" button between idle + busy
+// state. Disabled + spinner icon + greyed-out text while inference runs.
+function _setBrainAnalyzeBtnBusy(busy) {
+    var btns = document.querySelectorAll('button[onclick*="runBrainAnalysis"]');
+    btns.forEach(function (b) {
+        if (busy) {
+            if (!b.dataset.origHtml) b.dataset.origHtml = b.innerHTML;
+            b.disabled = true;
+            b.classList.add('is-busy');
+            b.innerHTML = '<span class="brain-btn-spinner"></span> Đang phân tích...';
+        } else {
+            b.disabled = false;
+            b.classList.remove('is-busy');
+            if (b.dataset.origHtml) b.innerHTML = b.dataset.origHtml;
+        }
+    });
+}
+
+// Abort loading WITHOUT the "✓ Hoàn tất" flash (used when input validation
+// fails — there was no real work, no need to fake completion).
+function _abortBrainLoading() {
+    if (_brainLoadingTimer) { clearInterval(_brainLoadingTimer); _brainLoadingTimer = null; }
+    var ov = document.getElementById('brainLoadingOverlay');
+    if (ov) ov.classList.remove('active');
+    _setBrainAnalyzeBtnBusy(false);
+}
+
+// ============ BRAIN ANALYSIS LOADING ANIMATION ============
+// Cycles through realistic pipeline steps while the backend runs the 3D
+// U-Net inference. Progress bar advances stage-by-stage; on success we
+// snap to 100% and fade out. The actual step durations are heuristic
+// (BraTS inference takes ~3-12s depending on hardware) — the animation
+// just needs to FEEL alive, not match real backend timing.
+var BRAIN_LOADING_STEPS = {
+    'init': [
+        { text: 'Đang kiểm tra dữ liệu MRI...', tech: 'validating modality files', pct: 4 },
+    ],
+    'nifti': [
+        { text: 'Đọc file NIfTI (FLAIR · T1 · T1c · T2)...', tech: 'nibabel · 4 modalities', pct: 8 },
+        { text: 'Z-score normalize per modality...', tech: 'z = (x - μ) / σ trên brain voxels', pct: 18 },
+        { text: 'Brain-bbox crop → resize về 128³...', tech: 'auto-detect brain extent · scipy.zoom', pct: 28 },
+        { text: 'Forward pass với 4-way TTA...', tech: 'flips D/H/W · batched predict · avg softmax', pct: 55 },
+        { text: 'Hậu xử lý: smooth + morphology + CC filter...', tech: 'gaussian σ=0.8 · closing · top-K CCs', pct: 75 },
+        { text: 'Marching cubes per-class mesh...', tech: 'skimage · NCR · ED · ET isosurfaces', pct: 86 },
+        { text: 'Render multi-view + Dice scoring...', tech: 'nilearn plot_roi · BraTS metrics', pct: 95 },
+    ],
+    '2d': [
+        { text: 'Đọc ảnh MRI...', tech: 'PIL · numpy ndarray', pct: 18 },
+        { text: 'Replicate sang 4 channel modality...', tech: 'demo pipeline · single-image', pct: 30 },
+        { text: 'Resize về 128×128×128...', tech: 'opencv · INTER_AREA', pct: 42 },
+        { text: 'AI đang suy luận 3D U-Net...', tech: 'TensorFlow forward pass', pct: 68 },
+        { text: 'Tổng hợp segmentation 4-class...', tech: 'softmax → argmax', pct: 84 },
+        { text: 'Render multi-view overlay...', tech: 'nilearn plot_roi', pct: 95 },
+    ],
+};
+var _brainLoadingTimer = null;
+var _brainLoadingStepIdx = 0;
+var _brainLoadingSteps = [];
+
+function startBrainLoading(mode) {
+    var ov = document.getElementById('brainLoadingOverlay');
+    if (!ov) return;
+    _brainLoadingSteps = BRAIN_LOADING_STEPS[mode] || BRAIN_LOADING_STEPS['2d'];
+    _brainLoadingStepIdx = 0;
+    ov.classList.add('active');
+    _advanceBrainLoadingStep();
+    if (_brainLoadingTimer) clearInterval(_brainLoadingTimer);
+    // Step cadence: nifti pipeline = single-pass + 4-way TTA (~10-15s).
+    // 7 steps × ~1.8s each fits comfortably in that window.
+    var stepMs = (mode === 'nifti') ? 1800 : 1600;
+    _brainLoadingTimer = setInterval(_advanceBrainLoadingStep, stepMs);
+}
+
+function _advanceBrainLoadingStep() {
+    var step = _brainLoadingSteps[_brainLoadingStepIdx];
+    if (!step) return;
+    var stepEl = document.getElementById('brainLoadingStep');
+    var techEl = document.getElementById('brainLoadingTech');
+    var barEl  = document.getElementById('brainLoadingBar');
+    if (stepEl) {
+        stepEl.style.opacity = '0';
+        setTimeout(function () {
+            stepEl.textContent = step.text;
+            stepEl.style.opacity = '1';
+        }, 180);
+    }
+    if (techEl) techEl.textContent = step.tech;
+    if (barEl)  barEl.style.width  = step.pct + '%';
+    if (_brainLoadingStepIdx < _brainLoadingSteps.length - 1) {
+        _brainLoadingStepIdx++;
+    }
+}
+
+function stopBrainLoading() {
+    if (_brainLoadingTimer) {
+        clearInterval(_brainLoadingTimer);
+        _brainLoadingTimer = null;
+    }
+    var barEl = document.getElementById('brainLoadingBar');
+    var stepEl = document.getElementById('brainLoadingStep');
+    var ov = document.getElementById('brainLoadingOverlay');
+    if (barEl) barEl.style.width = '100%';
+    if (stepEl) stepEl.textContent = '✓ Hoàn tất phân tích';
+    setTimeout(function () {
+        if (ov) ov.classList.remove('active');
+    }, 380);
+}
+
+function displayBrainResult(result, isNiftiInput) {
+    var now = new Date();
+    var dateStr = now.toLocaleDateString('vi-VN');
+    var pid = 'BRA' + now.getFullYear().toString().slice(2) +
+              (now.getMonth()+1).toString().padStart(2,'0') +
+              now.getDate().toString().padStart(2,'0') + '_' +
+              Math.floor(Math.random()*999).toString().padStart(3,'0');
+
+    document.getElementById('brainPatientId').textContent = pid;
+    document.getElementById('brainScanDate').textContent = dateStr;
+    document.getElementById('brainInfoId').textContent = pid;
+    document.getElementById('brainInfoAge').textContent = '—';
+    document.getElementById('brainInfoSex').textContent = '—';
+    document.getElementById('brainInfoDate').textContent = dateStr;
+    document.getElementById('brainInfoSymptom').textContent = '—';
+    document.getElementById('brainInfoHistory').textContent = '—';
+
+    var detected = !!result.detected;
+    var conf = result.confidence || 0;
+    var volCm3 = result.volumeCm3 || 0;
+    var diam = result.maxDiameterMm || 0;
+
+    document.getElementById('brainConfidence').textContent = conf.toFixed(1) + '%';
+    document.getElementById('brainVolume').textContent = volCm3.toFixed(2) + ' cm³';
+    document.getElementById('brainType').textContent = detected ? 'Nghi ngờ khối u' : 'Không phát hiện';
+
+    // === PREPROCESSING PIPELINE PREVIEW (Kaggle-style 2×3 grid) ===
+    var pipelineCard = document.getElementById('brainPipelineCard');
+    var pipelineImg  = document.getElementById('brainPipelinePreview');
+    if (pipelineCard && pipelineImg) {
+        if (result.pipelinePreview) {
+            pipelineImg.src = result.pipelinePreview;
+            pipelineCard.hidden = false;
+        } else {
+            pipelineCard.hidden = true;
+        }
+    }
+
+    // === GROUND TRUTH COMPARISON ===
+    var gtCard = document.getElementById('brainGTCard');
+    if (gtCard) {
+        var gt = result.groundTruth;
+        if (gt && gt.present && gt.dice) {
+            gtCard.hidden = false;
+            // Format Dice as percentage; color-code by quality bands
+            function setDice(id, barId, val) {
+                var el = document.getElementById(id);
+                var bar = document.getElementById(barId);
+                if (!el || !bar) return;
+                var pct = (val * 100);
+                el.textContent = pct.toFixed(1) + '%';
+                bar.style.width = Math.min(100, pct) + '%';
+                // Color: <50 = poor (red), 50-70 = fair (yellow),
+                //        70-85 = good (green), >85 = excellent (cyan)
+                var color;
+                if (pct < 50)      color = '#ff4466';
+                else if (pct < 70) color = '#ffd84a';
+                else if (pct < 85) color = '#4ade80';
+                else               color = '#22d3ee';
+                bar.style.background = color;
+                el.style.color = color;
+            }
+            setDice('brainDiceWT', 'brainDiceWTBar', gt.dice.WT);
+            setDice('brainDiceTC', 'brainDiceTCBar', gt.dice.TC);
+            setDice('brainDiceET', 'brainDiceETBar', gt.dice.ET);
+            document.getElementById('brainGTVolume').textContent =
+                (gt.gtVolumeCm3 || 0).toFixed(2) + ' cm³';
+            var diff = gt.volumeDiffCm3 || 0;
+            var diffEl = document.getElementById('brainGTVolumeDiff');
+            diffEl.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(2) + ' cm³';
+            diffEl.style.color = Math.abs(diff) < 5 ? '#4ade80' :
+                                 Math.abs(diff) < 15 ? '#ffd84a' : '#ff4466';
+
+            // Wire toggle to swap between prediction overlay and GT overlay
+            var toggleBtn = document.getElementById('brainGTToggle');
+            if (toggleBtn) {
+                toggleBtn.dataset.predImg     = result.overlayImage || '';
+                toggleBtn.dataset.gtImg       = result.groundTruthOverlay || '';
+                toggleBtn.dataset.showingGt   = 'false';
+                toggleBtn.onclick = function () {
+                    var showingGt = toggleBtn.dataset.showingGt === 'true';
+                    var nextGt    = !showingGt;
+                    toggleBtn.dataset.showingGt = nextGt ? 'true' : 'false';
+                    toggleBtn.textContent      = nextGt ? 'Đang xem GT — bấm để về AI' : 'Hiện overlay GT';
+                    toggleBtn.classList.toggle('is-active', nextGt);
+                    // Swap multi-view image (the big 1×3 overlay below)
+                    var ovImg = document.querySelector('#brainOverlayCanvas img');
+                    if (ovImg) ovImg.src = nextGt
+                        ? toggleBtn.dataset.gtImg
+                        : toggleBtn.dataset.predImg;
+                };
+            }
+        } else {
+            gtCard.hidden = true;
+        }
+    }
+
+    document.getElementById('brainSize').textContent = volCm3.toFixed(2) + ' cm³';
+    var locEl = document.getElementById('brainLocation');
+    var locSubEl = document.getElementById('brainLocationSub');
+    if (locEl) locEl.textContent = detected ? 'Đã định vị (xem 3D)' : '—';
+    if (locSubEl) locSubEl.textContent = '';
+    var c = result.centroid128 || { x: 0, y: 0, z: 0 };
+    document.getElementById('brainCoords').textContent =
+        detected ? (c.x + ', ' + c.y + ', ' + c.z + ' (128³ space)') : '—';
+    document.getElementById('brainGrade').textContent =
+        detected ? 'Cần đánh giá lâm sàng' : '—';
+
+    // Detection canvas — 3 separate panels (Sagittal / Coronal / Axial)
+    // instead of one cramped combined ortho plot.
+    var detEl = document.getElementById('brainDetectionCanvas');
+    if (detEl) {
+        var sag = result.sagittalImage;
+        var cor = result.coronalImage;
+        var ax  = result.axialImage;
+        if (sag || cor || ax) {
+            function cell(label, src) {
+                var inner = src
+                    ? '<img src="' + src + '" alt="' + label + '">'
+                    : '<div class="brain-view-empty">' + label + ' — không có dữ liệu</div>';
+                return '<div class="brain-view-cell">' +
+                    '<div class="brain-view-label">' + label + '</div>' +
+                    inner + '</div>';
+            }
+            detEl.innerHTML = '<div class="brain-tri-view">' +
+                cell('Sagittal · X', sag) +
+                cell('Coronal · Y',  cor) +
+                cell('Axial · Z',    ax)  +
+                '</div>';
+        } else if (result.overlayImage) {
+            // Fallback: combined image if per-axis renders failed
+            detEl.innerHTML = '<img src="' + result.overlayImage + '" ' +
+                'style="width:100%;height:100%;object-fit:contain;border-radius:8px;" alt="Brain Overlay">';
+        }
+    }
+
+    // Per-axis thumbnails into the small slot boxes under the 3D Visualization
+    function _setAxisView(elId, src, fallbackLabel) {
+        var el = document.getElementById(elId);
+        if (!el) return;
+        if (src) {
+            el.style.background = 'url("' + src + '") center/cover, #050810';
+            el.style.color = 'transparent';
+            el.textContent = '';
+        } else {
+            el.style.background = '';
+            el.style.color = '';
+            el.textContent = fallbackLabel;
+        }
+    }
+    _setAxisView('brainAxialView',    result.axialImage,    'Axial');
+    _setAxisView('brainSagittalView', result.sagittalImage, 'Sagittal');
+    _setAxisView('brainCoronalView',  result.coronalImage,  'Coronal');
+
+    // Class breakdown as probability bars
+    var probEl = document.getElementById('brainProbBars');
+    if (probEl) {
+        if (detected && result.classCounts) {
+            var cc = result.classCounts;
+            var total = (cc.NCR + cc.ED + cc.ET) || 1;
+            var rows = [
+                { label: 'Necrotic Core (NCR)',  value: cc.NCR / total, color: '#ef4444' },
+                { label: 'Edema (ED)',           value: cc.ED  / total, color: '#f59e0b' },
+                { label: 'Enhancing Tumor (ET)', value: cc.ET  / total, color: '#10b981' },
+            ];
+            probEl.innerHTML = rows.map(p =>
+                '<div class="prob-row">' +
+                  '<span>' + p.label + '</span>' +
+                  '<div class="prob-bar-track"><div class="prob-bar-fill" style="width:' + (p.value*100).toFixed(1) + '%; background:' + p.color + ';"></div></div>' +
+                  '<span class="pct">' + (p.value*100).toFixed(0) + '%</span>' +
+                '</div>'
+            ).join('');
+        } else {
+            probEl.innerHTML = '<div class="prob-row empty">' +
+                (detected ? 'Không có dữ liệu phân loại' : 'Chưa phát hiện khối u') + '</div>';
+        }
+    }
 
     // Recommendations
+    var recos;
+    if (!detected) {
+        recos = [
+            'Không phát hiện tổn thương rõ ràng trên ảnh này.',
+            'Tiếp tục theo dõi định kỳ theo hướng dẫn của bác sĩ chuyên khoa Thần kinh.',
+        ];
+    } else {
+        recos = [
+            'Khối u được AI phát hiện (' + volCm3.toFixed(2) + ' cm³) — cần đối chiếu với bác sĩ Thần kinh.',
+            'Đề xuất: MRI có cản (T1 + Gadolinium) để xác định ranh giới khối u.',
+            'Cân nhắc sinh thiết để xác định loại u và grade chính xác.',
+        ];
+        if (volCm3 > 30) {
+            recos.push('Thể tích lớn (>30 cm³) — ưu tiên hội chẩn đa chuyên khoa.');
+        }
+        if (!isNiftiInput) {
+            recos.push('⚠️ Đầu vào là ảnh đơn — kết quả mang tính minh hoạ. Để chính xác, cần upload đủ 4 NIfTI (FLAIR, T1, T1c, T2).');
+        }
+    }
+    if (result.modelInfo) {
+        recos.push('Mô hình: ' + result.modelInfo.name + ' · Inference ' +
+                   (result.inferenceTimeS || '?') + 's · Mode: ' + (result.inputMode || 'image'));
+    }
     document.getElementById('brainRecoList').innerHTML =
-        result.recommendations.map(r => `<li class="reco-item">${r}</li>`).join('');
+        recos.map(r => '<li class="reco-item">' + r + '</li>').join('');
 
-    showToast('🧠 Đã phân tích xong (mock data)', 'success');
+    // Cinematic camera + annotation + Three.js scene with tumor mesh
+    if (detected) {
+        highlightBrainTumor(diam, 'unet-' + (result.centroid128 ? result.centroid128.x + result.centroid128.y : 'x'), result);
+    }
+
+    // Clear progression timeline (no real history yet)
+    var tlEl = document.getElementById('brainTimeline');
+    if (tlEl) {
+        tlEl.innerHTML = '<div class="timepoint current">' +
+            '<div class="tp-date">' + dateStr + ' (Hiện tại)</div>' +
+            '<div class="tp-thumb"' +
+            (result.overlayImage ? ' style="background:url(\'' + result.overlayImage + '\') center/cover;"' : '') +
+            '></div>' +
+            '<div class="tp-size">Thể tích: <b>' + volCm3.toFixed(2) + ' cm³</b></div>' +
+            '</div>';
+    }
 }
 
 // ============ LUNG TUMOR (CT) — Real AI Analysis (DeepLabV3) ============
@@ -2286,20 +4100,49 @@ var dsSelectedSlice = -1;
 var dsLoading = false;
 var dsPopulated = false; // dropdown already filled
 
-// Preload dataset list in background on page load
+// Preload dataset list in background on page load.
+// Uses a 1-day localStorage cache so F5 shows the dropdown instantly
+// (then refreshes the cache in the background with the latest BE response).
+var DS_CACHE_KEY = 'lungDatasetListV1';
+var DS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
 async function preloadDataset() {
     if (dsData || dsLoading) return;
     dsLoading = true;
+
+    // 1) Hydrate dropdown from cache immediately if recent
+    try {
+        var raw = localStorage.getItem(DS_CACHE_KEY);
+        if (raw) {
+            var cached = JSON.parse(raw);
+            if (cached && cached.data && (Date.now() - (cached.timestamp || 0) < DS_CACHE_TTL_MS)) {
+                dsData = cached.data;
+                populatePatientDropdown();
+                console.log('[Dataset] Hydrated from cache: ' + dsData.total + ' patients');
+            }
+        }
+    } catch (e) { /* ignore corrupted cache */ }
+
+    // 2) Always fetch fresh in the background to keep the cache up to date
     try {
         var apiBase = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || '';
         const resp = await fetch(apiBase + '/api/lung-dataset');
-        dsData = await resp.json();
-        console.log('[Dataset] Preloaded: ' + dsData.total + ' patients');
-        // Pre-populate dropdown immediately
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var fresh = await resp.json();
+        dsData = fresh;
+        try {
+            localStorage.setItem(DS_CACHE_KEY, JSON.stringify({
+                timestamp: Date.now(), data: fresh
+            }));
+        } catch (e) { /* quota exceeded — skip cache */ }
+        // Re-populate in case dropdown was filled from stale cache
+        dsPopulated = false;
         populatePatientDropdown();
-    } catch(e) {
-        console.warn('[Dataset] Preload failed:', e.message);
+        console.log('[Dataset] Fresh fetch: ' + fresh.total + ' patients');
+    } catch (e) {
+        console.warn('[Dataset] Background fetch failed:', e.message);
     }
+
     dsLoading = false;
 }
 
@@ -2324,30 +4167,27 @@ function openDatasetBrowser() {
     document.getElementById('datasetModal').classList.remove('hidden');
     if (dsData) {
         populatePatientDropdown();
-        // Only reset slice grid if no selection
         if (dsSelectedSlice < 0) {
             document.getElementById('dsSliceGrid').innerHTML = '<div class="ds-empty">Chọn bệnh nhân ở trên</div>';
         }
-    } else if (dsLoading) {
-        document.getElementById('dsSliceGrid').innerHTML = '<div class="ds-empty">⏳ Đang tải...</div>';
-        var checkInterval = setInterval(function() {
-            if (dsData) {
-                clearInterval(checkInterval);
-                populatePatientDropdown();
-                document.getElementById('dsSliceGrid').innerHTML = '<div class="ds-empty">Chọn bệnh nhân ở trên</div>';
-            }
-        }, 200);
-    } else {
-        document.getElementById('dsSliceGrid').innerHTML = '<div class="ds-empty">⏳ Đang tải...</div>';
-        preloadDataset().then(function() {
-            if (dsData) {
-                populatePatientDropdown();
-                document.getElementById('dsSliceGrid').innerHTML = '<div class="ds-empty">Chọn bệnh nhân ở trên</div>';
-            } else {
-                document.getElementById('dsSliceGrid').innerHTML = '<div class="ds-empty">❌ Không thể tải dataset</div>';
-            }
-        });
+        return;
     }
+    // No data yet — kick off (or wait on) preload, polling for completion.
+    document.getElementById('dsSliceGrid').innerHTML = '<div class="ds-empty">⏳ Đang tải...</div>';
+    if (!dsLoading) preloadDataset();
+    var tries = 0;
+    var poll = setInterval(function () {
+        tries++;
+        if (dsData) {
+            clearInterval(poll);
+            populatePatientDropdown();
+            document.getElementById('dsSliceGrid').innerHTML = '<div class="ds-empty">Chọn bệnh nhân ở trên</div>';
+        } else if (tries > 60 && !dsLoading) {
+            // Loading finished but no data → retry once more, then give up
+            clearInterval(poll);
+            document.getElementById('dsSliceGrid').innerHTML = '<div class="ds-empty">❌ Không tải được dataset. Kiểm tra BE rồi thử lại.</div>';
+        }
+    }, 200);
 }
 
 function closeDatasetBrowser() {
@@ -2384,26 +4224,35 @@ function onNoduleChange() {
     if (!nodule) return;
     dsSelectedNodule = nodule;
     grid.innerHTML = '';
+    var marks = nodule.sliceMarks || [];
     nodule.slices.forEach((s, i) => {
         var div = document.createElement('div');
         div.className = 'ds-slice-item';
+        var nMarks = marks[i] || 0;
+        if (nMarks > 0) div.classList.add('has-mask');
         div.dataset.index = i;
         var imgBase = (window.APP_CONFIG && window.APP_CONFIG.API_BASE) || '';
+        var badge = nMarks > 0
+            ? '<div class="ds-slice-badge" title="' + nMarks + ' bác sĩ annotation">' + nMarks + '</div>'
+            : '';
         div.innerHTML = '<img src="' + imgBase + '/api/lung-dataset-image?patient=' + dsSelectedPatient.id + '&nodule=' + nodName + '&slice=' + i + '" onerror="this.style.display=\'none\'">' +
+            badge +
             '<div class="ds-slice-label">' + s.replace('.png','') + '</div>';
         div.onclick = function() {
             grid.querySelectorAll('.ds-slice-item').forEach(el => el.classList.remove('selected'));
             div.classList.add('selected');
             dsSelectedSlice = i;
             document.getElementById('dsAnalyzeBtn').disabled = false;
-            document.getElementById('dsInfoText').textContent = '📋 ' + dsSelectedPatient.id + ' / ' + nodName + ' / ' + s + ' | ' + nodule.maskCount + ' bác sĩ annotation';
+            var marksTxt = nMarks > 0 ? (nMarks + ' bác sĩ marked') : 'KHÔNG có mask — chọn slice khác để phân tích';
+            document.getElementById('dsInfoText').textContent = dsSelectedPatient.id + ' / ' + nodName + ' / ' + s + ' · ' + marksTxt;
         };
         grid.appendChild(div);
     });
-    // Auto-select middle slice
-    var midIdx = Math.floor(nodule.slices.length / 2);
-    var midItem = grid.children[midIdx];
-    if (midItem) midItem.click();
+    // Auto-select first slice that HAS masks (skip blank ones)
+    var firstMarkedIdx = marks.findIndex(function (m) { return m > 0; });
+    var pickIdx = firstMarkedIdx >= 0 ? firstMarkedIdx : Math.floor(nodule.slices.length / 2);
+    var pickItem = grid.children[pickIdx];
+    if (pickItem) pickItem.click();
 }
 
 async function analyzeDatasetSlice() {
@@ -2486,7 +4335,10 @@ function displayLungResults(result) {
     const now = new Date();
     const dateStr = now.toLocaleDateString('vi-VN');
     const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    const patientId = 'BN' + now.getFullYear().toString().slice(2) + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + '_' + Math.floor(Math.random()*999).toString().padStart(3,'0');
+    // Prefer the dataset patient ID (LIDC-IDRI-XXXX) when available; only
+    // synthesize a fake BN ID for free-form image uploads.
+    const patientId = (result.datasetInfo && result.datasetInfo.patientId) ||
+        ('BN' + now.getFullYear().toString().slice(2) + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + '_' + Math.floor(Math.random()*999).toString().padStart(3,'0'));
 
     // Header patient info
     document.getElementById('lungPatientId').textContent = patientId;
@@ -2505,11 +4357,10 @@ function displayLungResults(result) {
     const mainView = document.getElementById('lungMainView');
     if (result.originalImage) {
         mainView.innerHTML = `
-            <img src="${result.originalImage}" style="width:100%;height:100%;object-fit:contain;border-radius:8px;" alt="CT Original">
-            <div style="position:absolute;left:12px;top:50%;color:#fff;font-size:11px;font-weight:700;opacity:0.6;text-shadow:0 0 4px #000;">R</div>
-            <div style="position:absolute;right:12px;top:50%;color:#fff;font-size:11px;font-weight:700;opacity:0.6;text-shadow:0 0 4px #000;">L</div>
+            <img src="${result.originalImage}" style="width:100%;height:100%;object-fit:contain;" alt="CT Original">
         `;
         mainView.style.position = 'relative';
+        mainView.classList.add('has-image');
     }
 
     document.getElementById('lungSliceLabel').textContent = `${result.originalSize ? result.originalSize.w : 512}×${result.originalSize ? result.originalSize.h : 512}`;
@@ -2520,32 +4371,31 @@ function displayLungResults(result) {
         detCanvas.innerHTML = `<img src="${result.overlayImage}" style="width:100%;height:100%;object-fit:contain;border-radius:8px;" alt="Detection Overlay">`;
         if (result.detected && result.tumors && result.tumors.length > 0) {
             const t = result.tumors[0];
-            detCanvas.innerHTML += `<div style="position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,0.7);padding:4px 8px;border-radius:4px;font-size:11px;color:#0f0;">Tumor detected: ${t.diameterMm} mm</div>`;
-            detCanvas.style.position = 'relative';
+            detCanvas.innerHTML += `<div style="position:absolute;bottom:10px;left:10px;background:rgba(0,0,0,0.75);padding:6px 10px;border-radius:6px;font-size:11px;color:#00D9A0;font-weight:600;letter-spacing:0.02em;">Tumor · ${t.diameterMm} mm</div>`;
         }
+        detCanvas.style.position = 'relative';
     } else if (!result.detected) {
         detCanvas.innerHTML = `<div class="detection-placeholder" style="color:#10b981;">✅ Không phát hiện khối u</div>`;
     }
 
-    // Section 4: Analysis results
-    document.getElementById('lungDiameter').textContent = result.detected ? result.maxDiameterMm + ' mm' : 'N/A';
+    // Section 4: Analysis results — hero number splits value/unit, so set just the number
+    document.getElementById('lungDiameter').textContent = result.detected
+        ? (typeof result.maxDiameterMm === 'number' ? result.maxDiameterMm.toFixed(1) : result.maxDiameterMm)
+        : 'N/A';
 
-    // Mini tumor preview — use actual mask image cropped to bbox
+    // Mini tumor preview removed in tab redesign — kept for backwards compat
+    // if some legacy markup still references #lungMini3d.
     var mini3d = document.getElementById('lungMini3d');
-    if (result.detected && result.maskImage) {
-      // Show the mask-only image (red tumor on transparent/dark bg)
-      mini3d.innerHTML = '<div class="mini-tumor-viz" style="padding:0;overflow:hidden;border-radius:12px;">' +
-        '<img src="' + result.maskImage + '" style="width:100%;height:100%;object-fit:contain;" alt="Tumor">' +
-        '<div class="mini-tumor-label">' + result.maxDiameterMm + ' mm</div>' +
-        '</div>';
-    } else if (result.detected && result.overlayImage) {
-      // Fallback: use overlay image
-      mini3d.innerHTML = '<div class="mini-tumor-viz" style="padding:0;overflow:hidden;border-radius:12px;">' +
-        '<img src="' + result.overlayImage + '" style="width:100%;height:100%;object-fit:contain;" alt="Tumor">' +
-        '<div class="mini-tumor-label">' + result.maxDiameterMm + ' mm</div>' +
-        '</div>';
-    } else {
-      mini3d.innerHTML = '<div class="mini-3d-placeholder" style="color:#10b981;">✅</div>';
+    if (mini3d) {
+        if (result.detected && (result.maskImage || result.overlayImage)) {
+            var src = result.maskImage || result.overlayImage;
+            mini3d.innerHTML = '<div class="mini-tumor-viz" style="padding:0;overflow:hidden;border-radius:12px;">' +
+                '<img src="' + src + '" style="width:100%;height:100%;object-fit:contain;" alt="Tumor">' +
+                '<div class="mini-tumor-label">' + result.maxDiameterMm + ' mm</div>' +
+                '</div>';
+        } else {
+            mini3d.innerHTML = '';
+        }
     }
 
     document.getElementById('lungVolume').textContent = result.detected ? (result.volumeCm3 || (result.volumeMm3 / 1000).toFixed(2)) + ' cm³' : 'N/A';
@@ -2609,14 +4459,30 @@ function displayLungResults(result) {
       followup.textContent = '1 – 2 tuần';
     }
 
+    // Patient summary strip (top of the lung module — always visible after analysis)
+    updateLungSummaryStrip(result, patientId, dateStr);
+    // Update floating 3D tumor label size text
+    var tumorLabelSize = document.getElementById('lungTumorLabelSize');
+    if (tumorLabelSize) {
+        tumorLabelSize.textContent = (typeof result.maxDiameterMm === 'number'
+            ? result.maxDiameterMm.toFixed(1) + ' mm' : '—');
+    }
     // Sub-views (Coronal / Sagittal / Mini 3D) below the main CT image
     updateLungSubViews(result);
     // Filmstrip of nearby slices (dataset mode only — needs a volume)
     updateLungSliceStrip(result);
 
     // Section 3: 3D Lung Visualization (Three.js)
-    console.log('displayLungResults: scheduling initLung3D, result.detected=', result.detected);
-    setTimeout(() => initLung3D(result), 500);
+    // Cache the result so the 3D tab can lazy-init when it becomes visible
+    // (a hidden canvas has 0×0 size and the fit-to-frame math breaks).
+    window._lastLungResult = result;
+    var threeDPanelActive = document.querySelector('.lung-panel[data-lung-panel="3d"].is-active');
+    if (threeDPanelActive) {
+        console.log('displayLungResults: 3D panel already active → init now');
+        setTimeout(() => initLung3D(result), 350);
+    } else {
+        console.log('displayLungResults: 3D init deferred until tab activated');
+    }
 
     // Section 5: Progression — per-patient timeline with image thumbs.
     // Storage layout: { [patientKey]: [entry, ...] } keyed by patient/file.
@@ -2736,6 +4602,264 @@ function updateLungSubViews(result) {
     // Mini 3D preview always tries to spin up (uses local GLB)
     setTimeout(initLungPreview3D, 300);
 }
+
+// ============ NUMBER COUNT-UP HELPER ============
+// Animates a numeric textContent from current value to target over `dur` ms.
+// `decimals` controls fractional digits while animating.
+function animateCountUp(el, target, opts) {
+    if (!el || typeof target !== 'number' || isNaN(target)) return;
+    opts = opts || {};
+    var dur = opts.duration || 700;
+    var decimals = opts.decimals != null ? opts.decimals : 1;
+    var suffix = opts.suffix || '';
+    var prev = parseFloat((el.textContent || '0').replace(/[^\d.\-]/g, '')) || 0;
+    var start = performance.now();
+    function ease(t) { return 1 - Math.pow(1 - t, 3); } // ease-out-cubic
+    function tick(now) {
+        var t = Math.min(1, (now - start) / dur);
+        var v = prev + (target - prev) * ease(t);
+        el.textContent = v.toFixed(decimals) + suffix;
+        if (t < 1) requestAnimationFrame(tick);
+        else el.textContent = target.toFixed(decimals) + suffix;
+    }
+    requestAnimationFrame(tick);
+}
+
+// ============ PATIENT SUMMARY STRIP (top of lung module) ============
+function updateLungSummaryStrip(result, patientId, dateStr) {
+    var strip = document.getElementById('lungSummaryStrip');
+    if (!strip) return;
+    if (!result || !result.detected) {
+        strip.hidden = true;
+        return;
+    }
+    strip.hidden = false;
+
+    function setText(id, val) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = val == null || val === '' ? '—' : val;
+    }
+    setText('lungStripPatient', patientId);
+    setText('lungStripDate', dateStr);
+    setText('lungStripLocation', result.position || '—');
+
+    // Hero size — animated count-up + tumor mask thumbnail beside it
+    var sizeEl = document.getElementById('lungStripSize');
+    var sizeNum = (typeof result.maxDiameterMm === 'number' && !isNaN(result.maxDiameterMm))
+        ? result.maxDiameterMm : null;
+    if (sizeEl) {
+        if (sizeNum != null) {
+            animateCountUp(sizeEl, sizeNum, { duration: 800, decimals: 1, suffix: ' mm' });
+        } else {
+            sizeEl.textContent = '—';
+        }
+    }
+    var thumb = document.getElementById('lungStripTumorThumb');
+    if (thumb) {
+        var thumbSrc = result.maskImage || result.overlayImage || result.originalImage || null;
+        if (thumbSrc) {
+            thumb.style.backgroundImage = 'url("' + thumbSrc + '")';
+            thumb.classList.add('has-image');
+        } else {
+            thumb.style.backgroundImage = '';
+            thumb.classList.remove('has-image');
+        }
+    }
+
+    var mal = (typeof result.malignancy === 'number' && !isNaN(result.malignancy))
+        ? result.malignancy.toFixed(1) + ' %' : '—';
+    setText('lungStripMalignancy', mal);
+
+    // Malignancy ring + risk class — animated stroke + count-up text
+    var m = (typeof result.malignancy === 'number' && !isNaN(result.malignancy))
+        ? Math.max(0, Math.min(100, result.malignancy)) : 0;
+    var ring = document.getElementById('lungMalignancyRing');
+    var ringFill = document.getElementById('lungMalignancyRingFill');
+    var ringValue = document.getElementById('lungMalignancyRingValue');
+    if (ring && ringFill && ringValue) {
+        var circumference = 2 * Math.PI * 26;          // r = 26
+        var offset = circumference - (m / 100) * circumference;
+        ringFill.style.strokeDasharray = circumference.toFixed(2);
+        ringFill.style.strokeDashoffset = offset.toFixed(2);
+        animateCountUp(ringValue, m, { duration: 800, decimals: 0 });
+        ring.classList.remove('low', 'medium', 'high');
+        ring.classList.add(m < 30 ? 'low' : (m < 65 ? 'medium' : 'high'));
+    }
+
+    var risk = document.getElementById('lungStripRisk');
+    var riskText = risk && risk.querySelector('.risk-pill-text');
+    if (risk && riskText) {
+        risk.hidden = false;
+        risk.classList.remove('low', 'medium', 'high');
+        if (m < 30) { risk.classList.add('low');    riskText.textContent = 'Nguy cơ thấp'; }
+        else if (m < 65) { risk.classList.add('medium'); riskText.textContent = 'Nguy cơ trung bình'; }
+        else { risk.classList.add('high');   riskText.textContent = 'Nguy cơ cao'; }
+    }
+}
+
+// ============ TAB SWITCHER (lung module) ============
+function moveLungTabIndicator(activeTab) {
+    var indicator = document.getElementById('lungTabIndicator');
+    if (!indicator || !activeTab) return;
+    var nav = activeTab.parentElement;
+    if (!nav) return;
+    var navRect = nav.getBoundingClientRect();
+    var btnRect = activeTab.getBoundingClientRect();
+    indicator.style.width  = btnRect.width + 'px';
+    indicator.style.height = btnRect.height + 'px';
+    indicator.style.transform = 'translate(' + (btnRect.left - navRect.left) + 'px, ' +
+                                (btnRect.top  - navRect.top)  + 'px)';
+}
+
+function activateLungTab(tabId) {
+    var module = document.getElementById('module-lung');
+    if (!module) return;
+    var activeBtn = null;
+    module.querySelectorAll('.lung-tab').forEach(function (t) {
+        var on = t.getAttribute('data-lung-tab') === tabId;
+        t.classList.toggle('is-active', on);
+        if (on) activeBtn = t;
+    });
+    module.querySelectorAll('.lung-panel').forEach(function (p) {
+        p.classList.toggle('is-active', p.getAttribute('data-lung-panel') === tabId);
+    });
+    if (activeBtn) moveLungTabIndicator(activeBtn);
+    // Lazy-init the 3D viewer the first time its tab is shown (canvas needs
+    // a real size to fit-to-frame correctly). After init, just resize on
+    // re-entry in case the viewport changed.
+    if (tabId === '3d') {
+        setTimeout(function () {
+            var stage = document.getElementById('lungVizStage');
+            if (!stage) return;
+            var rect = stage.getBoundingClientRect();
+            if (rect.width < 10 || rect.height < 10) return;
+
+            var alreadyInited = (typeof lung3dInitialized !== 'undefined' && lung3dInitialized);
+            if (!alreadyInited && window._lastLungResult) {
+                initLung3D(window._lastLungResult);
+            } else if (lungRenderer && lungCamera) {
+                lungRenderer.setSize(rect.width, rect.height, false);
+                lungCamera.aspect = rect.width / rect.height;
+                lungCamera.updateProjectionMatrix();
+            }
+        }, 60);
+    }
+}
+
+// ============ CURSOR SPOTLIGHT on .panel-card (Linear signature) ============
+(function () {
+    if (window.__lungSpotlightWired) return;
+    window.__lungSpotlightWired = true;
+    document.addEventListener('mousemove', function (e) {
+        var card = e.target.closest && e.target.closest('#module-lung .panel-card');
+        if (!card) return;
+        var r = card.getBoundingClientRect();
+        var x = ((e.clientX - r.left) / r.width) * 100;
+        var y = ((e.clientY - r.top) / r.height) * 100;
+        card.style.setProperty('--mx', x + '%');
+        card.style.setProperty('--my', y + '%');
+    });
+})();
+
+// ============ FULLSCREEN for the 3D viewer ============
+function toggleLungFullscreen() {
+    var stage = document.getElementById('lungVizStage');
+    if (!stage) return;
+    var doc = document;
+    var inFs = doc.fullscreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;
+    if (inFs) {
+        (doc.exitFullscreen || doc.webkitExitFullscreen || doc.msExitFullscreen).call(doc);
+    } else {
+        var req = stage.requestFullscreen || stage.webkitRequestFullscreen || stage.msRequestFullscreen;
+        if (req) req.call(stage);
+    }
+}
+
+// Wire up tab clicks (delegated, fires once)
+(function () {
+    if (window.__lungTabsWired) return;
+    window.__lungTabsWired = true;
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('.lung-tab');
+        if (!btn) return;
+        var tab = btn.getAttribute('data-lung-tab');
+        if (tab) activateLungTab(tab);
+    });
+    // Fullscreen button — also resize Three.js when entering/exiting FS
+    document.addEventListener('click', function (e) {
+        if (e.target.closest && e.target.closest('#lungToolFullscreen')) toggleLungFullscreen();
+    });
+    function onFsChange() {
+        var stage = document.getElementById('lungVizStage');
+        var btn = document.getElementById('lungToolFullscreen');
+        var fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+        var inFs = !!fsEl && fsEl === stage;
+        if (btn) {
+            var enterIco = btn.querySelector('[data-icon="enter"]');
+            var exitIco  = btn.querySelector('[data-icon="exit"]');
+            if (enterIco) enterIco.style.display = inFs ? 'none' : '';
+            if (exitIco)  exitIco.style.display  = inFs ? '' : 'none';
+            btn.classList.toggle('is-fullscreen', inFs);
+        }
+        if (stage) stage.classList.toggle('is-fullscreen', inFs);
+        // Renderer needs to be re-sized after the stage changes shape
+        setTimeout(function () {
+            if (stage && lungRenderer && lungCamera) {
+                var rect = stage.getBoundingClientRect();
+                if (rect.width > 10 && rect.height > 10) {
+                    lungRenderer.setSize(rect.width, rect.height, false);
+                    lungCamera.aspect = rect.width / rect.height;
+                    lungCamera.updateProjectionMatrix();
+                }
+            }
+        }, 50);
+    }
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    document.addEventListener('msfullscreenchange', onFsChange);
+    // Position the sliding indicator initially + on resize + when the lung
+    // module first becomes visible (a hidden module has zero-size buttons).
+    function syncIndicator() {
+        var active = document.querySelector('#module-lung .lung-tab.is-active');
+        if (active) moveLungTabIndicator(active);
+    }
+    function resizeLung3D() {
+        var stage = document.getElementById('lungVizStage');
+        if (stage && lungRenderer && lungCamera) {
+            var rect = stage.getBoundingClientRect();
+            if (rect.width > 10 && rect.height > 10) {
+                lungRenderer.setSize(rect.width, rect.height, false);
+                lungCamera.aspect = rect.width / rect.height;
+                lungCamera.updateProjectionMatrix();
+            }
+        }
+        var miniBox = document.getElementById('lungPreview3DBox');
+        if (miniBox && lungPreviewRenderer && lungPreviewCamera) {
+            var mRect = miniBox.getBoundingClientRect();
+            if (mRect.width > 10 && mRect.height > 10) {
+                lungPreviewRenderer.setSize(mRect.width, mRect.height, false);
+                lungPreviewCamera.aspect = mRect.width / mRect.height;
+                lungPreviewCamera.updateProjectionMatrix();
+            }
+        }
+    }
+    window.addEventListener('resize', function () { syncIndicator(); resizeLung3D(); });
+    // Watch for the module switching from hidden→visible
+    var moduleEl = document.getElementById('module-lung');
+    if (moduleEl && window.MutationObserver) {
+        new MutationObserver(function () {
+            if (!moduleEl.classList.contains('hidden')) {
+                requestAnimationFrame(syncIndicator);
+            }
+        }).observe(moduleEl, { attributes: true, attributeFilter: ['class'] });
+    }
+    // Try once after page load too
+    if (document.readyState === 'complete') {
+        requestAnimationFrame(syncIndicator);
+    } else {
+        window.addEventListener('load', function () { requestAnimationFrame(syncIndicator); });
+    }
+})();
 
 // ============ FILMSTRIP: nearby slices around the current one ============
 // Only meaningful in dataset mode where we have a real volume. For single
@@ -2914,7 +5038,6 @@ function generateLungRecommendations(result) {
         recos.push('Chuyển bác sĩ chuyên khoa Ung bướu ngay.');
     }
     if (m > 70) recos.push('Xác suất ác tính cao (' + m.toFixed(1) + '%) — ưu tiên can thiệp sớm.');
-    recos.push('Vị trí: ' + (result.position || 'N/A') + ' — cần đối chiếu lâm sàng.');
     recos.push('Tham khảo ý kiến bác sĩ chuyên khoa Ung bướu - Hô hấp.');
     recos.push('Lịch tái khám gợi ý: 4 - 6 tuần.');
     return recos;
@@ -2928,6 +5051,60 @@ var lungTumorMesh = null;
 var lungTumorGlow = null;
 var lungParticles = null;
 var lung3dInitialized = false;
+// All meshes that should follow the tumor position — we move them as a group
+// when bounds change (e.g., once the GLB lung model has finished loading).
+var lungTumorParts = [];
+
+// Convert an "anatomical hint" (which side / lobe of the lung the tumor is in)
+// into world coordinates fitted to the lung model's actual bounding box.
+// `anatomical.sx` and `.sy` are in [-1, +1] where +X is patient's RIGHT lung
+// and +Y is the upper lobe. FILL controls how deep into the lung the tumor
+// sits (0.55 keeps it well inside the mesh, away from the mediastinum and
+// outer edge).
+function computeLungTumorPosition(anatomical, bounds) {
+    var b = bounds || { min: { x: -7, y: -8, z: -3 }, max: { x: 7, y: 7, z: 3 } };
+    var bxC = (b.min.x + b.max.x) / 2;
+    var byC = (b.min.y + b.max.y) / 2;
+    var bzC = (b.min.z + b.max.z) / 2;
+    var bxR = Math.max(0.5, (b.max.x - b.min.x) / 2);
+    var byR = Math.max(0.5, (b.max.y - b.min.y) / 2);
+    var bzR = Math.max(0.3, (b.max.z - b.min.z) / 2);
+
+    // Label-match convention: tumor side in 3D matches where the L/R label
+    // is drawn on the CT image. L on viewer's left → image-left = "trái" → -X.
+    // R on viewer's right → image-right = "phải" → +X.
+    var sideSign;       // -1 = viewer left ("trái"), +1 = viewer right ("phải")
+    var lobeSign;       // +1 = upper lobe, 0 = middle, -1 = lower
+    if (anatomical.kind === 'continuous' && typeof anatomical.sx === 'number') {
+        // sx > 0 = image-left → "trái" → -X in 3D
+        sideSign = anatomical.sx > 0 ? -1 : +1;
+        lobeSign = Math.max(-1, Math.min(1, anatomical.sy || 0));
+    } else {
+        // Discrete: side label directly maps to 3D X direction
+        sideSign = anatomical.side === 'right' ? +1 : -1;
+        lobeSign = anatomical.lobe === 'upper' ? +1 : (anatomical.lobe === 'lower' ? -1 : 0);
+    }
+
+    return {
+        x: bxC + sideSign * bxR * 0.55,    // dead center of the chosen lung
+        y: byC + lobeSign * byR * 0.45,    // upper / middle / lower lobe
+        z: bzC + bzR * 0.20,               // slightly forward of center
+    };
+}
+
+// Move the tumor mesh + every related part (wireframe, glow shells, point
+// light) to a new position. Called after the GLB lung model has loaded so
+// we can use its actual bounds.
+function repositionLungTumor(bounds) {
+    if (!lungTumorMesh || !window._lungTumorAnatomical) return;
+    var pos = computeLungTumorPosition(window._lungTumorAnatomical, bounds);
+    lungTumorMesh.position.set(pos.x, pos.y, pos.z);
+    lungTumorParts.forEach(function (p) {
+        if (p && p.position) p.position.set(pos.x, pos.y, pos.z);
+    });
+    console.log('[Lung3D] tumor repositioned to (' +
+                pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) + ', ' + pos.z.toFixed(2) + ')');
+}
 
 function initLung3D(tumorData) {
   try {
@@ -2941,22 +5118,26 @@ function initLung3D(tumorData) {
     var w = Math.max(rect.width, 300), h = Math.max(rect.height, 200);
     console.log('[Lung3D] init', w, 'x', h);
     lungScene = new THREE.Scene();
-    lungScene.background = new THREE.Color(0x050a14);
-    lungCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 500);
-    lungCamera.position.set(18, 10, 30);
+    lungScene.background = null;   // let CSS gradient show through
+    lungCamera = new THREE.PerspectiveCamera(35, w / h, 0.1, 500);
+    // Camera will be repositioned to fit-frame after the model loads.
+    lungCamera.position.set(0, 4, 40);
     lungCamera.lookAt(0, 0, 0);
-    lungRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    lungRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    lungRenderer.setClearColor(0x000000, 0);
     lungRenderer.setSize(w, h);
     lungRenderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
     lungControls = new THREE.OrbitControls(lungCamera, lungRenderer.domElement);
     lungControls.enableDamping = true;
     lungControls.autoRotate = true;
-    lungControls.autoRotateSpeed = 1.5;
+    lungControls.autoRotateSpeed = 0.9;       // slower, more cinematic
     lungControls.target.set(0, 0, 0);
     // Lighting
-    lungScene.add(new THREE.AmbientLight(0xffffff, 1.0));
-    var dl1 = new THREE.DirectionalLight(0xaaccff, 1.5); dl1.position.set(15, 20, 25); lungScene.add(dl1);
-    var dl2 = new THREE.DirectionalLight(0x6688bb, 0.8); dl2.position.set(-15, 10, -20); lungScene.add(dl2);
+    lungScene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    var dl1 = new THREE.DirectionalLight(0xeaf6ff, 1.4); dl1.position.set(15, 20, 25); lungScene.add(dl1);
+    var dl2 = new THREE.DirectionalLight(0x4488bb, 0.6); dl2.position.set(-15, 10, -20); lungScene.add(dl2);
+    // Rim light from behind to outline the lung silhouette
+    var rim = new THREE.DirectionalLight(0x33eaff, 0.9); rim.position.set(0, -5, -22); lungScene.add(rim);
     // === LOAD 3D LUNG MODEL (GLB) or FALLBACK ===
     var lungModelLoaded = false;
     function addFallbackLungs() {
@@ -2978,6 +5159,12 @@ function initLung3D(tumorData) {
       rBr.position.set(-2.5,6,0); rBr.rotation.z=0.45; lungScene.add(rBr);
       var lBr = new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.25,4.5,8),pm);
       lBr.position.set(2.5,6,0); lBr.rotation.z=-0.45; lungScene.add(lBr);
+      // Set bounds + reposition tumor so it lands inside the fallback lungs
+      window._lungModelBounds = {
+        min: { x: -10.7, y: -9.5, z: -3.5 },
+        max: { x:   9.7, y:  7.5, z:  3.5 }
+      };
+      repositionLungTumor(window._lungModelBounds);
       console.log('[Lung3D] Using fallback ellipsoid lungs');
     }
 
@@ -3005,34 +5192,60 @@ function initLung3D(tumorData) {
           model.traverse(function(c) {
             if (c.isMesh) {
               mc++;
+              // Ghost-like translucent lung — much more transparent so the
+              // tumor inside stands out clearly against it.
               c.material = new THREE.MeshLambertMaterial({
-                color: 0x22aacc, transparent: true, opacity: 0.35,
-                side: THREE.DoubleSide, depthWrite: false
+                color: 0x33ccdd, transparent: true, opacity: 0.18,
+                side: THREE.DoubleSide, depthWrite: false,
+                emissive: 0x114455, emissiveIntensity: 0.15,
               });
             }
           });
           console.log('[Lung3D] Meshes found:', mc);
-          // Auto-fit
+          // Auto-fit: normalize model to a target world size, then push the
+          // camera back enough so the whole model fits the viewport with
+          // padding — works for any canvas aspect ratio.
           var box = new THREE.Box3().setFromObject(model);
           var sz = box.getSize(new THREE.Vector3());
           var ct = box.getCenter(new THREE.Vector3());
           var mx = Math.max(sz.x, sz.y, sz.z);
-          var sc = 18 / mx;
+          var TARGET = 12;                           // smaller than before (was 18)
+          var sc = TARGET / mx;
           model.scale.setScalar(sc);
           model.position.set(-ct.x * sc, -ct.y * sc, -ct.z * sc);
           lungScene.add(model);
+
           // Recompute after transform
           var finalBox = new THREE.Box3().setFromObject(model);
           var fMin = finalBox.min, fMax = finalBox.max;
           window._lungModelBounds = { min: {x:fMin.x, y:fMin.y, z:fMin.z}, max: {x:fMax.x, y:fMax.y, z:fMax.z} };
-          console.log('[Lung3D] Model bounds: X[' + fMin.x.toFixed(1) + ',' + fMax.x.toFixed(1) + '] Y[' + fMin.y.toFixed(1) + ',' + fMax.y.toFixed(1) + '] Z[' + fMin.z.toFixed(1) + ',' + fMax.z.toFixed(1) + ']');
-          console.log('[Lung3D] Model scale=' + sc.toFixed(3));
-          // Reposition tumor if it was placed before model loaded
-          if (lungTumorMesh && window._lungTumorTarget) {
-            var tb = window._lungTumorTarget;
-            lungTumorMesh.position.set(tb.x, tb.y, tb.z);
-            console.log('[Lung3D] Tumor repositioned to model-relative coords');
+
+          // FOV-based fit-to-frame
+          var fitOffset = 1.6;   // 60% padding around the model
+          var maxWorldDim = Math.max(fMax.x - fMin.x, fMax.y - fMin.y, fMax.z - fMin.z);
+          var fov = lungCamera.fov * Math.PI / 180;
+          var aspect = lungCamera.aspect || 1;
+          var fitH = (maxWorldDim / 2) / Math.tan(fov / 2);
+          var fitW = fitH / aspect;
+          var dist = Math.max(fitH, fitW) * fitOffset;
+          lungCamera.position.set(0, maxWorldDim * 0.15, dist);
+          lungCamera.lookAt(0, 0, 0);
+          lungCamera.near = Math.max(0.1, dist / 100);
+          lungCamera.far  = dist * 10;
+          lungCamera.updateProjectionMatrix();
+          if (lungControls) {
+            lungControls.minDistance = dist * 0.3;
+            lungControls.maxDistance = dist * 3;
+            lungControls.target.set(0, 0, 0);
+            lungControls.update();
           }
+          console.log('[Lung3D] fit dist=' + dist.toFixed(1) + ', maxWorldDim=' + maxWorldDim.toFixed(1));
+          console.log('[Lung3D] bounds X[' + fMin.x.toFixed(1) + ',' + fMax.x.toFixed(1) +
+                      '] Y[' + fMin.y.toFixed(1) + ',' + fMax.y.toFixed(1) +
+                      '] Z[' + fMin.z.toFixed(1) + ',' + fMax.z.toFixed(1) + ']');
+          // Reposition tumor using actual lung bounds (not the default
+          // estimate it got placed at when initial setup ran).
+          repositionLungTumor(window._lungModelBounds);
         },
         function onProgress(p) {
           if (p.total > 0) {
@@ -3078,133 +5291,171 @@ function initLung3D(tumorData) {
       var isLower = posSubText.indexOf('lower') >= 0;
       var isMiddle = posSubText.indexOf('middle') >= 0;
 
-      var cx3d, cy3d, cz3d = 0.8;
-      // LIDC nodule crops are tumor-centered → centroid coords say nothing
-      // about which lung the tumor was originally in. Detect this case
-      // (centroid near image center within a LIDC dataset mode) and
-      // distribute tumors deterministically by patient-id hash so the 3D
-      // viewer shows variety across patients instead of all stacking up
-      // in the mediastinum.
+      // ---- ANATOMICAL HINT — what lobe + side the tumor is in ----
+      // We store an "intent" (sx, sy in [-1,+1] range) instead of world coords,
+      // then convert to world coords using the LUNG MODEL's actual bounds when
+      // we know them. This avoids the tumor floating outside the mesh.
+      var anatomical;
       var isLIDCCrop = !!(tumorData.datasetInfo && tumorData.datasetInfo.patientId) &&
                        centroidNorm &&
                        Math.abs((centroidNorm.x || 256) - 256) < 80 &&
                        Math.abs((centroidNorm.y || 256) - 256) < 80;
 
       if (isLIDCCrop) {
-        var pid = tumorData.datasetInfo.patientId;
-        var h = 0;
-        for (var hi = 0; hi < pid.length; hi++) {
-          h = ((h << 5) - h + pid.charCodeAt(hi)) | 0;
-        }
-        var ax = ((h & 0xff) / 255) * 2 - 1;          // -1..1
-        var ay = (((h >> 8) & 0xff) / 255) * 2 - 1;   // -1..1
-        cx3d = (ax > 0 ? 1 : -1) * (3.0 + Math.abs(ax) * 2.5);   // ±[3.0, 5.5], avoid mediastinum
-        cy3d = ay * 3.5 + 0.3;                                    // [-3.2, +3.8]
-        console.log('[Lung3D] LIDC patient hash (' + pid + ') -> 3D(' +
-                    cx3d.toFixed(2) + ', ' + cy3d.toFixed(2) + ')');
-      } else if (centroidNorm && typeof centroidNorm.x === 'number' && typeof centroidNorm.y === 'number') {
-        var nx = centroidNorm.x / 512;     // 0..1, image-left to image-right
-        var ny = centroidNorm.y / 512;     // 0..1, image-top to image-bottom
-        cx3d = (1 - 2 * nx) * 5.5;         // [-5.5, +5.5]
-        cy3d = (1 - 2 * ny) * 4.0 + 0.3;   // [-3.7, +4.3]
-        console.log('[Lung3D] continuous centroid (nx=' + nx.toFixed(2) +
-                    ', ny=' + ny.toFixed(2) + ') -> 3D(' +
-                    cx3d.toFixed(2) + ', ' + cy3d.toFixed(2) + ')');
+        // LIDC hash → discrete side+lobe (matches what the BE position string
+        // says, so the 3D placement is consistent with "Vị trí: Phổi phải /
+        // Thuỳ trên" displayed in the patient strip).
+        var sideHint = (posSubText.indexOf('right') >= 0 || posText.indexOf('phải') >= 0) ? 'right' : 'left';
+        var lobeHint = posSubText.indexOf('upper') >= 0 ? 'upper'
+                     : (posSubText.indexOf('lower') >= 0 ? 'lower' : 'middle');
+        anatomical = {
+          kind: 'lidc-hash',
+          side: sideHint,
+          lobe: lobeHint,
+          patient: tumorData.datasetInfo.patientId,
+        };
+        console.log('[Lung3D] anatomical (LIDC) side=' + sideHint + ' lobe=' + lobeHint);
+      } else if (centroidNorm && typeof centroidNorm.x === 'number' &&
+                 typeof centroidNorm.y === 'number') {
+        var nx = centroidNorm.x / 512;
+        var ny = centroidNorm.y / 512;
+        anatomical = {
+          kind: 'continuous',
+          sx: 1 - 2 * nx,            // image-left → patient-right → sx > 0
+          sy: 1 - 2 * ny,            // image-top  → upper lobe   → sy > 0
+        };
+        console.log('[Lung3D] anatomical (continuous) sx=' +
+                    anatomical.sx.toFixed(2) + ' sy=' + anatomical.sy.toFixed(2));
       } else {
-        cx3d = isRight ? 4.0 : -4.0;
-        cy3d = isUpper ? 3.5 : (isLower ? -3.5 : 0.5);
-        console.log('[Lung3D] bucketed fallback pos="' + posText +
-                    '" -> 3D(' + cx3d + ', ' + cy3d + ')');
+        anatomical = {
+          kind: 'bucketed',
+          side: isRight ? 'right' : (isLeft ? 'left' : 'right'),
+          lobe: isUpper ? 'upper' : (isLower ? 'lower' : 'middle'),
+        };
+        console.log('[Lung3D] anatomical (bucketed) "' + posText + '"');
       }
+      window._lungTumorAnatomical = anatomical;
 
-      // Store for repositioning after model loads
-      window._lungTumorTarget = {x: cx3d, y: cy3d, z: cz3d};
+      // Initial world coords using current bounds (may be defaults; will be
+      // recomputed after GLB load with real bounds).
+      var initialPos = computeLungTumorPosition(anatomical, window._lungModelBounds);
+      var cx3d = initialPos.x, cy3d = initialPos.y, cz3d = initialPos.z;
 
-      // Scale for tumor shape
-      var tumorSizeScale = 0.22; // controls how big tumor appears relative to lung
+      // Tumor world-size scales with measured diameter, clamped tightly so
+      // even noisy LIDC ">100mm" measurements stay anatomically reasonable.
+      // Calibration: 20mm tumor → 0.5 world units (≈ 5% of lung X — close to
+      // real anatomy where a 2cm tumor is ~5–8% of a 25cm lung).
+      var diameterMm = (tumorData && tumorData.maxDiameterMm) || 20;
+      var TUMOR_WORLD_SIZE = Math.max(0.25, Math.min(1.0, diameterMm * 0.025));
 
       if (contour && contour.length >= 3) {
-        // Compute contour centroid in normalized space
+        // Build extruded shape from the actual segmentation contour — keeps
+        // the irregular real tumor outline (anatomical realism). Size is
+        // already clamped small via TUMOR_WORLD_SIZE.
         var contCx = 0, contCy = 0;
         for (var ci = 0; ci < contour.length; ci++) {
           contCx += contour[ci][0]; contCy += contour[ci][1];
         }
         contCx /= contour.length; contCy /= contour.length;
+        var maxR = 0.001;
+        for (var ci = 0; ci < contour.length; ci++) {
+          var dxc = contour[ci][0] - contCx, dyc = contour[ci][1] - contCy;
+          var r = Math.sqrt(dxc * dxc + dyc * dyc);
+          if (r > maxR) maxR = r;
+        }
+        var tumorScale = (TUMOR_WORLD_SIZE * 0.5) / maxR;
 
-        // Build shape CENTERED at origin (relative coords)
         var shape = new THREE.Shape();
-        var firstX = (contour[0][0] - contCx) * 18 * tumorSizeScale;
-        var firstY = (contCy - contour[0][1]) * 14 * tumorSizeScale;
+        var firstX = (contour[0][0] - contCx) * tumorScale;
+        var firstY = (contCy - contour[0][1]) * tumorScale;
         shape.moveTo(firstX, firstY);
         for (var ci = 1; ci < contour.length; ci++) {
-          var px = (contour[ci][0] - contCx) * 18 * tumorSizeScale;
-          var py = (contCy - contour[ci][1]) * 14 * tumorSizeScale;
+          var px = (contour[ci][0] - contCx) * tumorScale;
+          var py = (contCy - contour[ci][1]) * tumorScale;
           shape.lineTo(px, py);
         }
         shape.lineTo(firstX, firstY);
 
-        var depth = Math.max(0.15, (tumorData.maxDiameterMm || 10) / 350 * 18 * tumorSizeScale * 0.5);
+        var depth = TUMOR_WORLD_SIZE * 0.35;
         var tumorGeo = new THREE.ExtrudeGeometry(shape, {
           depth: depth,
           bevelEnabled: true,
-          bevelThickness: depth * 0.12,
-          bevelSize: depth * 0.08,
-          bevelSegments: 2
+          bevelThickness: depth * 0.20,
+          bevelSize: depth * 0.15,
+          bevelSegments: 4,
+          curveSegments: 12,
         });
         tumorGeo.center();
 
+        // Reset list of meshes to follow the tumor
+        lungTumorParts = [];
+
         lungTumorMesh = new THREE.Mesh(tumorGeo, new THREE.MeshLambertMaterial({
-          color: 0xff2244, transparent: true, opacity: 0.72,
-          emissive: 0x550000, side: THREE.DoubleSide
+          color: 0xff3355, transparent: true, opacity: 0.92,
+          emissive: 0x661111, emissiveIntensity: 0.55,
+          side: THREE.DoubleSide,
         }));
-        // Position at the correct anatomical location
         lungTumorMesh.position.set(cx3d, cy3d, cz3d);
         lungScene.add(lungTumorMesh);
+        lungTumorParts.push(lungTumorMesh);
 
-        // Wireframe
+        // Wireframe outline
         var wireMesh = new THREE.Mesh(tumorGeo.clone(), new THREE.MeshBasicMaterial({
-          color: 0xff4466, wireframe: true, transparent: true, opacity: 0.2
+          color: 0xff5577, wireframe: true, transparent: true, opacity: 0.18,
         }));
         wireMesh.position.copy(lungTumorMesh.position);
-        wireMesh.scale.set(1.03, 1.03, 1.03);
+        wireMesh.scale.set(1.04, 1.04, 1.04);
         lungScene.add(wireMesh);
+        lungTumorParts.push(wireMesh);
 
-        // Glow
+        // Glow shells around the tumor
         tumorGeo.computeBoundingSphere();
-        var glowR = tumorGeo.boundingSphere ? tumorGeo.boundingSphere.radius : 1;
-        [1.4, 2.0].forEach(function(s, i){
+        var glowR = tumorGeo.boundingSphere ? tumorGeo.boundingSphere.radius : 0.5;
+        [1.5, 2.2].forEach(function (s, i) {
           var gg = new THREE.Mesh(
-            new THREE.SphereGeometry(glowR * s, 10, 8),
-            new THREE.MeshBasicMaterial({color:0xff3355, transparent:true, opacity:0.04-i*0.015, side:THREE.BackSide})
+            new THREE.SphereGeometry(glowR * s, 16, 12),
+            new THREE.MeshBasicMaterial({
+              color: 0xff3355, transparent: true,
+              opacity: 0.05 - i * 0.02,
+              side: THREE.BackSide,
+            })
           );
           gg.position.copy(lungTumorMesh.position);
           lungScene.add(gg);
-          if(i===0) lungTumorGlow = gg;
+          lungTumorParts.push(gg);
+          if (i === 0) lungTumorGlow = gg;
         });
 
-        console.log('[Lung3D] Contour tumor at (' + cx3d.toFixed(1) + ',' + cy3d.toFixed(1) + ',' + cz3d + ') ' + contour.length + ' pts');
-
       } else {
-        // Fallback ellipsoid at correct position
-        var scaleU = 18 / 512 * tumorSizeScale;
-        var rx = Math.max(0.2, (bbox.w||30) * scaleU);
-        var ry = Math.max(0.2, (bbox.h||30) * scaleU);
-        var rz = Math.max(0.1, (rx+ry)/2 * 0.5);
+        // Reset list of meshes to follow the tumor
+        lungTumorParts = [];
+        // Fallback smooth ellipsoid (no contour available)
+        var bw = (bbox && bbox.w) || 30;
+        var bh = (bbox && bbox.h) || 30;
+        var maxBb = Math.max(bw, bh);
+        var rx = TUMOR_WORLD_SIZE * 0.5 * (bw / maxBb);
+        var ry = TUMOR_WORLD_SIZE * 0.5 * (bh / maxBb);
+        var rz = TUMOR_WORLD_SIZE * 0.5 * 0.78;
         lungTumorMesh = new THREE.Mesh(
-          new THREE.SphereGeometry(1, 20, 14),
-          new THREE.MeshLambertMaterial({color:0xff2244, transparent:true, opacity:0.75, emissive:0x440000})
+          new THREE.SphereGeometry(1, 40, 28),
+          new THREE.MeshPhongMaterial({
+            color: 0xff3355, transparent: true, opacity: 0.95,
+            emissive: 0x661111, emissiveIntensity: 0.45,
+            shininess: 60, specular: 0xffaaaa,
+          })
         );
         lungTumorMesh.scale.set(rx, ry, rz);
         lungTumorMesh.position.set(cx3d, cy3d, cz3d);
         lungScene.add(lungTumorMesh);
+        lungTumorParts.push(lungTumorMesh);
         lungTumorGlow = lungTumorMesh;
-        console.log('[Lung3D] Ellipsoid tumor at (' + cx3d.toFixed(1) + ',' + cy3d.toFixed(1) + ')');
       }
 
-      // Point light at tumor
-      var tLt = new THREE.PointLight(0xff2244, 0.8, 12);
+      // Point light at tumor (range scaled to 12u lung)
+      var tLt = new THREE.PointLight(0xff2244, 0.8, 8);
       tLt.position.copy(lungTumorMesh.position);
       lungScene.add(tLt);
+      lungTumorParts.push(tLt);
     }
     // Particles
     var pg=new THREE.BufferGeometry(); var pa=new Float32Array(200*3);
@@ -3248,16 +5499,60 @@ function animateLung3D() {
 
     const time = performance.now() * 0.001;
 
-    // Tumor pulsing animation
+    // Tumor pulsing animation — multiplicative on the original scale so we
+    // don't squash an ellipsoid into a sphere.
     if (lungTumorMesh) {
-        const pulse = 1 + Math.sin(time * 3) * 0.08;
-        lungTumorMesh.scale.setScalar(pulse);
-        lungTumorMesh.material.emissiveIntensity = 0.4 + Math.sin(time * 2) * 0.3;
+        if (!lungTumorMesh.userData.baseScale) {
+            lungTumorMesh.userData.baseScale = lungTumorMesh.scale.clone();
+        }
+        var pulse = 1 + Math.sin(time * 2.4) * 0.10;
+        var bs = lungTumorMesh.userData.baseScale;
+        lungTumorMesh.scale.set(bs.x * pulse, bs.y * pulse, bs.z * pulse);
+        if (lungTumorMesh.material && lungTumorMesh.material.emissiveIntensity !== undefined) {
+            lungTumorMesh.material.emissiveIntensity = 0.7 + Math.sin(time * 2) * 0.3;
+        }
     }
     if (lungTumorGlow) {
-        const glowPulse = 1 + Math.sin(time * 2) * 0.15;
-        lungTumorGlow.scale.setScalar(glowPulse);
-        lungTumorGlow.material.opacity = 0.1 + Math.sin(time * 1.5) * 0.08;
+        if (!lungTumorGlow.userData.baseScale) {
+            lungTumorGlow.userData.baseScale = lungTumorGlow.scale.clone();
+        }
+        var glowPulse = 1 + Math.sin(time * 1.6) * 0.20;
+        var gbs = lungTumorGlow.userData.baseScale;
+        lungTumorGlow.scale.set(gbs.x * glowPulse, gbs.y * glowPulse, gbs.z * glowPulse);
+        if (lungTumorGlow.material) {
+            lungTumorGlow.material.opacity = 0.10 + Math.sin(time * 1.5) * 0.06;
+        }
+    }
+    // Project tumor + L/R anchor world positions to 2D screen and move
+    // their floating labels. Anchors stay in world space → labels follow
+    // the lung mesh as the user orbits.
+    if (lungCamera && lungRenderer) {
+        var stage = document.getElementById('lungVizStage');
+        var rect = stage ? stage.getBoundingClientRect() : null;
+
+        function _placeLabel(elId, world, dx, dy) {
+            var el = document.getElementById(elId);
+            if (!el || !rect) return;
+            var p = world.clone().project(lungCamera);
+            var sx = (p.x * 0.5 + 0.5) * rect.width;
+            var sy = (-p.y * 0.5 + 0.5) * rect.height;
+            var visible = p.z > -1 && p.z < 1 && sx > 0 && sx < rect.width && sy > 0 && sy < rect.height;
+            el.style.transform = 'translate(' + (sx + dx) + 'px, ' + (sy + dy) + 'px)';
+            el.style.opacity = visible ? '1' : '0';
+        }
+
+        if (lungTumorMesh) _placeLabel('lungTumorLabel', lungTumorMesh.position, 18, -14);
+
+        var bounds = window._lungModelBounds;
+        if (bounds) {
+            var bxR = (bounds.max.x - bounds.min.x) / 2;
+            var byC = (bounds.min.y + bounds.max.y) / 2;
+            var bzC = (bounds.min.z + bounds.max.z) / 2;
+            // Natural-label: L on viewer's left (-X), R on viewer's right (+X).
+            // Anchor slightly inside each lung (0.55 of half-width).
+            _placeLabel('lungSideLabelL', new THREE.Vector3(-bxR * 0.55, byC, bzC), -22, -10);
+            _placeLabel('lungSideLabelR', new THREE.Vector3(+bxR * 0.55, byC, bzC), -8, -10);
+        }
     }
 
     // Particle drift

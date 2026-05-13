@@ -34,6 +34,17 @@ app.use('/models', express.static(path.join(__dirname, 'models'), {
   },
   maxAge: '1d'
 }));
+// Fallback: also serve from project-root /models (keeps heavy GLBs/checkpoints
+// out of the frontend bundle). Express tries this only if the path was not
+// matched by the frontend/models handler above.
+app.use('/models', express.static(path.join(__dirname, '..', 'models'), {
+  setHeaders: function(res, filePath) {
+    if (filePath.endsWith('.glb')) {
+      res.setHeader('Content-Type', 'model/gltf-binary');
+    }
+  },
+  maxAge: '1d'
+}));
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 // Upload config
@@ -204,6 +215,144 @@ app.post('/api/predict-lung', uploadLungImage.single('lungImage'), async (req, r
             error: 'Không thể kết nối Python API. Hãy chắc chắn đã chạy: python python_api.py',
             details: error.message
         });
+    }
+});
+
+// ==================== BRAIN MRI PREDICT (PROXY TO PYTHON) ====================
+const uploadBrain = multer({
+    dest: uploadDir,
+    limits: { fileSize: 500 * 1024 * 1024 },        // 500MB (NIfTI volumes can be large)
+});
+
+// Accept up to 4 NIfTI fields (flair, t1, t1ce, t2) OR a single 'image' field.
+app.post('/api/predict-brain',
+    uploadBrain.fields([
+        { name: 'flair', maxCount: 1 },
+        { name: 't1',    maxCount: 1 },
+        { name: 't1ce',  maxCount: 1 },
+        { name: 't2',    maxCount: 1 },
+        { name: 'image', maxCount: 1 },
+    ]),
+    async (req, res) => {
+        const files = req.files || {};
+        const fieldNames = Object.keys(files);
+        if (fieldNames.length === 0) {
+            return res.status(400).json({
+                error: 'No file uploaded. Send NIfTI fields (flair/t1/t1ce/t2) or a single "image" file.'
+            });
+        }
+        try {
+            const FormData = require('form-data');
+            const formData = new FormData();
+            for (const name of fieldNames) {
+                const f = files[name][0];
+                formData.append(name, fs.createReadStream(f.path), {
+                    filename: f.originalname,
+                    contentType: f.mimetype || 'application/octet-stream',
+                });
+            }
+            const result = await new Promise((resolve, reject) => {
+                formData.submit(`${PYTHON_API}/api/predict-brain`, (err, response) => {
+                    if (err) return reject(err);
+                    let body = '';
+                    response.on('data', c => body += c);
+                    response.on('end', () => {
+                        try { resolve(JSON.parse(body)); }
+                        catch (e) { reject(new Error('Invalid response: ' + body.substring(0, 200))); }
+                    });
+                    response.on('error', reject);
+                });
+            });
+            res.json(result);
+        } catch (error) {
+            console.error('Brain predict error:', error);
+            res.status(500).json({
+                error: 'Không thể kết nối Python API.',
+                details: error.message,
+            });
+        } finally {
+            // Cleanup uploaded temp files
+            for (const name of fieldNames) {
+                for (const f of (files[name] || [])) {
+                    fs.unlink(f.path, () => {});
+                }
+            }
+        }
+    });
+
+// YOLOv8 brain tumor detection (2D bbox)
+const uploadBrainYolo = multer({
+    dest: uploadDir,
+    limits: { fileSize: 50 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowed = ['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp'];
+        cb(null, allowed.includes(path.extname(file.originalname).toLowerCase()));
+    },
+});
+
+app.post('/api/predict-brain-yolo', uploadBrainYolo.single('image'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+    try {
+        const FormData = require('form-data');
+        const formData = new FormData();
+        formData.append('image', fs.createReadStream(req.file.path), {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype || 'image/png',
+        });
+        const result = await new Promise((resolve, reject) => {
+            formData.submit(`${PYTHON_API}/api/predict-brain-yolo`, (err, response) => {
+                if (err) return reject(err);
+                let body = '';
+                response.on('data', c => body += c);
+                response.on('end', () => {
+                    try { resolve(JSON.parse(body)); }
+                    catch (e) { reject(new Error('Invalid response: ' + body.substring(0, 200))); }
+                });
+                response.on('error', reject);
+            });
+        });
+        res.json(result);
+    } catch (e) {
+        console.error('Brain YOLO error:', e);
+        res.status(500).json({ error: 'Python API offline', details: e.message });
+    } finally {
+        fs.unlink(req.file.path, () => {});
+    }
+});
+
+app.get('/api/brain-model-status', async (req, res) => {
+    try {
+        const response = await fetch(`${PYTHON_API}/api/brain-model-info`);
+        const data = await response.json();
+        res.json({ ...data, pythonApi: PYTHON_API });
+    } catch {
+        res.json({ status: 'offline', pythonApi: PYTHON_API });
+    }
+});
+
+// Brain model selector: list available .keras/.hdf5 files
+app.get('/api/brain-models', async (req, res) => {
+    try {
+        const response = await fetch(`${PYTHON_API}/api/brain-models`);
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        res.status(503).json({ error: 'Backend unavailable', detail: String(e) });
+    }
+});
+
+// Brain model selector: hot-swap to a different checkpoint
+app.post('/api/brain-model-switch', async (req, res) => {
+    try {
+        const response = await fetch(`${PYTHON_API}/api/brain-model-switch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body || {}),
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (e) {
+        res.status(503).json({ success: false, error: 'Backend unavailable', detail: String(e) });
     }
 });
 
@@ -617,8 +766,14 @@ app.ws('/ws/chat', (ws, req) => {
     });
 });
 
-// SPA fallback
+// SPA fallback — but DO NOT swallow /models/* or /api/* requests, because
+// returning HTML for a missing asset/API path silently masks real errors
+// (e.g. a missing GLB gets parsed as HTML by GLTFLoader → fallback path).
 app.get('*', (req, res) => {
+    if (req.path.startsWith('/models/') || req.path.startsWith('/api/') ||
+        req.path.startsWith('/uploads/')) {
+        return res.status(404).json({ error: 'Not found', path: req.path });
+    }
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 

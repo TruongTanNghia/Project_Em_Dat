@@ -21,12 +21,23 @@
 (function () {
     var existing = (typeof window !== 'undefined' && window.APP_CONFIG) || {};
 
+    // ╔════════════════════════════════════════════════════════════════════╗
+    // ║  EDIT THIS LINE BEFORE DEPLOYING TO VERCEL                         ║
+    // ║                                                                    ║
+    // ║  Set to your ngrok / cloudflared tunnel URL pointing at your       ║
+    // ║  local Express server (port 3000), e.g.:                           ║
+    // ║      var BACKEND_URL = 'https://abcd-123-45.ngrok-free.app';       ║
+    // ║                                                                    ║
+    // ║  Leave as '' for LOCAL DEV (FE served by Express on same origin).  ║
+    // ╚════════════════════════════════════════════════════════════════════╝
+    var BACKEND_URL = '';
+
     // Sentinel that a build step can replace. If not replaced, it stays as the
     // literal string and we ignore it.
     var fromBuild = '__API_BASE__';
     if (fromBuild === ('__API_' + 'BASE__')) fromBuild = '';
 
-    var apiBase = existing.API_BASE || fromBuild || '';
+    var apiBase = existing.API_BASE || BACKEND_URL || fromBuild || '';
 
     // Derive WebSocket base from API_BASE for future use (not used today on FE)
     var wsBase = '';
@@ -38,4 +49,23 @@
         API_BASE: apiBase.replace(/\/+$/, ''),  // strip trailing slash
         WS_BASE:  wsBase.replace(/\/+$/, ''),
     });
+
+    // ─── ngrok bypass ────────────────────────────────────────────────────
+    // ngrok free-tier shows an HTML "Visit Site" interstitial on the FIRST
+    // request from each browser. fetch() then gets HTML instead of JSON →
+    // parse error. We monkey-patch window.fetch to always inject the
+    // `ngrok-skip-browser-warning` header (any non-empty value works) on
+    // requests going to our backend, which makes ngrok serve the real
+    // response immediately. Only active when API_BASE looks like an ngrok
+    // URL — no effect on local dev.
+    if (window.APP_CONFIG.API_BASE && /ngrok|trycloudflare|cloudflare/i.test(window.APP_CONFIG.API_BASE)) {
+        var _origFetch = window.fetch.bind(window);
+        window.fetch = function (input, init) {
+            init = init || {};
+            init.headers = new Headers(init.headers || {});
+            init.headers.set('ngrok-skip-browser-warning', 'true');
+            return _origFetch(input, init);
+        };
+        console.log('[Config] ngrok-bypass header active for', window.APP_CONFIG.API_BASE);
+    }
 })();
