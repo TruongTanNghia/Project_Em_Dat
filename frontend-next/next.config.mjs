@@ -8,6 +8,14 @@
  */
 const BACKEND_URL = (process.env.BACKEND_URL || 'http://localhost:5000').replace(/\/+$/, '');
 
+// Debug logging — visible in Vercel build logs. Lets us confirm whether
+// the BACKEND_URL env variable was actually picked up at build time.
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+console.log('[next.config] BACKEND_URL  =', BACKEND_URL);
+console.log('[next.config] env var set? =', typeof process.env.BACKEND_URL === 'string' && process.env.BACKEND_URL.length > 0);
+console.log('[next.config] /api/* will rewrite to:', `${BACKEND_URL}/api/:path*`);
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Disable image optimization (we serve raw GLB / PNG / base64 images
