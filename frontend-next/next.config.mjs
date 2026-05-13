@@ -1,10 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Allow ngrok URL + large API payloads (NIfTI uploads ~30MB).
-  experimental: {
-    largePageDataBytes: 50 * 1024 * 1024,
-  },
-
   // Rewrite the root URL to serve the legacy index.html from /public.
   // We keep the existing vanilla-JS Medical AI app intact and just wrap it
   // in a Next.js shell so Vercel can deploy it natively.

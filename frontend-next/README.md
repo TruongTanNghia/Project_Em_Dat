@@ -1,8 +1,10 @@
-# Medical AI Suite — Frontend (Next.js)
+# Medical AI Suite — Frontend (Next.js 16)
 
-Next.js 15 wrapper around the existing vanilla-JS Medical AI app. The legacy
-`index.html` + CSS + JS files live under `public/` and are served at `/` via
-a rewrite rule in `next.config.mjs`.
+Next.js 16 (React 19) wrapper around the existing vanilla-JS Medical AI
+app. The legacy `index.html` + CSS + JS files live under `public/` and
+are served at `/` via a rewrite rule in `next.config.mjs`.
+
+Requires **Node.js 20+** (Next.js 16 dropped Node 18 support).
 
 ## Why Next.js?
 
