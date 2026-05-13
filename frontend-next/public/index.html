@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Medical AI Suite — EEG · MRI · CT · Blood</title>
+    <meta name="description" content="Đa-mô-thức AI cho chẩn đoán y khoa: phát hiện động kinh từ EEG, phân đoạn u não trên MRI, đánh giá tổn thương phổi qua CT, phân tích chỉ số máu." />
+    <meta name="theme-color" content="#0a0a14" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/landing.css" />
+</head>
+<body>
+    <div class="backdrop" aria-hidden="true"></div>
+    <div class="page">
+        <div class="container">
+
+            <nav class="nav">
+                <a href="/" class="nav-brand">
+                    <span class="nav-brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                            <path d="M3 12h3l2-6 3 12 3-8 3 4 2-2h2" />
+                        </svg>
+                    </span>
+                    <span>Medical AI Suite</span>
+                </a>
+                <div class="nav-meta">
+                    <span class="dot" aria-hidden="true"></span>
+                    <span>v1.0 · 4 modules online</span>
+                </div>
+            </nav>
+
+            <section class="hero">
+                <div class="hero-badge">
+                    <span>●</span>
+                    <span>Multi-modal Diagnostic AI</span>
+                </div>
+                <h1>
+                    Chẩn đoán y khoa<br />
+                    bằng <span class="grad">AI đa-mô-thức</span>
+                </h1>
+                <p class="hero-sub">
+                    Bộ pipeline AI cho 4 chuyên khoa: điện não đồ phát hiện động kinh,
+                    phân đoạn u não MRI, định vị nốt phổi trên CT, và phân tích chỉ
+                    số máu — tất cả trên cùng một giao diện.
+                </p>
+                <div class="hero-meta">
+                    <span><strong>4</strong> modules</span>
+                    <span><strong>3D</strong> visualization</span>
+                    <span><strong>BraTS · LIDC · CHB-MIT</strong></span>
+                    <span><strong>PyTorch + TensorFlow</strong></span>
+                </div>
+            </section>
+
+            <section class="modules">
+                <div class="modules-header">
+                    <h2>Chọn module để bắt đầu</h2>
+                    <p>Click vào card → mở app phân tích</p>
+                </div>
+
+                <div class="modules-grid">
+
+                    <a href="/legacy.html#eeg" class="module-card" style="--from:#a855f7;--to:#6366f1;--i:0;">
+                        <div class="module-card-head">
+                            <span class="module-card-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                    <path d="M2 12h3l2-6 3 12 3-8 3 4 2-2h4" />
+                                </svg>
+                            </span>
+                            <span class="module-card-tag">01 · NEURO</span>
+                        </div>
+                        <h3>EEG Seizure Detection</h3>
+                        <div class="module-card-subtitle">CHB-MIT · CNN+BiGRU+Attention · 23 channels</div>
+                        <p class="module-card-desc">
+                            Phân tích điện não đồ realtime để phát hiện cơn động kinh. Mô hình hybrid CNN trích đặc trưng spatial + BiGRU bắt dependency thời gian + Attention focus vào segment quan trọng.
+                        </p>
+                        <div class="module-card-stack">
+                            <span class="module-card-chip">PyTorch</span>
+                            <span class="module-card-chip">CHB-MIT</span>
+                            <span class="module-card-chip">0.5–40 Hz</span>
+                            <span class="module-card-chip">ROC-AUC 0.84</span>
+                        </div>
+                        <span class="module-card-cta">
+                            Mở module
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M5 12h14m-6-6 6 6-6 6" />
+                            </svg>
+                        </span>
+                    </a>
+
+                    <a href="/legacy.html#brain" class="module-card" style="--from:#ec4899;--to:#8b5cf6;--i:1;">
+                        <div class="module-card-head">
+                            <span class="module-card-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M9.5 2A2.5 2.5 0 0 0 7 4.5v.07A4 4 0 0 0 4 8.5v1.13A4 4 0 0 0 2 13v.5A3.5 3.5 0 0 0 5.5 17H6v1a4 4 0 0 0 8 0v-1h.5A3.5 3.5 0 0 0 18 13.5V13a4 4 0 0 0-2-3.37V8.5a4 4 0 0 0-3-3.93V4.5A2.5 2.5 0 0 0 10.5 2h-1Z" />
+                                    <circle cx="14" cy="10" r="1.5" fill="currentColor" />
+                                </svg>
+                            </span>
+                            <span class="module-card-tag">02 · ONCOLOGY</span>
+                        </div>
+                        <h3>Brain MRI Tumor Segmentation</h3>
+                        <div class="module-card-subtitle">BraTS 2020 · 3D U-Net · 4-class NCR/ED/ET</div>
+                        <p class="module-card-desc">
+                            Phân đoạn u não đa mô-thức từ MRI 4 channel (FLAIR/T1/T1c/T2). Output mesh 3D mỗi class qua marching cubes, render trên brain GLB realtime với Three.js.
+                        </p>
+                        <div class="module-card-stack">
+                            <span class="module-card-chip">TensorFlow</span>
+                            <span class="module-card-chip">BraTS</span>
+                            <span class="module-card-chip">3D U-Net</span>
+                            <span class="module-card-chip">4-way TTA</span>
+                            <span class="module-card-chip">Marching Cubes</span>
+                        </div>
+                        <span class="module-card-cta">
+                            Mở module
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M5 12h14m-6-6 6 6-6 6" />
+                            </svg>
+                        </span>
+                    </a>
+
+                    <a href="/legacy.html#lung" class="module-card" style="--from:#06b6d4;--to:#3b82f6;--i:2;">
+                        <div class="module-card-head">
+                            <span class="module-card-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                                    <path d="M12 4v14m-5 2c-3 0-5-2-5-5s1-7 4-7c2 0 3 1.5 3 3v9zm10 0c3 0 5-2 5-5s-1-7-4-7c-2 0-3 1.5-3 3v9z" />
+                                </svg>
+                            </span>
+                            <span class="module-card-tag">03 · PULMONOLOGY</span>
+                        </div>
+                        <h3>Lung CT Nodule Analysis</h3>
+                        <div class="module-card-subtitle">LIDC-IDRI · DeepLabV3 · 3D + MPR views</div>
+                        <p class="module-card-desc">
+                            Định vị nốt phổi trên CT axial, xác định kích thước (mm), tính độ ác tính theo malignancy score, render 3D GLB phổi với vị trí tumor + so sánh axial/sagittal/coronal.
+                        </p>
+                        <div class="module-card-stack">
+                            <span class="module-card-chip">PyTorch</span>
+                            <span class="module-card-chip">DeepLabV3</span>
+                            <span class="module-card-chip">LIDC-IDRI</span>
+                            <span class="module-card-chip">GLB 3D</span>
+                        </div>
+                        <span class="module-card-cta">
+                            Mở module
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M5 12h14m-6-6 6 6-6 6" />
+                            </svg>
+                        </span>
+                    </a>
+
+                    <a href="/legacy.html#blood" class="module-card" style="--from:#f43f5e;--to:#ef4444;--i:3;">
+                        <div class="module-card-head">
+                            <span class="module-card-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+                                    <path d="M12 2s-7 8.5-7 13a7 7 0 0 0 14 0c0-4.5-7-13-7-13z" />
+                                </svg>
+                            </span>
+                            <span class="module-card-tag">04 · HEMATOLOGY</span>
+                        </div>
+                        <h3>Blood Test Insights</h3>
+                        <div class="module-card-subtitle">CBC + Glucose + Lipid panels · rule-based</div>
+                        <p class="module-card-desc">
+                            Phân tích các chỉ số xét nghiệm máu cơ bản (RBC, WBC, HGB, glucose, cholesterol...) so với reference range, đánh giá nguy cơ + đề xuất theo dõi.
+                        </p>
+                        <div class="module-card-stack">
+                            <span class="module-card-chip">Rule-based</span>
+                            <span class="module-card-chip">CBC</span>
+                            <span class="module-card-chip">Lipid</span>
+                            <span class="module-card-chip">Reference ranges</span>
+                        </div>
+                        <span class="module-card-cta">
+                            Mở module
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <path d="M5 12h14m-6-6 6 6-6 6" />
+                            </svg>
+                        </span>
+                    </a>
+
+                </div>
+            </section>
+
+            <section class="tech-strip">
+                <div class="tech-row">
+                    <span><strong>Frontend</strong> Next.js 16 · React 19</span>
+                    <span><strong>Backend</strong> Flask · PyTorch · TensorFlow</span>
+                    <span><strong>3D</strong> Three.js · Sketchfab · marching cubes</span>
+                    <span><strong>Imaging</strong> nibabel · nilearn · skimage</span>
+                </div>
+            </section>
+
+            <footer class="footer">
+                <span>© 2026 Medical AI Suite — by TruongTanNghia</span>
+                <span>Demo only · không dùng cho chẩn đoán lâm sàng</span>
+            </footer>
+
+        </div>
+    </div>
+</body>
+</html>
