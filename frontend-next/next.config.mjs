@@ -14,15 +14,12 @@ const nextConfig = {
   // directly — no Next/Image usage in the legacy app).
   images: { unoptimized: true },
 
-  // Server-side proxy: every /api/* request from the legacy app gets
-  // forwarded to the Python Flask backend. This avoids CORS preflight
-  // headaches, works the same in dev and on Vercel, and lets us swap
-  // backend URLs by just editing an env var (no code change).
+  // API proxy: every /api/* request from the legacy app gets forwarded
+  // to the Python Flask backend at BACKEND_URL. Set BACKEND_URL in
+  // .env.local (dev) or in Vercel project Environment Variables (prod).
   //
-  // ROOT routing (/) is handled by the redirect in app/page.tsx — we
-  // intentionally avoid rewriting `/` itself because Next.js dev mode
-  // injects React hydration scripts into rewrite responses, which the
-  // legacy vanilla-JS code chokes on.
+  // ROOT (/) is handled by app/page.tsx — the beautiful landing page
+  // with 4 module cards. Each card links to /legacy.html#<module-id>.
   async rewrites() {
     return [
       { source: '/api/:path*', destination: `${BACKEND_URL}/api/:path*` },
