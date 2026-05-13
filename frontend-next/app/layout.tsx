@@ -23,8 +23,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi">
-      <body>{children}</body>
+    // suppressHydrationWarning: browser extensions (Grammarly, Dark Reader,
+    // Material Design Lite auto-init, etc.) commonly inject classNames /
+    // attributes onto <html> and <body> before React hydrates. Without
+    // this flag every page logs a noisy mismatch warning in dev.
+    <html lang="vi" suppressHydrationWarning>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }
