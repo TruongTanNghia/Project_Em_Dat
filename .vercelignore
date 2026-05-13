@@ -1,24 +1,27 @@
-# Nothing in backend/ or node_modules goes to Vercel — FE-only deploy.
-# Vercel only needs frontend/ (set as outputDirectory in vercel.json).
-
+# ─── Backend (Python) — never deployed to Vercel ───
 backend/
+
+# ─── Legacy Express FE (frontend/) — replaced by frontend-next/ ───
+# We exclude the OLD frontend's server-only files. The frontend-next/ folder
+# is what Vercel actually deploys (set as Root Directory).
 frontend/server.js
 frontend/mcp-server.js
 frontend/package.json
 frontend/package-lock.json
 frontend/node_modules/
 
-# Data dirs (never deploy)
-uploads/
-dataset/
-models/
-training/
-1/
+# ─── Root-only data dirs (large checkpoints, raw datasets) ───
+# Leading slash anchors to repo root, so /models/ matches the repo's
+# /models/ folder ONLY — it does NOT match frontend-next/public/models/
+# which contains the GLB files needed for 3D viz.
+/uploads/
+/dataset/
+/models/
+/training/
+/1/
+/docs/
 
-# Docs
-docs/
-
-# Dev / misc
+# ─── Dev / misc ───
 .claude/
 .git/
 .gitignore
