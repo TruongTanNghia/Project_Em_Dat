@@ -2118,6 +2118,25 @@ function switchModule(name) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// Hash router: when the user arrives from the Next.js landing page via
+// `/legacy.html#brain` (or eeg/lung/blood), auto-switch to that module
+// instead of always landing on the default EEG tab.
+(function () {
+    var VALID = ['eeg', 'brain', 'lung', 'blood'];
+    function applyHash() {
+        var h = (window.location.hash || '').replace(/^#/, '').toLowerCase();
+        if (VALID.indexOf(h) >= 0) {
+            try { switchModule(h); } catch (e) { /* DOM not ready yet */ }
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyHash);
+    } else {
+        applyHash();
+    }
+    window.addEventListener('hashchange', applyHash);
+})();
+
 // ============ BRAIN FILE INPUT FEEDBACK (upload visual confirmation) ============
 (function () {
     if (window.__brainFileWired) return;
