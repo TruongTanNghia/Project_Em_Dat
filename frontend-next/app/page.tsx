@@ -1,9 +1,11 @@
-// Stub: the actual app is served from /public/legacy.html via the
-// rewrite rule in next.config.mjs (`/` → `/legacy.html`). This file
-// only exists to satisfy Next.js's App Router requirement.
-//
-// If you ever migrate the vanilla-JS app to React components, replace
-// this file with the new root page and remove the rewrite.
+import { redirect } from 'next/navigation';
+
+// The actual Medical AI app is plain HTML/CSS/JS served from
+// /public/legacy.html. We use a server-side 307 redirect (NOT a
+// rewrite) so the browser issues a fresh request directly to
+// /legacy.html — Next.js then serves it as a pure static file,
+// without injecting React hydration scripts that the legacy
+// vanilla-JS code would choke on.
 export default function Home() {
-  return null;
+  redirect('/legacy.html');
 }

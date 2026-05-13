@@ -1,20 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Rewrite the root URL to serve the legacy index.html from /public.
-  // We keep the existing vanilla-JS Medical AI app intact and just wrap it
-  // in a Next.js shell so Vercel can deploy it natively.
-  async rewrites() {
-    return [
-      { source: '/', destination: '/legacy.html' },
-    ];
-  },
-
   // Disable image optimization (we serve raw GLB / PNG / base64 images
   // directly — no Next/Image usage in the legacy app).
   images: { unoptimized: true },
 
-  // We control caching via the assets themselves (public/ folder is
-  // already long-cached by Vercel automatically).
+  // NOTE on routing: we use a server-side redirect in app/page.tsx
+  // (`redirect('/legacy.html')`) rather than next.config rewrites.
+  // Reason: rewrites cause Next.js dev mode to inject hydration scripts
+  // (self.__next_f.push(...)) into the response stream alongside the
+  // static HTML, which the legacy vanilla-JS code then fails to JSON.parse.
+  // A real redirect makes the browser issue a fresh request that bypasses
+  // the React rendering layer entirely.
 };
 
 export default nextConfig;
