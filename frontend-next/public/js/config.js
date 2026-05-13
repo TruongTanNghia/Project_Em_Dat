@@ -1,71 +1,44 @@
 /**
  * APP_CONFIG — runtime config for the frontend.
  *
- * Loaded BEFORE app.js so every fetch() can prefix the backend URL from here.
+ * With the Next.js wrapper, /api/* requests are PROXIED by Next.js (via
+ * `rewrites()` in next.config.mjs) to the URL set in the BACKEND_URL env
+ * variable. So from the legacy app's point of view, all fetches should
+ * go to the SAME ORIGIN (no API_BASE prefix needed).
  *
- * Priority order (first non-empty wins):
- *   1. window.APP_CONFIG.API_BASE that someone sets before this file loads
- *   2. Vercel/Netlify build-time replacement of the __API_BASE__ sentinel below
- *   3. "" (empty string) → same-origin, useful for local dev when FE+BE are on
- *      the same host (`cd frontend && npm start` on port 3000)
+ *   Local dev:  set BACKEND_URL=http://localhost:5000 in .env.local
+ *   Vercel:     set BACKEND_URL=https://xxxx.ngrok-free.app in project env
  *
- * === Deploy on Vercel ===
- * Set the backend URL in one of two ways:
- *   A) Edit the line below before pushing:
- *        API_BASE: 'https://your-backend.example.com'
- *   B) Use a build step that substitutes `__API_BASE__` with Vercel env
- *      var at deploy time (see vercel.json notes in repo root).
- *
- * The API_BASE should have NO trailing slash.
+ * API_BASE is kept at '' here so legacy fetch() calls produce paths like
+ * /api/predict-brain that hit the Next.js server, which then rewrites
+ * to the configured backend.
  */
 (function () {
     var existing = (typeof window !== 'undefined' && window.APP_CONFIG) || {};
-
-    // ╔════════════════════════════════════════════════════════════════════╗
-    // ║  EDIT THIS LINE BEFORE DEPLOYING TO VERCEL                         ║
-    // ║                                                                    ║
-    // ║  Set to your ngrok / cloudflared tunnel URL pointing at your       ║
-    // ║  local Express server (port 3000), e.g.:                           ║
-    // ║      var BACKEND_URL = 'https://abcd-123-45.ngrok-free.app';       ║
-    // ║                                                                    ║
-    // ║  Leave as '' for LOCAL DEV (FE served by Express on same origin).  ║
-    // ╚════════════════════════════════════════════════════════════════════╝
-    var BACKEND_URL = '';
-
-    // Sentinel that a build step can replace. If not replaced, it stays as the
-    // literal string and we ignore it.
-    var fromBuild = '__API_BASE__';
-    if (fromBuild === ('__API_' + 'BASE__')) fromBuild = '';
-
-    var apiBase = existing.API_BASE || BACKEND_URL || fromBuild || '';
-
-    // Derive WebSocket base from API_BASE for future use (not used today on FE)
-    var wsBase = '';
-    if (apiBase) {
-        wsBase = apiBase.replace(/^http/i, 'ws');
-    }
+    var apiBase  = existing.API_BASE || '';
 
     window.APP_CONFIG = Object.assign({}, existing, {
-        API_BASE: apiBase.replace(/\/+$/, ''),  // strip trailing slash
-        WS_BASE:  wsBase.replace(/\/+$/, ''),
+        API_BASE: apiBase.replace(/\/+$/, ''),
+        WS_BASE:  apiBase ? apiBase.replace(/^http/i, 'ws').replace(/\/+$/, '') : '',
     });
 
-    // ─── ngrok bypass ────────────────────────────────────────────────────
-    // ngrok free-tier shows an HTML "Visit Site" interstitial on the FIRST
-    // request from each browser. fetch() then gets HTML instead of JSON →
-    // parse error. We monkey-patch window.fetch to always inject the
-    // `ngrok-skip-browser-warning` header (any non-empty value works) on
-    // requests going to our backend, which makes ngrok serve the real
-    // response immediately. Only active when API_BASE looks like an ngrok
-    // URL — no effect on local dev.
-    if (window.APP_CONFIG.API_BASE && /ngrok|trycloudflare|cloudflare/i.test(window.APP_CONFIG.API_BASE)) {
-        var _origFetch = window.fetch.bind(window);
-        window.fetch = function (input, init) {
-            init = init || {};
-            init.headers = new Headers(init.headers || {});
-            init.headers.set('ngrok-skip-browser-warning', 'true');
-            return _origFetch(input, init);
-        };
-        console.log('[Config] ngrok-bypass header active for', window.APP_CONFIG.API_BASE);
-    }
+    // ─── ngrok bypass header on EVERY fetch ──────────────────────────────
+    // ngrok free-tier serves an HTML interstitial on the first request from
+    // each browser ("Visit Site" page), which makes fetch() get HTML
+    // instead of JSON. Sending `ngrok-skip-browser-warning: true` (any
+    // non-empty value) skips the page entirely.
+    //
+    // We add the header unconditionally on every fetch — harmless when the
+    // backend isn't ngrok, and Next.js rewrites forward all request
+    // headers to the upstream backend, so it always arrives.
+    var _origFetch = window.fetch.bind(window);
+    window.fetch = function (input, init) {
+        init = init || {};
+        var h = new Headers(init.headers || {});
+        if (!h.has('ngrok-skip-browser-warning')) {
+            h.set('ngrok-skip-browser-warning', 'true');
+        }
+        init.headers = h;
+        return _origFetch(input, init);
+    };
 })();
