@@ -230,39 +230,74 @@ function HeroScan() {
           backgroundColor: 'transparent',
           '--poster-color': 'transparent',
         } as React.CSSProperties}
-      />
+      >
+        {/* 3D hotspots — these are children of <model-viewer> and get
+            positioned via data-position (x y z in the model's own
+            space). They follow the brain's rotation automatically and
+            hide when occluded behind geometry. Replaces the old
+            fixed-position 2D overlay that didn't track rotation. */}
+        <button
+          slot="hotspot-ncr"
+          className="annot hotspot"
+          data-position="0.04 0.03 0.04"
+          data-normal="0.5 0.3 0.8"
+          data-visibility-attribute="visible"
+        >
+          <span className="annot-tick" />
+          NCR · <b>12.3 cm³</b>
+        </button>
+        <button
+          slot="hotspot-et"
+          className="annot hotspot"
+          data-position="0.05 0 0.045"
+          data-normal="0.6 0 0.8"
+          data-visibility-attribute="visible"
+        >
+          <span className="annot-tick" />
+          ET ring · <b>4.2 cm³</b>
+        </button>
+        <button
+          slot="hotspot-ed"
+          className="annot hotspot"
+          data-position="-0.045 -0.015 0.04"
+          data-normal="-0.5 -0.2 0.8"
+          data-visibility-attribute="visible"
+        >
+          <span className="annot-tick" />
+          ED edema · <b>11.9 cm³</b>
+        </button>
 
-      {/* Lesion overlay — 2 concentric BraTS tumors positioned where
-          the annotation pills point. Reads as a HUD segmentation
-          film on top of the rotating brain. */}
-      <LesionOverlay
-        lesions={[
-          // Right temporal mass — full BraTS stack
-          { cx: 64, cy: 44, rEd: 17, rEt: 8, rNcr: 4.2, rot: 14, seed: 7 },
-          // Left parietal smaller lesion
-          { cx: 30, cy: 62, rEd: 11, rEt: 5, rNcr: 2.4, rot: -22, seed: 19 },
-        ]}
-      />
+        {/* Visible lesion DOTS that also follow rotation. Each hotspot
+            slot becomes a small colored marker INSIDE the brain at the
+            same 3D coordinates — these are the actual tumor markers
+            the labels point to. */}
+        <span
+          slot="hotspot-mark-ncr"
+          className="lesion-dot dot-ncr"
+          data-position="0.04 0.03 0.04"
+          data-normal="0.5 0.3 0.8"
+        />
+        <span
+          slot="hotspot-mark-et"
+          className="lesion-dot dot-et"
+          data-position="0.05 0 0.045"
+          data-normal="0.6 0 0.8"
+        />
+        <span
+          slot="hotspot-mark-ed"
+          className="lesion-dot dot-ed"
+          data-position="-0.045 -0.015 0.04"
+          data-normal="-0.5 -0.2 0.8"
+        />
+      </model-viewer>
 
-      {/* HUD corner stamps */}
+      {/* HUD corner stamps — these are fixed-position on the figure
+          frame (deliberately don't rotate, they're the radiologist's
+          monitor chrome around the actual model). */}
       <span className="scan-corner tl"><b>BraTS-2021</b> · case 00621</span>
       <span className="scan-corner tr">FLAIR · ax<br /><b>z = 76</b></span>
       <span className="scan-corner bl">3D U-Net · TF<br /><b>Dice WT 0.83</b></span>
       <span className="scan-corner br"><b>R</b> · L</span>
-
-      {/* Annotation pills — tick lines point to the lesion overlay */}
-      <span className="annot" style={{ top: '22%', right: '4%' }}>
-        <span className="annot-tick" />
-        NCR · <b>12.3 cm³</b>
-      </span>
-      <span className="annot" style={{ top: '46%', right: '4%' }}>
-        <span className="annot-tick" />
-        ET ring · <b>4.2 cm³</b>
-      </span>
-      <span className="annot" style={{ bottom: '18%', left: '6%' }}>
-        <span className="annot-tick" />
-        ED edema · <b>11.9 cm³</b>
-      </span>
     </figure>
   );
 }
@@ -344,13 +379,15 @@ function CaseVisualBrain() {
         reveal="auto"
         touch-action="pan-y"
         style={{ width: '100%', height: '100%', backgroundColor: 'transparent' } as React.CSSProperties}
-      />
-      <LesionOverlay
-        lesions={[
-          { cx: 58, cy: 40, rEd: 14, rEt: 7, rNcr: 3.4, rot: 28, seed: 31 },
-          { cx: 36, cy: 60, rEd: 9,  rEt: 4, rNcr: 1.9, rot: -14, seed: 47 },
-        ]}
-      />
+      >
+        {/* 3D-anchored lesion markers — follow brain rotation */}
+        <span slot="hotspot-c2-ncr" className="lesion-dot dot-ncr"
+              data-position="0.045 0.02 0.04" data-normal="0.6 0.2 0.8" />
+        <span slot="hotspot-c2-et" className="lesion-dot dot-et"
+              data-position="0.05 -0.005 0.045" data-normal="0.7 0 0.7" />
+        <span slot="hotspot-c2-ed" className="lesion-dot dot-ed"
+              data-position="-0.04 -0.015 0.035" data-normal="-0.5 -0.2 0.8" />
+      </model-viewer>
       {/* Tiny class-legend chip (HUD-style key, mono spec) */}
       <span className="lesion-legend">
         <span><i className="dot-ncr" /> NCR</span>

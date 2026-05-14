@@ -281,11 +281,55 @@
     backdrop-filter: blur(2px);
     white-space: nowrap;
   }
-  .annot b { color: var(--ink-95); font-weight: 500; letter-spacing: 0.01em; }
+  .annot b { color: var(--canvas-ink, oklch(0.95 0.008 25)); font-weight: 500; letter-spacing: 0.01em; }
   .annot-tick {
     width: 6px; height: 6px;
     background: var(--marker);
     border-radius: 50%;
+  }
+
+  /* Model-viewer hotspot variant — same look as .annot but anchored
+     to a 3D point on the brain model. model-viewer renders these as
+     <button> elements with computed transforms; they follow the
+     rotation and depth-sort against the geometry. */
+  model-viewer .annot.hotspot {
+    position: relative;     /* override absolute from .annot */
+    inset: auto;
+    cursor: default;
+    pointer-events: auto;
+    transition: opacity 0.3s var(--ease-out-quart);
+  }
+  /* Hide hotspots that are occluded behind the mesh */
+  model-viewer .hotspot[data-visibility-attribute="visible"]:not([data-visible]) {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* 3D-anchored lesion dots — small colored markers INSIDE the brain
+     volume at the same coordinates as the annotation hotspots. These
+     ARE the tumors the labels point to. */
+  .lesion-dot {
+    display: block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .lesion-dot.dot-ncr {
+    background: radial-gradient(circle, oklch(0.66 0.23 25) 0%, oklch(0.66 0.23 25 / 0.55) 60%, transparent 100%);
+    box-shadow: 0 0 14px oklch(0.66 0.23 25 / 0.7);
+  }
+  .lesion-dot.dot-et {
+    background: radial-gradient(circle, oklch(0.55 0.22 268) 0%, oklch(0.55 0.22 268 / 0.45) 60%, transparent 100%);
+    box-shadow: 0 0 14px oklch(0.55 0.22 268 / 0.7);
+  }
+  .lesion-dot.dot-ed {
+    background: radial-gradient(circle, oklch(0.78 0.16 70) 0%, oklch(0.78 0.16 70 / 0.45) 60%, transparent 100%);
+    box-shadow: 0 0 12px oklch(0.78 0.16 70 / 0.55);
+  }
+  model-viewer .lesion-dot[data-visibility-attribute="visible"]:not([data-visible]) {
+    opacity: 0.25;   /* fade but don't fully hide when behind cortex */
   }
 
   /* Lesion overlay — 2D SVG HUD film on top of the rotating brain.
