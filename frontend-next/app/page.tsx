@@ -86,17 +86,15 @@ function HeroScan() {
         rotation-per-second="18deg"
         camera-controls
         disable-zoom
+        disable-pan
         interaction-prompt="none"
         exposure="0.9"
         shadow-intensity="0.6"
         shadow-softness="1"
         tone-mapping="neutral"
-        camera-orbit="-25deg 78deg 3.4m"
-        min-camera-orbit="auto 60deg 3.4m"
-        max-camera-orbit="auto 100deg 3.4m"
-        field-of-view="26deg"
-        min-field-of-view="26deg"
-        max-field-of-view="26deg"
+        camera-orbit="-25deg 78deg 130%"
+        min-camera-orbit="auto 60deg 130%"
+        max-camera-orbit="auto 100deg 130%"
         loading="eager"
         reveal="auto"
         touch-action="pan-y"
@@ -196,16 +194,14 @@ function CaseVisualBrain() {
         rotation-per-second="12deg"
         camera-controls
         disable-zoom
+        disable-pan
         interaction-prompt="none"
         exposure="0.85"
         shadow-intensity="0.5"
         tone-mapping="neutral"
-        camera-orbit="35deg 75deg 3.2m"
-        min-camera-orbit="auto 60deg 3.2m"
-        max-camera-orbit="auto 100deg 3.2m"
-        field-of-view="28deg"
-        min-field-of-view="28deg"
-        max-field-of-view="28deg"
+        camera-orbit="35deg 75deg 130%"
+        min-camera-orbit="auto 60deg 130%"
+        max-camera-orbit="auto 100deg 130%"
         loading="lazy"
         reveal="auto"
         touch-action="pan-y"
@@ -229,16 +225,14 @@ function CaseVisualLung() {
         rotation-per-second="14deg"
         camera-controls
         disable-zoom
+        disable-pan
         interaction-prompt="none"
         exposure="1.0"
         shadow-intensity="0.4"
         tone-mapping="neutral"
-        camera-orbit="-20deg 80deg 5.2m"
-        min-camera-orbit="auto 60deg 5.2m"
-        max-camera-orbit="auto 100deg 5.2m"
-        field-of-view="30deg"
-        min-field-of-view="30deg"
-        max-field-of-view="30deg"
+        camera-orbit="-20deg 80deg 130%"
+        min-camera-orbit="auto 60deg 130%"
+        max-camera-orbit="auto 100deg 130%"
         loading="lazy"
         reveal="auto"
         touch-action="pan-y"
