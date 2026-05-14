@@ -25,33 +25,45 @@
 
 @layer tokens {
   :root {
-    /* Surface — drenched dark, ấm về 25° (subtle warmth, KHÔNG cool blue) */
-    --surface:    oklch(0.10 0.005 25);
-    --canvas:     oklch(0.13 0.006 25);
-    --canvas-2:   oklch(0.16 0.006 25);
-    --hairline:   oklch(0.22 0.008 25);
-    --hairline-2: oklch(0.30 0.010 25);
+    /* Surface — warm bone / medical-journal paper. Reads as 'lab
+       notebook' or 'NEJM article', not 'pitch-black radiology UI'.
+       Anti-reference 'blue + white + mint' is dodged because the
+       paper here is warm-cream (chếch về 70° amber, not cool white)
+       and accent is cobalt + orange, not teal-mint. */
+    --surface:    oklch(0.96 0.010 70);  /* warm bone paper */
+    --surface-2:  oklch(0.93 0.012 70);  /* slightly deeper paper card */
+    --hairline:   oklch(0.84 0.014 72);  /* subtle paper line */
+    --hairline-2: oklch(0.76 0.018 72);
 
-    /* Ink — không pure white, chếch warm */
-    --ink-95: oklch(0.95 0.008 25);
-    --ink-80: oklch(0.78 0.008 25);
-    --ink-60: oklch(0.55 0.005 25);
-    --ink-40: oklch(0.36 0.005 25);
-    --ink-25: oklch(0.22 0.005 25);
+    /* Inner monitor / scan canvases — deliberately STAY drenched dark
+       so the BraTS / EEG / lung-CT visuals still read as 'X-ray
+       monitor on the desk'. Mixed surface = clinical reading room. */
+    --canvas:     oklch(0.13 0.006 25);
+    --canvas-2:   oklch(0.17 0.006 25);
+    --canvas-ink: oklch(0.95 0.008 25);  /* light ink for monitor labels */
+    --canvas-ink-dim: oklch(0.60 0.005 25);
+
+    /* Ink — deep cobalt family so it harmonises with the logo's
+       central blue node. Picks up warmth at 268° so it reads as
+       'archival ink' not 'corporate navy'. */
+    --ink-95: oklch(0.18 0.038 268);  /* near-black, ink-blue */
+    --ink-80: oklch(0.30 0.030 268);
+    --ink-60: oklch(0.48 0.022 268);
+    --ink-40: oklch(0.62 0.015 268);
+    --ink-25: oklch(0.78 0.012 270);
 
     /* Brand colors — keyed to the ADA Group logo */
-    --brand-orange: oklch(0.66 0.23 32);  /* logo's dotted hexagon */
-    --brand-blue:   oklch(0.45 0.22 268); /* logo's central cobalt node */
-    --brand-blue-2: oklch(0.38 0.19 268); /* deeper variant */
+    --brand-orange: oklch(0.62 0.22 32);  /* logo's dotted hexagon (slightly deeper on light bg) */
+    --brand-blue:   oklch(0.42 0.22 268); /* logo's central cobalt node */
+    --brand-blue-2: oklch(0.34 0.19 268); /* deeper variant */
 
-    /* Accents — marker derived from brand-orange so chrome harmonises
-       with the logo without losing the radiologist's-pen feel. */
+    /* Accents — marker derived from brand-orange */
     --marker:      var(--brand-orange);
-    --marker-2:    oklch(0.58 0.21 30);
-    --marker-glow: oklch(0.66 0.23 32 / 0.35);
+    --marker-2:    oklch(0.54 0.21 30);
+    --marker-glow: oklch(0.62 0.22 32 / 0.28);
 
-    --callout:   oklch(0.78 0.16 70);   /* amber alarm — secondary */
-    --vital:     oklch(0.55 0.04 220);  /* desaturated cool gray — NOT mint */
+    --callout:   oklch(0.66 0.18 70);    /* amber alarm — secondary */
+    --vital:     oklch(0.45 0.04 220);   /* desaturated cool gray — NOT mint */
 
     /* Per-module accent (mỗi case dùng marker khác nhau, không lặp) */
     --case-01: oklch(0.78 0.16 70);     /* EEG — amber */
@@ -126,15 +138,16 @@
     transition: opacity 0.3s var(--ease-out-quart);
   }
   .brand:hover { opacity: 0.85; }
-  /* Logo PNG has a chroma-keyed transparent background, so it floats
-     directly on the dark surface — no white card needed. Drop-shadow
-     keyed to brand-orange ties it to the rest of the chrome. */
+  /* Logo PNG floats directly on the warm-bone paper surface. Drop-shadow
+     uses a deep ink color (no longer brand-orange) so it reads as
+     pressed ink onto paper, not as a glow over neon. */
   .brand-logo {
     display: block;
-    height: clamp(56px, 5.2vw, 80px);   /* was a static 44px → too small */
+    height: clamp(96px, 8vw, 144px);     /* anchor of the header */
     width: auto;
     flex-shrink: 0;
-    filter: drop-shadow(0 0 22px oklch(0.66 0.23 32 / 0.32));
+    filter: drop-shadow(0 8px 18px oklch(0.62 0.22 32 / 0.22))
+            drop-shadow(0 1px 2px oklch(0.18 0.038 268 / 0.10));
   }
   .brand-sub {
     position: relative;
@@ -431,17 +444,18 @@
     align-items: center;
     gap: 12px;
     padding: 14px 22px 14px 26px;
-    background: var(--marker);
-    color: oklch(0.10 0.005 25);
+    background: var(--ink-95);              /* ink-on-paper button (default state) */
+    color: var(--surface);
     font-weight: 600;
     letter-spacing: -0.01em;
-    border: 1px solid var(--marker);
+    border: 1px solid var(--ink-95);
     transition: gap 0.4s var(--ease-out-quart),
                 background 0.4s var(--ease-out-quart);
   }
   .hero-cta:hover {
     gap: 20px;
-    background: var(--marker-2);
+    background: var(--marker);              /* hover lights up brand-orange */
+    border-color: var(--marker);
   }
   .hero-cta svg { width: 16px; height: 16px; }
 
