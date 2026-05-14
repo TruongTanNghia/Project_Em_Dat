@@ -1,5 +1,77 @@
 import Link from 'next/link';
 
+/* ─── ADA Group logo mark — hexagonal network ─────────────────────
+       Recreated from the supplied raster (red-orange dotted hexagon
+       with a deep cobalt centre node). Inline SVG so it scales / can
+       recolour per-context. ────────────────────────────────────── */
+
+function AdaLogoMark({ size = 28 }: { size?: number }) {
+  // Hexagon vertices at radius R from centre (50, 50)
+  const R_OUT = 38;
+  const R_IN = 19;
+  const TAU = Math.PI * 2;
+  const outer = Array.from({ length: 6 }, (_, i) => {
+    const a = -Math.PI / 2 + (i * TAU) / 6;
+    return { x: 50 + R_OUT * Math.cos(a), y: 50 + R_OUT * Math.sin(a) };
+  });
+  const inner = Array.from({ length: 6 }, (_, i) => {
+    // Inner hex rotated 30° so its vertices land on the outer hex's edge midpoints
+    const a = -Math.PI / 3 + (i * TAU) / 6;
+    return { x: 50 + R_IN * Math.cos(a), y: 50 + R_IN * Math.sin(a) };
+  });
+
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      width={size}
+      height={size}
+      xmlns="http://www.w3.org/2000/svg"
+      aria-label="ADA Group"
+      role="img"
+    >
+      {/* Dashed outer hexagon edges */}
+      <g
+        stroke="var(--brand-orange, oklch(0.66 0.23 32))"
+        strokeWidth="3"
+        strokeDasharray="3 2.5"
+        strokeLinecap="round"
+        fill="none"
+      >
+        {outer.map((p, i) => {
+          const n = outer[(i + 1) % 6];
+          return <line key={i} x1={p.x} y1={p.y} x2={n.x} y2={n.y} />;
+        })}
+        {/* Spokes from outer vertices to opposing inner vertices */}
+        {outer.map((p, i) => (
+          <line
+            key={`s${i}`}
+            x1={p.x}
+            y1={p.y}
+            x2={inner[(i + 3) % 6].x}
+            y2={inner[(i + 3) % 6].y}
+          />
+        ))}
+      </g>
+
+      {/* Outer dot nodes */}
+      <g fill="var(--brand-orange, oklch(0.66 0.23 32))">
+        {outer.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="4.5" />
+        ))}
+      </g>
+      {/* Inner dot nodes (smaller) */}
+      <g fill="var(--brand-orange, oklch(0.66 0.23 32))">
+        {inner.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="2.5" />
+        ))}
+      </g>
+
+      {/* Central cobalt node */}
+      <circle cx="50" cy="50" r="7" fill="var(--brand-blue, oklch(0.45 0.22 268))" />
+    </svg>
+  );
+}
+
 /* ─── Hero: real anatomical brain GLB rotating, with radiologist's
        annotation pills overlayed. The model-viewer custom element is
        defined by the script loaded in app/layout.tsx. ──────────── */
@@ -237,9 +309,12 @@ export default function Home() {
     <div className="page">
       <header className="frame">
         <div className="registry">
-          <Link href="/" className="brand">
-            ADA Group
-            <span className="brand-sub">Medical AI · Research</span>
+          <Link href="/" className="brand" aria-label="ADA Group — Medical AI Research">
+            <AdaLogoMark size={36} />
+            <span className="brand-text">
+              <span className="brand-wordmark">ADA <em>Group</em></span>
+              <span className="brand-sub">Medical AI · Research</span>
+            </span>
           </Link>
           <div /> {/* spacer */}
           <div className="registry-meta">

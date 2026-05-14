@@ -39,13 +39,19 @@
     --ink-40: oklch(0.36 0.005 25);
     --ink-25: oklch(0.22 0.005 25);
 
-    /* Accents — surgical-red marker là MAIN color */
-    --marker:    oklch(0.64 0.22 25);   /* hot surgical red-orange */
-    --marker-2:  oklch(0.58 0.20 22);   /* darker variant */
-    --marker-glow: oklch(0.64 0.22 25 / 0.30);
+    /* Brand colors — keyed to the ADA Group logo */
+    --brand-orange: oklch(0.66 0.23 32);  /* logo's dotted hexagon */
+    --brand-blue:   oklch(0.45 0.22 268); /* logo's central cobalt node */
+    --brand-blue-2: oklch(0.38 0.19 268); /* deeper variant */
+
+    /* Accents — marker derived from brand-orange so chrome harmonises
+       with the logo without losing the radiologist's-pen feel. */
+    --marker:      var(--brand-orange);
+    --marker-2:    oklch(0.58 0.21 30);
+    --marker-glow: oklch(0.66 0.23 32 / 0.35);
 
     --callout:   oklch(0.78 0.16 70);   /* amber alarm — secondary */
-    --vital:     oklch(0.55 0.04 220);  /* very desaturated cool gray — NOT mint */
+    --vital:     oklch(0.55 0.04 220);  /* desaturated cool gray — NOT mint */
 
     /* Per-module accent (mỗi case dùng marker khác nhau, không lặp) */
     --case-01: oklch(0.78 0.16 70);     /* EEG — amber */
@@ -114,17 +120,39 @@
   }
   .brand {
     display: inline-flex;
-    align-items: baseline;
-    gap: 10px;
+    align-items: center;
+    gap: 14px;
+    text-decoration: none;
+    transition: opacity 0.3s var(--ease-out-quart);
+  }
+  .brand:hover { opacity: 0.85; }
+  .brand svg {
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 12px oklch(0.66 0.23 32 / 0.20));
+  }
+  .brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.05;
+    gap: 2px;
+  }
+  .brand-wordmark {
+    font-family: var(--font-sans);
     font-weight: 700;
-    font-size: 17px;
-    letter-spacing: -0.01em;
+    font-size: 16px;
+    letter-spacing: -0.015em;
+    color: var(--ink-95);
+  }
+  .brand-wordmark em {
+    font-style: normal;
+    color: var(--brand-blue);
+    font-weight: 700;
   }
   .brand-sub {
     font-family: var(--font-mono);
-    font-size: var(--t-mono-label);
+    font-size: 10px;
     color: var(--ink-60);
-    letter-spacing: 0.10em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
   }
   .registry-meta {
@@ -261,7 +289,11 @@
     content: '';
     width: 28px;
     height: 1px;
-    background: var(--marker);
+    background: linear-gradient(
+      90deg,
+      var(--brand-blue) 0%,
+      var(--marker) 100%
+    );
   }
   .hero-title {
     font-size: var(--t-h1);
