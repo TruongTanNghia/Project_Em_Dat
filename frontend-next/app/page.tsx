@@ -1,66 +1,37 @@
 import Link from 'next/link';
 
-/* ─── Hand-drawn SVG annotations — radiologist's pen marks ──────── */
+/* ─── Hero: real anatomical brain GLB rotating, with radiologist's
+       annotation pills overlayed. The model-viewer custom element is
+       defined by the script loaded in app/layout.tsx. ──────────── */
 
 function HeroScan() {
   return (
     <figure className="scan">
-      <svg className="scan-svg" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-        <defs>
-          <radialGradient id="brainCore" cx="50%" cy="55%" r="42%">
-            <stop offset="0%"  stopColor="oklch(0.40 0.025 30)" />
-            <stop offset="60%" stopColor="oklch(0.22 0.015 28)" />
-            <stop offset="100%" stopColor="oklch(0.12 0.008 25)" stopOpacity="0" />
-          </radialGradient>
-          <filter id="grain">
-            <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="2" />
-            <feColorMatrix values="0 0 0 0 0.15  0 0 0 0 0.12  0 0 0 0 0.11  0 0 0 0.18 0" />
-          </filter>
-        </defs>
-        <rect width="600" height="600" fill="url(#brainCore)" />
-        <rect width="600" height="600" filter="url(#grain)" opacity="0.6" />
-
-        {/* Stylised brain silhouette (axial-ish) */}
-        <path
-          d="M 300 110 C 200 110, 130 180, 130 280 C 130 380, 180 460, 260 480
-             C 280 495, 320 495, 340 480 C 420 460, 470 380, 470 280
-             C 470 180, 400 110, 300 110 Z"
-          fill="oklch(0.32 0.022 32 / 0.55)"
-          stroke="oklch(0.55 0.04 28)"
-          strokeWidth="0.6"
-        />
-        <path
-          d="M 300 110 C 280 200, 250 290, 260 480"
-          fill="none"
-          stroke="oklch(0.40 0.03 28)"
-          strokeWidth="0.7"
-        />
-
-        {/* Lesion (subtle bright area) */}
-        <ellipse cx="365" cy="295" rx="42" ry="28" fill="oklch(0.55 0.05 28 / 0.65)" />
-        <ellipse cx="365" cy="295" rx="22" ry="14" fill="oklch(0.75 0.04 30 / 0.75)" />
-
-        {/* Marker annotation — hand-drawn red circle + arrow + readout */}
-        <g stroke="oklch(0.64 0.22 25)" strokeWidth="1.4" fill="none" strokeLinecap="round">
-          <path
-            className="draw"
-            d="M 408 282 C 425 268, 442 280, 442 298 C 442 322, 416 332, 392 318
-               C 372 308, 365 290, 372 274 C 380 258, 408 264, 408 282 Z"
-            style={{ ['--dash' as string]: 200, ['--delay' as string]: '0.6s' }}
-          />
-          <path
-            className="draw"
-            d="M 460 252 L 442 282"
-            style={{ ['--dash' as string]: 50, ['--delay' as string]: '1.4s' }}
-          />
-          <path
-            className="draw"
-            d="M 442 282 L 450 274 M 442 282 L 452 286"
-            style={{ ['--dash' as string]: 30, ['--delay' as string]: '1.7s' }}
-            strokeWidth="1.2"
-          />
-        </g>
-      </svg>
+      <model-viewer
+        src="/models/brain/human-brain.glb"
+        alt="Human brain — anatomical 3D model from BraTS-2021 case 00621"
+        auto-rotate
+        rotation-per-second="18deg"
+        camera-controls
+        disable-zoom
+        interaction-prompt="none"
+        exposure="0.9"
+        shadow-intensity="0.6"
+        shadow-softness="1"
+        tone-mapping="neutral"
+        camera-orbit="-25deg 78deg 1.6m"
+        min-camera-orbit="auto 60deg auto"
+        max-camera-orbit="auto 100deg auto"
+        loading="eager"
+        reveal="auto"
+        touch-action="pan-y"
+        style={{
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'transparent',
+          '--poster-color': 'transparent',
+        } as React.CSSProperties}
+      />
 
       {/* HUD corner stamps */}
       <span className="scan-corner tl"><b>BraTS-2021</b> · case 00621</span>
@@ -68,14 +39,18 @@ function HeroScan() {
       <span className="scan-corner bl">3D U-Net · TF<br /><b>Dice WT 0.83</b></span>
       <span className="scan-corner br"><b>R</b> · L</span>
 
-      {/* Annotation pill */}
-      <span className="annot" style={{ top: '28%', right: '8%', transform: 'translate(35%, -50%)' }}>
+      {/* Annotation pills — positioned over the rotating model */}
+      <span className="annot" style={{ top: '22%', right: '4%' }}>
         <span className="annot-tick" />
         NCR · <b>12.3 cm³</b>
       </span>
-      <span className="annot" style={{ top: '52%', right: '6%', transform: 'translate(38%, 0)' }}>
+      <span className="annot" style={{ top: '46%', right: '4%' }}>
         <span className="annot-tick" />
         ET ring · <b>4.2 cm³</b>
+      </span>
+      <span className="annot" style={{ bottom: '18%', left: '6%' }}>
+        <span className="annot-tick" />
+        ED edema · <b>11.9 cm³</b>
       </span>
     </figure>
   );
@@ -138,40 +113,24 @@ function CaseVisualEEG() {
 
 function CaseVisualBrain() {
   return (
-    <div className="case-visual">
-      <svg viewBox="0 0 800 550" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-        <defs>
-          <radialGradient id="brainG2" cx="50%" cy="55%" r="42%">
-            <stop offset="0%"  stopColor="oklch(0.42 0.025 30)" />
-            <stop offset="100%" stopColor="oklch(0.12 0.008 25)" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <rect width="800" height="550" fill="oklch(0.13 0.006 25)" />
-        <ellipse cx="400" cy="290" rx="220" ry="180" fill="url(#brainG2)" />
-        <path
-          d="M 400 110 C 280 110, 200 200, 200 290 C 200 380, 260 460, 360 470
-             C 380 478, 420 478, 440 470 C 540 460, 600 380, 600 290
-             C 600 200, 520 110, 400 110 Z"
-          fill="none" stroke="oklch(0.50 0.04 28)" strokeWidth="0.6"
-        />
-        {/* Tumor: NCR (red), ED (amber), ET (pink) — multiple regions */}
-        <ellipse cx="465" cy="305" rx="44" ry="32" fill="oklch(0.64 0.22 25 / 0.55)" />
-        <ellipse cx="465" cy="305" rx="22" ry="16" fill="oklch(0.55 0.18 22 / 0.85)" />
-        <ellipse cx="478" cy="295" rx="10" ry="7" fill="oklch(0.45 0.10 18 / 0.95)" />
-        {/* Hand-drawn callouts */}
-        <g stroke="oklch(0.64 0.22 25)" strokeWidth="1.4" fill="none" strokeLinecap="round">
-          <path
-            className="draw"
-            d="M 510 280 C 530 264, 552 280, 545 304 C 540 326, 510 332, 488 320"
-            style={{ ['--dash' as string]: 160, ['--delay' as string]: '0.4s' }}
-          />
-          <path
-            className="draw"
-            d="M 580 230 L 545 285"
-            style={{ ['--dash' as string]: 70, ['--delay' as string]: '1.0s' }}
-          />
-        </g>
-      </svg>
+    <div className="case-visual case-visual-3d">
+      <model-viewer
+        src="/models/brain/human-brain.glb"
+        alt="Brain anatomy with segmented tumor regions"
+        auto-rotate
+        rotation-per-second="12deg"
+        camera-controls
+        disable-zoom
+        interaction-prompt="none"
+        exposure="0.85"
+        shadow-intensity="0.5"
+        tone-mapping="neutral"
+        camera-orbit="35deg 75deg 1.4m"
+        loading="lazy"
+        reveal="auto"
+        touch-action="pan-y"
+        style={{ width: '100%', height: '100%', backgroundColor: 'transparent' } as React.CSSProperties}
+      />
       <span className="scan-corner tl"><b>BraTS-2020</b> · 4-channel</span>
       <span className="scan-corner tr">FLAIR/T1/T1c/T2<br /><b>128³ TTA</b></span>
       <span className="scan-corner bl">NCR · ED · ET<br /><b>Marching cubes</b></span>
@@ -182,44 +141,24 @@ function CaseVisualBrain() {
 
 function CaseVisualLung() {
   return (
-    <div className="case-visual">
-      <svg viewBox="0 0 800 550" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-        <defs>
-          <radialGradient id="lungG" cx="50%" cy="55%" r="55%">
-            <stop offset="0%"  stopColor="oklch(0.36 0.018 60)" />
-            <stop offset="80%" stopColor="oklch(0.13 0.006 25)" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <rect width="800" height="550" fill="oklch(0.12 0.005 25)" />
-        <ellipse cx="400" cy="290" rx="280" ry="200" fill="url(#lungG)" />
-        {/* Lung halves */}
-        <path d="M 290 150 C 200 200, 200 380, 280 450 C 330 470, 360 410, 360 320 C 360 240, 340 165, 290 150 Z"
-              fill="oklch(0.22 0.012 30 / 0.85)" stroke="oklch(0.45 0.03 28)" strokeWidth="0.6" />
-        <path d="M 510 150 C 600 200, 600 380, 520 450 C 470 470, 440 410, 440 320 C 440 240, 460 165, 510 150 Z"
-              fill="oklch(0.22 0.012 30 / 0.85)" stroke="oklch(0.45 0.03 28)" strokeWidth="0.6" />
-        {/* Nodule on right lung */}
-        <circle cx="495" cy="305" r="9" fill="oklch(0.85 0.10 130 / 0.95)" />
-        <circle cx="495" cy="305" r="4" fill="oklch(0.95 0.06 130)" />
-        {/* Hand-drawn marker */}
-        <g stroke="oklch(0.70 0.14 130)" strokeWidth="1.4" fill="none" strokeLinecap="round">
-          <circle
-            className="draw"
-            cx="495" cy="305" r="28"
-            style={{ ['--dash' as string]: 180, ['--delay' as string]: '0.4s' }}
-          />
-          <path
-            className="draw"
-            d="M 555 250 L 520 290"
-            style={{ ['--dash' as string]: 70, ['--delay' as string]: '1.0s' }}
-          />
-          <path
-            className="draw"
-            d="M 520 290 L 510 290 M 520 290 L 520 280"
-            style={{ ['--dash' as string]: 25, ['--delay' as string]: '1.3s' }}
-            strokeWidth="1.2"
-          />
-        </g>
-      </svg>
+    <div className="case-visual case-visual-3d">
+      <model-viewer
+        src="/models/lungs.glb"
+        alt="Lung anatomy 3D model with highlighted nodule"
+        auto-rotate
+        rotation-per-second="14deg"
+        camera-controls
+        disable-zoom
+        interaction-prompt="none"
+        exposure="1.0"
+        shadow-intensity="0.4"
+        tone-mapping="neutral"
+        camera-orbit="-20deg 80deg 2.4m"
+        loading="lazy"
+        reveal="auto"
+        touch-action="pan-y"
+        style={{ width: '100%', height: '100%', backgroundColor: 'transparent' } as React.CSSProperties}
+      />
       <span className="scan-corner tl"><b>LIDC-IDRI</b> · ax slice 84</span>
       <span className="scan-corner tr">DeepLabV3<br /><b>ø 18 mm</b></span>
       <span className="scan-corner bl">malignancy 4/5</span>

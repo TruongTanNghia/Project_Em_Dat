@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Mona_Sans, JetBrains_Mono } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 
 // Display + body — Mona Sans (GitHub open-source variable font). Distinctive
@@ -45,7 +46,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi" className={`${monaSans.variable} ${jetBrains.variable}`} suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        {children}
+        {/* Google's <model-viewer> web component — renders GLB/GLTF
+            with camera-controls, lighting, shadows, etc. Loaded as ESM
+            module from a CDN so we don't add a heavy npm dep. */}
+        <Script
+          type="module"
+          src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.1.0/model-viewer.min.js"
+          strategy="afterInteractive"
+        />
+      </body>
     </html>
   );
 }
