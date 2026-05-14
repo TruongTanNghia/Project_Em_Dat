@@ -47,6 +47,41 @@ function blobPath(r: number, pts: number, seed: number, amp: number, ar = 1): st
   return d + ' Z';
 }
 
+/* ─── NoduleMarker — small lung nodule (single-class segmentation):
+       solid core + soft glow halo. Simpler than BraTS tumor because
+       LIDC-IDRI uses just 1 class (nodule yes/no). */
+function NoduleMarker({ size = 48, seed = 3 }: { size?: number; seed?: number }) {
+  const half = size / 2;
+  const haloPath = blobPath(half * 0.92, 12, seed + 1, 0.22, 0.95);
+  const corePath = blobPath(half * 0.42, 10, seed + 4, 0.28);
+  const blurId = `nod-blur-${seed}`;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`-${half} -${half} ${size} ${size}`}
+      className="lesion-marker"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <defs>
+        <filter id={blurId} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation={size * 0.02} />
+        </filter>
+        <radialGradient id={`nod-grad-${seed}`} cx="40%" cy="40%" r="65%">
+          <stop offset="0%"  stopColor="oklch(0.85 0.18 130)" />
+          <stop offset="100%" stopColor="oklch(0.55 0.16 125)" />
+        </radialGradient>
+      </defs>
+      <path d={haloPath}
+            fill="oklch(0.70 0.14 130 / 0.55)"
+            filter={`url(#${blurId})`} />
+      <path d={corePath}
+            fill={`url(#nod-grad-${seed})`} />
+    </svg>
+  );
+}
+
 /* ─── LesionMarker — 3-layer BraTS tumor blob (ED halo + ET ring +
        NCR core) shaped like a real segmentation, not a circle.
        Goes inside a <model-viewer> hotspot so it follows rotation. */
@@ -491,7 +526,7 @@ function CaseVisualLung() {
         src="/models/lungs.glb"
         alt="Lung anatomy 3D model with highlighted nodule"
         auto-rotate
-        rotation-per-second="14deg"
+        rotation-per-second="10deg"
         camera-controls
         disable-zoom
         disable-pan
@@ -499,15 +534,38 @@ function CaseVisualLung() {
         exposure="1.0"
         shadow-intensity="0.4"
         tone-mapping="neutral"
-        camera-orbit="-20deg 80deg 130%"
-        min-camera-orbit="auto 60deg 130%"
-        max-camera-orbit="auto 100deg 130%"
+        /* Frontal view so BOTH lung halves are visible; slight tilt
+           down so the upper lobes read clearly. The previous -20deg
+           azimuth was rotating into a profile that hid one half. */
+        camera-orbit="0deg 78deg 150%"
+        min-camera-orbit="-30deg 65deg 150%"
+        max-camera-orbit="30deg 95deg 150%"
         loading="lazy"
         reveal="auto"
         touch-action="pan-y"
         style={{ width: '100%', height: '100%', backgroundColor: 'transparent' } as React.CSSProperties}
-      />
-      <NoduleOverlay cx={64} cy={32} r={3.2} label="ø 18 mm" />
+      >
+        {/* 3D-anchored nodule marker — small mass in the right upper
+            lobe. Follows lung rotation. */}
+        <span
+          slot="hotspot-lung-nodule"
+          className="nodule-marker-wrap"
+          data-position="0.040 0.035 0.020"
+          data-normal="0.7 0.4 0.6"
+        >
+          <NoduleMarker size={56} />
+        </span>
+        <button
+          slot="hotspot-lung-label"
+          className="annot hotspot"
+          data-position="0.055 0.050 0.020"
+          data-normal="0.7 0.4 0.6"
+          data-visibility-attribute="visible"
+        >
+          <span className="annot-tick" />
+          ø <b>18 mm</b> · upper lobe
+        </button>
+      </model-viewer>
       {/* Malignancy meter — vertical mini-gauge bottom-right corner */}
       <div className="mal-meter">
         <span className="mal-meter-label">MALIGNANCY</span>

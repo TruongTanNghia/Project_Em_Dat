@@ -309,11 +309,15 @@
      a <model-viewer> hotspot. The wrapper just centers the SVG on
      the hotspot's pivot point; the SVG itself draws ED halo + ET
      ring + NCR core like a real segmentation. */
-  .lesion-marker-wrap {
+  .lesion-marker-wrap,
+  .nodule-marker-wrap {
     display: block;
     transform: translate(-50%, -50%);
     pointer-events: none;
-    mix-blend-mode: screen;       /* tumor glow ADDS to the brain underneath */
+    mix-blend-mode: screen;       /* tumor glow ADDS to the organ underneath */
+  }
+  model-viewer .nodule-marker-wrap[data-visibility-attribute="visible"]:not([data-visible]) {
+    opacity: 0.35;
   }
   .lesion-marker {
     display: block;
