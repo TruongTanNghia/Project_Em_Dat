@@ -121,7 +121,7 @@
   .brand {
     display: inline-flex;
     align-items: center;
-    gap: 14px;
+    gap: clamp(14px, 1.6vw, 22px);
     text-decoration: none;
     transition: opacity 0.3s var(--ease-out-quart);
   }
@@ -131,19 +131,21 @@
      keyed to brand-orange ties it to the rest of the chrome. */
   .brand-logo {
     display: block;
-    height: 44px;
+    height: clamp(56px, 5.2vw, 80px);   /* was a static 44px → too small */
     width: auto;
     flex-shrink: 0;
-    filter: drop-shadow(0 0 18px oklch(0.66 0.23 32 / 0.30));
+    filter: drop-shadow(0 0 22px oklch(0.66 0.23 32 / 0.32));
   }
   .brand-sub {
     position: relative;
-    padding-left: 14px;
+    padding-left: 18px;
+    margin-left: 4px;
     font-family: var(--font-mono);
-    font-size: 10px;
-    color: var(--ink-60);
-    letter-spacing: 0.18em;
+    font-size: 11px;
+    color: var(--ink-40);            /* dimmer — let logo win the hierarchy */
+    letter-spacing: 0.22em;
     text-transform: uppercase;
+    font-weight: 500;
   }
   .brand-sub::before {
     content: '';
@@ -152,7 +154,7 @@
     top: 50%;
     transform: translateY(-50%);
     width: 1px;
-    height: 18px;
+    height: clamp(28px, 3vw, 40px);   /* divider scales with logo */
     background: var(--hairline);
   }
   .registry-meta {
