@@ -47,6 +47,75 @@ function blobPath(r: number, pts: number, seed: number, amp: number, ar = 1): st
   return d + ' Z';
 }
 
+/* ─── LesionMarker — 3-layer BraTS tumor blob (ED halo + ET ring +
+       NCR core) shaped like a real segmentation, not a circle.
+       Goes inside a <model-viewer> hotspot so it follows rotation. */
+function LesionMarker({
+  size = 88,
+  seed = 7,
+  edScale = 0.96,
+  etScale = 0.55,
+  ncrScale = 0.30,
+}: {
+  size?: number;
+  seed?: number;
+  edScale?: number;
+  etScale?: number;
+  ncrScale?: number;
+}) {
+  const half = size / 2;
+  const edPath  = blobPath(half * edScale,  14, seed + 1, 0.32, 0.88);
+  const etOut   = blobPath(half * etScale,  12, seed + 2, 0.22);
+  const etIn    = blobPath(half * etScale * 0.58, 10, seed + 3, 0.30);
+  const ncrPath = blobPath(half * ncrScale, 10, seed + 4, 0.28);
+  const blurId = `lesion-blur-${seed}`;
+  const coreBlurId = `lesion-core-blur-${seed}`;
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`-${half} -${half} ${size} ${size}`}
+      className="lesion-marker"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <defs>
+        <filter id={blurId} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation={size * 0.025} />
+        </filter>
+        <filter id={coreBlurId} x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation={size * 0.008} />
+        </filter>
+        <radialGradient id={`ed-grad-${seed}`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  stopColor="oklch(0.78 0.16 70 / 0.75)" />
+          <stop offset="60%" stopColor="oklch(0.78 0.16 70 / 0.45)" />
+          <stop offset="100%" stopColor="oklch(0.78 0.16 70 / 0)" />
+        </radialGradient>
+        <radialGradient id={`ncr-grad-${seed}`} cx="40%" cy="40%" r="65%">
+          <stop offset="0%"  stopColor="oklch(0.72 0.22 25)" />
+          <stop offset="100%" stopColor="oklch(0.50 0.22 25)" />
+        </radialGradient>
+      </defs>
+
+      {/* ED — large diffuse amber halo (edema) */}
+      <path d={edPath}
+            fill={`url(#ed-grad-${seed})`}
+            filter={`url(#${blurId})`} />
+
+      {/* ET — enhancing tumor ring: outer cobalt minus inner cutout */}
+      <path d={`${etOut} ${etIn}`}
+            fill="oklch(0.55 0.22 268 / 0.85)"
+            fillRule="evenodd" />
+
+      {/* NCR — necrotic core, red, slight blur for soft edges */}
+      <path d={ncrPath}
+            fill={`url(#ncr-grad-${seed})`}
+            filter={`url(#${coreBlurId})`} />
+    </svg>
+  );
+}
+
 function LesionOverlay({ lesions, style }: { lesions: Lesion[]; style?: React.CSSProperties }) {
   return (
     <svg
@@ -236,11 +305,12 @@ function HeroScan() {
             space). They follow the brain's rotation automatically and
             hide when occluded behind geometry. Replaces the old
             fixed-position 2D overlay that didn't track rotation. */}
+        {/* Primary mass — 3 stat labels stacked on the right */}
         <button
           slot="hotspot-ncr"
           className="annot hotspot"
-          data-position="0.04 0.03 0.04"
-          data-normal="0.5 0.3 0.8"
+          data-position="0.055 0.025 0.045"
+          data-normal="0.6 0.3 0.8"
           data-visibility-attribute="visible"
         >
           <span className="annot-tick" />
@@ -249,8 +319,8 @@ function HeroScan() {
         <button
           slot="hotspot-et"
           className="annot hotspot"
-          data-position="0.05 0 0.045"
-          data-normal="0.6 0 0.8"
+          data-position="0.060 0.005 0.045"
+          data-normal="0.7 0 0.8"
           data-visibility-attribute="visible"
         >
           <span className="annot-tick" />
@@ -259,36 +329,46 @@ function HeroScan() {
         <button
           slot="hotspot-ed"
           className="annot hotspot"
-          data-position="-0.045 -0.015 0.04"
-          data-normal="-0.5 -0.2 0.8"
+          data-position="0.055 -0.015 0.045"
+          data-normal="0.6 -0.3 0.8"
           data-visibility-attribute="visible"
         >
           <span className="annot-tick" />
           ED edema · <b>11.9 cm³</b>
         </button>
+        {/* Satellite lesion — 1 label */}
+        <button
+          slot="hotspot-sat"
+          className="annot hotspot"
+          data-position="-0.060 -0.025 0.045"
+          data-normal="-0.6 -0.2 0.85"
+          data-visibility-attribute="visible"
+        >
+          <span className="annot-tick" />
+          Satellite · <b>2.8 cm³</b>
+        </button>
 
-        {/* Visible lesion DOTS that also follow rotation. Each hotspot
-            slot becomes a small colored marker INSIDE the brain at the
-            same 3D coordinates — these are the actual tumor markers
-            the labels point to. */}
+        {/* Lesion masses — real BraTS-style multi-layer tumors (ED
+            halo + ET ring + NCR core) rendered as SVG inside hotspots
+            so they ride the brain's rotation in 3D. Two distinct
+            lesions: a primary right-temporal mass and a smaller left
+            satellite. */}
         <span
-          slot="hotspot-mark-ncr"
-          className="lesion-dot dot-ncr"
-          data-position="0.04 0.03 0.04"
-          data-normal="0.5 0.3 0.8"
-        />
+          slot="hotspot-lesion-1"
+          className="lesion-marker-wrap"
+          data-position="0.045 0.015 0.045"
+          data-normal="0.5 0.2 0.85"
+        >
+          <LesionMarker size={110} seed={7} />
+        </span>
         <span
-          slot="hotspot-mark-et"
-          className="lesion-dot dot-et"
-          data-position="0.05 0 0.045"
-          data-normal="0.6 0 0.8"
-        />
-        <span
-          slot="hotspot-mark-ed"
-          className="lesion-dot dot-ed"
-          data-position="-0.045 -0.015 0.04"
-          data-normal="-0.5 -0.2 0.8"
-        />
+          slot="hotspot-lesion-2"
+          className="lesion-marker-wrap"
+          data-position="-0.045 -0.020 0.04"
+          data-normal="-0.5 -0.2 0.85"
+        >
+          <LesionMarker size={64} seed={19} edScale={0.92} etScale={0.50} ncrScale={0.24} />
+        </span>
       </model-viewer>
 
       {/* HUD corner stamps — these are fixed-position on the figure
@@ -380,13 +460,15 @@ function CaseVisualBrain() {
         touch-action="pan-y"
         style={{ width: '100%', height: '100%', backgroundColor: 'transparent' } as React.CSSProperties}
       >
-        {/* 3D-anchored lesion markers — follow brain rotation */}
-        <span slot="hotspot-c2-ncr" className="lesion-dot dot-ncr"
-              data-position="0.045 0.02 0.04" data-normal="0.6 0.2 0.8" />
-        <span slot="hotspot-c2-et" className="lesion-dot dot-et"
-              data-position="0.05 -0.005 0.045" data-normal="0.7 0 0.7" />
-        <span slot="hotspot-c2-ed" className="lesion-dot dot-ed"
-              data-position="-0.04 -0.015 0.035" data-normal="-0.5 -0.2 0.8" />
+        {/* 3D-anchored BraTS lesion mass — follows brain rotation */}
+        <span slot="hotspot-c2-mass" className="lesion-marker-wrap"
+              data-position="0.050 0.010 0.045" data-normal="0.6 0.2 0.8">
+          <LesionMarker size={86} seed={31} />
+        </span>
+        <span slot="hotspot-c2-sat" className="lesion-marker-wrap"
+              data-position="-0.040 -0.020 0.04" data-normal="-0.5 -0.2 0.85">
+          <LesionMarker size={48} seed={47} edScale={0.92} etScale={0.50} ncrScale={0.24} />
+        </span>
       </model-viewer>
       {/* Tiny class-legend chip (HUD-style key, mono spec) */}
       <span className="lesion-legend">

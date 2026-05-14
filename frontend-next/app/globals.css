@@ -305,9 +305,26 @@
     pointer-events: none;
   }
 
-  /* 3D-anchored lesion dots — small colored markers INSIDE the brain
-     volume at the same coordinates as the annotation hotspots. These
-     ARE the tumors the labels point to. */
+  /* 3D-anchored lesion MASS — multi-layer BraTS blob rendered inside
+     a <model-viewer> hotspot. The wrapper just centers the SVG on
+     the hotspot's pivot point; the SVG itself draws ED halo + ET
+     ring + NCR core like a real segmentation. */
+  .lesion-marker-wrap {
+    display: block;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    mix-blend-mode: screen;       /* tumor glow ADDS to the brain underneath */
+  }
+  .lesion-marker {
+    display: block;
+    overflow: visible;            /* glows past the box */
+    filter: drop-shadow(0 0 12px oklch(0.55 0.22 25 / 0.35));
+  }
+  model-viewer .lesion-marker-wrap[data-visibility-attribute="visible"]:not([data-visible]) {
+    opacity: 0.35;                /* fade when occluded but stay readable */
+  }
+
+  /* Old simple dots — kept as fallback class */
   .lesion-dot {
     display: block;
     width: 14px;
