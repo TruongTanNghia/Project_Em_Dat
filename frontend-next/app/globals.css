@@ -126,34 +126,31 @@
     transition: opacity 0.3s var(--ease-out-quart);
   }
   .brand:hover { opacity: 0.85; }
-  .brand svg {
+  .brand-logo {
+    display: block;
+    height: 38px;
+    width: auto;
     flex-shrink: 0;
-    filter: drop-shadow(0 0 12px oklch(0.66 0.23 32 / 0.20));
-  }
-  .brand-text {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.05;
-    gap: 2px;
-  }
-  .brand-wordmark {
-    font-family: var(--font-sans);
-    font-weight: 700;
-    font-size: 16px;
-    letter-spacing: -0.015em;
-    color: var(--ink-95);
-  }
-  .brand-wordmark em {
-    font-style: normal;
-    color: var(--brand-blue);
-    font-weight: 700;
+    filter: drop-shadow(0 0 14px oklch(0.66 0.23 32 / 0.18));
   }
   .brand-sub {
+    position: relative;
+    padding-left: 14px;
     font-family: var(--font-mono);
     font-size: 10px;
     color: var(--ink-60);
     letter-spacing: 0.18em;
     text-transform: uppercase;
+  }
+  .brand-sub::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 18px;
+    background: var(--hairline);
   }
   .registry-meta {
     display: inline-flex;
@@ -271,6 +268,117 @@
     width: 6px; height: 6px;
     background: var(--marker);
     border-radius: 50%;
+  }
+
+  /* Lesion overlay — 2D SVG HUD film on top of the rotating brain.
+     Positioned absolute fill so the SVG viewBox (0..100) maps to
+     the figure's visible area. mix-blend lighten keeps the colour
+     fills readable on top of the cyan brain wireframe. */
+  .lesion-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    z-index: 1;
+  }
+  .lesion-core {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: lesion-pulse 3.6s var(--ease-out-quart) infinite;
+    animation-delay: var(--pulse-delay, 0s);
+  }
+  @keyframes lesion-pulse {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50%      { opacity: 0.85; transform: scale(1.08); }
+  }
+
+  /* Compact class legend for case-02 (BraTS classes key). */
+  .lesion-legend {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    display: inline-flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-60);
+    z-index: 2;
+  }
+  .lesion-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .lesion-legend i {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .lesion-legend .dot-ncr { background: oklch(0.58 0.22 28); }
+  .lesion-legend .dot-et {
+    background: transparent;
+    border: 1.5px solid oklch(0.62 0.20 252);
+  }
+  .lesion-legend .dot-ed { background: oklch(0.72 0.16 60 / 0.6); }
+
+  /* Lung malignancy meter — 5-bar BIRADS-style gauge. */
+  .mal-meter {
+    position: absolute;
+    right: 12px;
+    bottom: 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    z-index: 2;
+    font-family: var(--font-mono);
+  }
+  .mal-meter-label {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-60);
+  }
+  .mal-meter-bars {
+    display: flex;
+    gap: 3px;
+    align-items: flex-end;
+    height: 36px;
+  }
+  .mal-bar {
+    width: 6px;
+    background: oklch(0.22 0.008 25);
+    border: 1px solid oklch(0.28 0.008 25);
+  }
+  .mal-bar:nth-child(1) { height: 30%; }
+  .mal-bar:nth-child(2) { height: 50%; }
+  .mal-bar:nth-child(3) { height: 70%; }
+  .mal-bar:nth-child(4) { height: 88%; }
+  .mal-bar:nth-child(5) { height: 100%; }
+  .mal-bar.on {
+    background: oklch(0.62 0.18 252);
+    border-color: oklch(0.72 0.14 252);
+  }
+  .mal-bar:nth-child(4).on {
+    background: oklch(0.66 0.20 28);
+    border-color: oklch(0.76 0.14 28);
+  }
+  .mal-meter-score {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--ink-60);
+  }
+  .mal-meter-score b {
+    font-size: 14px;
+    color: oklch(0.78 0.16 28);
+    font-weight: 600;
   }
 
   /* Right column — title block */
