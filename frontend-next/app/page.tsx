@@ -475,16 +475,14 @@ export default function Home() {
       <header className="frame">
         <div className="registry">
           <Link href="/" className="brand" aria-label="ADA Group — Medical AI Research">
-            <span className="brand-logo-frame">
-              <Image
-                src="/img/logo.jpg"
-                alt="ADA Group"
-                width={1200}
-                height={420}
-                priority
-                className="brand-logo"
-              />
-            </span>
+            <Image
+              src="/img/logo.png"
+              alt="ADA Group"
+              width={1264}
+              height={843}
+              priority
+              className="brand-logo"
+            />
             <span className="brand-sub">Medical AI · Research</span>
           </Link>
           <div /> {/* spacer */}

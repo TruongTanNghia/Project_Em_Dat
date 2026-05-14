@@ -126,24 +126,15 @@
     transition: opacity 0.3s var(--ease-out-quart);
   }
   .brand:hover { opacity: 0.85; }
-  /* JPG logo has a white background; we wrap it in a tight white card
-     so it reads as a deliberate name-tag rather than a stray white
-     rectangle on the drenched-dark surface. */
-  .brand-logo-frame {
-    display: inline-flex;
-    align-items: center;
-    background: #ffffff;
-    padding: 4px 10px;
-    border-radius: 6px;
-    box-shadow:
-      0 0 0 1px oklch(0.30 0.01 25),
-      0 4px 16px oklch(0.66 0.23 32 / 0.18);
-    flex-shrink: 0;
-  }
+  /* Logo PNG has a chroma-keyed transparent background, so it floats
+     directly on the dark surface — no white card needed. Drop-shadow
+     keyed to brand-orange ties it to the rest of the chrome. */
   .brand-logo {
     display: block;
-    height: 36px;
+    height: 44px;
     width: auto;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 18px oklch(0.66 0.23 32 / 0.30));
   }
   .brand-sub {
     position: relative;
