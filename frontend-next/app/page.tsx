@@ -258,9 +258,7 @@ export default function Home() {
               Bốn pipeline lâm sàng đã triển khai
             </p>
             <h1 className="hero-title reveal" style={{ ['--delay' as string]: '0.05s' }}>
-              Đọc lát cắt.<br />
-              <em>Định vị</em> tổn thương.<br />
-              Trong vài giây.
+              <em>Định vị</em> tổn thương trong vài giây.
             </h1>
             <p className="hero-sub reveal" style={{ ['--delay' as string]: '0.15s' }}>
               ADA Group dựng pipeline AI cho 4 chuyên khoa,

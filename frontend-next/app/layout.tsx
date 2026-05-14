@@ -46,16 +46,31 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi" className={`${monaSans.variable} ${jetBrains.variable}`} suppressHydrationWarning>
-      <body suppressHydrationWarning>
-        {children}
-        {/* Google's <model-viewer> web component — renders GLB/GLTF
-            with camera-controls, lighting, shadows, etc. Loaded as ESM
-            module from a CDN so we don't add a heavy npm dep. */}
-        <Script
-          type="module"
-          src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.1.0/model-viewer.min.js"
-          strategy="afterInteractive"
+      <head>
+        {/* Warm up the CDN connection so the <model-viewer> ES module
+            below loads as fast as possible — without this, the hero
+            renders as empty boxes during the first second while DNS
+            + TLS handshake to jsdelivr is in flight. */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link
+          rel="modulepreload"
+          href="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js"
+          crossOrigin="anonymous"
         />
+      </head>
+      <body suppressHydrationWarning>
+        {/* Google's <model-viewer> web component — renders GLB/GLTF
+            with camera-controls, lighting, shadows, etc. beforeInteractive
+            places it in <head> and registers the custom element before
+            React hydrates, so <model-viewer> tags in page.tsx have a
+            real implementation by the time they paint. */}
+        <Script
+          id="model-viewer-runtime"
+          type="module"
+          src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js"
+          strategy="beforeInteractive"
+        />
+        {children}
       </body>
     </html>
   );
