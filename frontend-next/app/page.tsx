@@ -504,6 +504,51 @@ function CaseVisualBrain() {
               data-position="-0.040 -0.020 0.04" data-normal="-0.5 -0.2 0.85">
           <LesionMarker size={48} seed={47} edScale={0.92} etScale={0.50} ncrScale={0.24} />
         </span>
+
+        {/* Per-region annotation pills for the primary mass — three
+            labels stacked on the right side, same convention as the
+            hero brain. Volumes sum to 28.4 cm³ shown in scan-corner br. */}
+        <button
+          slot="hotspot-c2-ncr"
+          className="annot hotspot"
+          data-position="0.058 0.028 0.045"
+          data-normal="0.6 0.3 0.8"
+          data-visibility-attribute="visible"
+        >
+          <span className="annot-tick" />
+          NCR · <b>7.8 cm³</b>
+        </button>
+        <button
+          slot="hotspot-c2-et"
+          className="annot hotspot"
+          data-position="0.062 0.008 0.045"
+          data-normal="0.7 0 0.8"
+          data-visibility-attribute="visible"
+        >
+          <span className="annot-tick" />
+          ET ring · <b>3.4 cm³</b>
+        </button>
+        <button
+          slot="hotspot-c2-ed"
+          className="annot hotspot"
+          data-position="0.058 -0.012 0.045"
+          data-normal="0.6 -0.3 0.8"
+          data-visibility-attribute="visible"
+        >
+          <span className="annot-tick" />
+          ED edema · <b>15.2 cm³</b>
+        </button>
+        {/* Satellite lesion label */}
+        <button
+          slot="hotspot-c2-sat-label"
+          className="annot hotspot"
+          data-position="-0.055 -0.028 0.045"
+          data-normal="-0.6 -0.2 0.85"
+          data-visibility-attribute="visible"
+        >
+          <span className="annot-tick" />
+          Satellite · <b>2.0 cm³</b>
+        </button>
       </model-viewer>
       {/* Tiny class-legend chip (HUD-style key, mono spec) */}
       <span className="lesion-legend">
