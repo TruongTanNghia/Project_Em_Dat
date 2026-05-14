@@ -284,14 +284,11 @@
     z-index: 1;
   }
   .lesion-core {
-    transform-origin: center;
-    transform-box: fill-box;
-    animation: lesion-pulse 3.6s var(--ease-out-quart) infinite;
-    animation-delay: var(--pulse-delay, 0s);
+    animation: lesion-breath 5.2s ease-in-out infinite;
   }
-  @keyframes lesion-pulse {
-    0%, 100% { opacity: 0.55; transform: scale(1); }
-    50%      { opacity: 0.85; transform: scale(1.08); }
+  @keyframes lesion-breath {
+    0%, 100% { opacity: 0.78; }
+    50%      { opacity: 0.92; }
   }
 
   /* Compact class legend for case-02 (BraTS classes key). */

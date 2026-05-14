@@ -1,19 +1,51 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
-/* ─── BraTS lesion overlay: concentric ED edema halo, ET enhancing
-       ring, NCR necrotic core. Sits as a 2D HUD layer over the
-       rotating brain — reads as a transparent annotation film, the
-       way 3D Slicer / OsiriX overlay segmentation on volume renders.
-       Coords are SVG units in a 0..100 viewBox so the layer scales
-       with its container. ────────────────────────────────────── */
+/* ─── BraTS lesion overlay: irregular organic mass shapes, not
+       targeting reticles. NCR core (solid red-orange blob), ET
+       enhancing ring (cobalt donut wrapping the core), ED edema
+       (large diffuse amber halo with infiltrative fingers).
+       Each layer is a bezier-smoothed closed path through N
+       points at noise-perturbed radii — deterministic per-seed
+       so the same lesion always renders the same shape. ──────── */
 
 type Lesion = {
   cx: number; cy: number;
-  rEd: number; rEt: number; rNcr: number;
+  rEd: number;       // edema halo radius
+  rEt: number;       // enhancing ring outer radius
+  rNcr: number;      // necrotic core radius
   rot?: number;
-  pulseDelay?: string;
+  seed?: number;
 };
+
+// Deterministic 1-D noise so SSR/client agree on shapes
+function noise1d(seed: number, i: number): number {
+  const x = Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+// Catmull-Rom closed bezier through points at radius r * (1 ± amp * noise)
+function blobPath(r: number, pts: number, seed: number, amp: number, ar = 1): string {
+  const TAU = Math.PI * 2;
+  const points = Array.from({ length: pts }, (_, i) => {
+    const a = (i / pts) * TAU + noise1d(seed, i + 91) * 0.25;
+    const rad = r * (1 - amp + 2 * amp * noise1d(seed, i));
+    return { x: Math.cos(a) * rad, y: Math.sin(a) * rad * ar };
+  });
+  let d = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+  for (let i = 0; i < pts; i++) {
+    const p0 = points[(i - 1 + pts) % pts];
+    const p1 = points[i];
+    const p2 = points[(i + 1) % pts];
+    const p3 = points[(i + 2) % pts];
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(2)} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+  }
+  return d + ' Z';
+}
 
 function LesionOverlay({ lesions, style }: { lesions: Lesion[]; style?: React.CSSProperties }) {
   return (
@@ -26,59 +58,63 @@ function LesionOverlay({ lesions, style }: { lesions: Lesion[]; style?: React.CS
       style={style}
     >
       <defs>
-        <filter id="blob-blur" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="0.8" />
+        <filter id="edema-blur" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1.8" />
         </filter>
-        <filter id="halo-blur" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="2.4" />
+        <filter id="core-blur" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="0.45" />
         </filter>
       </defs>
-      {lesions.map((l, i) => (
-        <g key={i} transform={`translate(${l.cx} ${l.cy}) rotate(${l.rot ?? 0})`}>
-          {/* ED edema — large diffuse amber halo */}
-          <ellipse
-            rx={l.rEd}
-            ry={l.rEd * 0.78}
-            fill="oklch(0.72 0.16 60)"
-            opacity="0.22"
-            filter="url(#halo-blur)"
-          />
-          {/* ET enhancing ring — cobalt, stroke only */}
-          <ellipse
-            rx={l.rEt}
-            ry={l.rEt * 0.82}
-            fill="none"
-            stroke="oklch(0.62 0.20 252)"
-            strokeWidth="0.6"
-            opacity="0.85"
-            filter="url(#blob-blur)"
-          />
-          <ellipse
-            rx={l.rEt * 1.04}
-            ry={l.rEt * 0.86}
-            fill="none"
-            stroke="oklch(0.78 0.14 252)"
-            strokeWidth="0.18"
-            strokeDasharray="0.6 0.5"
-            opacity="0.6"
-          />
-          {/* NCR necrotic core — deep red-orange solid */}
-          <ellipse
-            className="lesion-core"
-            rx={l.rNcr}
-            ry={l.rNcr * 0.85}
-            fill="oklch(0.58 0.22 28)"
-            opacity="0.7"
-            filter="url(#blob-blur)"
-            style={{ ['--pulse-delay' as string]: l.pulseDelay ?? '0s' }}
-          />
-          {/* Crosshair on core */}
-          <g stroke="oklch(0.92 0.04 28)" strokeWidth="0.18" opacity="0.7">
-            <line x1={-l.rNcr * 0.55} y1="0" x2={l.rNcr * 0.55} y2="0" />
-            <line x1="0" y1={-l.rNcr * 0.55} x2="0" y2={l.rNcr * 0.55} />
+      {lesions.map((l, i) => {
+        const seed = l.seed ?? i * 17 + 3;
+        const edPath = blobPath(l.rEd, 14, seed + 1, 0.32, 0.85);
+        const etOut = blobPath(l.rEt, 12, seed + 2, 0.22);
+        const etIn  = blobPath(l.rEt * 0.55, 10, seed + 3, 0.30);
+        const ncrPath = blobPath(l.rNcr, 10, seed + 4, 0.28);
+        return (
+          <g key={i} transform={`translate(${l.cx} ${l.cy}) rotate(${l.rot ?? 0})`}>
+            {/* ED edema — large diffuse amber blob with infiltrative bumps */}
+            <path
+              d={edPath}
+              fill="oklch(0.72 0.16 60)"
+              opacity="0.22"
+              filter="url(#edema-blur)"
+            />
+            {/* Second edema layer for depth — slightly offset, fainter, more diffuse */}
+            <path
+              d={blobPath(l.rEd * 0.78, 12, seed + 5, 0.35, 0.9)}
+              fill="oklch(0.78 0.14 55)"
+              opacity="0.18"
+              filter="url(#edema-blur)"
+              transform={`translate(${noise1d(seed, 99) * 2 - 1} ${noise1d(seed, 100) * 2 - 1})`}
+            />
+            {/* ET enhancing ring — cobalt donut, evenodd fill */}
+            <path
+              d={`${etOut} ${etIn}`}
+              fill="oklch(0.62 0.20 252)"
+              fillRule="evenodd"
+              opacity="0.78"
+              filter="url(#core-blur)"
+            />
+            {/* NCR necrotic core — solid irregular red-orange mass */}
+            <path
+              className="lesion-core"
+              d={ncrPath}
+              fill="oklch(0.55 0.22 28)"
+              opacity="0.85"
+              filter="url(#core-blur)"
+            />
+            {/* Subtle inner highlight on NCR — gives the mass a volumetric feel */}
+            <path
+              d={blobPath(l.rNcr * 0.45, 8, seed + 6, 0.35)}
+              fill="oklch(0.70 0.18 35)"
+              opacity="0.4"
+              filter="url(#core-blur)"
+              transform={`translate(${-l.rNcr * 0.25} ${-l.rNcr * 0.2})`}
+            />
           </g>
-        </g>
-      ))}
+        );
+      })}
     </svg>
   );
 }
@@ -87,9 +123,19 @@ function LesionOverlay({ lesions, style }: { lesions: Lesion[]; style?: React.CS
        calipers + measurement readout. Same HUD layer convention as
        the brain lesion. ─────────────────────────────────────────── */
 
-function NoduleOverlay({ cx, cy, r, label }: { cx: number; cy: number; r: number; label: string }) {
-  const c = r * 1.8; // caliper bracket distance
+function NoduleOverlay({ cx, cy, r, label, seed = 11 }: { cx: number; cy: number; r: number; label: string; seed?: number }) {
+  const c = r * 2.0; // caliper bracket distance from centre
   const k = r * 0.6; // bracket arm length
+  // Spiculation: 6 short radial spikes at noisy angles, varying length
+  const spikes = Array.from({ length: 7 }, (_, i) => {
+    const a = (i / 7) * Math.PI * 2 + noise1d(seed + 70, i) * 0.4;
+    const r1 = r * 0.95;
+    const r2 = r * (1.4 + noise1d(seed + 80, i) * 0.6);
+    return {
+      x1: Math.cos(a) * r1, y1: Math.sin(a) * r1,
+      x2: Math.cos(a) * r2, y2: Math.sin(a) * r2,
+    };
+  });
   return (
     <svg
       className="lesion-overlay"
@@ -100,31 +146,40 @@ function NoduleOverlay({ cx, cy, r, label }: { cx: number; cy: number; r: number
     >
       <defs>
         <filter id="nodule-blur" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="1.0" />
+          <feGaussianBlur stdDeviation="0.6" />
+        </filter>
+        <filter id="nodule-halo" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="1.6" />
         </filter>
       </defs>
       <g transform={`translate(${cx} ${cy})`}>
-        {/* Soft halo */}
-        <circle r={r * 1.6} fill="oklch(0.62 0.18 252)" opacity="0.18" filter="url(#nodule-blur)" />
-        {/* Nodule core */}
-        <circle
+        {/* Ground-glass halo around the nodule (CT GGO opacity feel) */}
+        <path
+          d={blobPath(r * 1.7, 14, seed + 11, 0.25)}
+          fill="oklch(0.65 0.18 252)"
+          opacity="0.18"
+          filter="url(#nodule-halo)"
+        />
+        {/* Solid nodule mass — irregular blob */}
+        <path
           className="lesion-core"
-          r={r}
-          fill="oklch(0.65 0.20 252)"
-          opacity="0.75"
+          d={blobPath(r, 12, seed, 0.28)}
+          fill="oklch(0.60 0.20 252)"
+          opacity="0.80"
           filter="url(#nodule-blur)"
         />
-        {/* Caliper brackets (4 corners) */}
+        {/* Spiculations — short radial spikes, malignancy sign */}
+        <g stroke="oklch(0.65 0.18 252)" strokeWidth="0.25" strokeLinecap="round" opacity="0.85">
+          {spikes.map((s, i) => (
+            <line key={i} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} />
+          ))}
+        </g>
+        {/* Caliper brackets — clinical measurement standard */}
         <g stroke="oklch(0.95 0.04 252)" strokeWidth="0.22" fill="none">
           <path d={`M ${-c} ${-c + k} L ${-c} ${-c} L ${-c + k} ${-c}`} />
           <path d={`M ${c - k} ${-c} L ${c} ${-c} L ${c} ${-c + k}`} />
           <path d={`M ${-c} ${c - k} L ${-c} ${c} L ${-c + k} ${c}`} />
           <path d={`M ${c - k} ${c} L ${c} ${c} L ${c} ${c - k}`} />
-        </g>
-        {/* Crosshair */}
-        <g stroke="oklch(0.95 0.04 252)" strokeWidth="0.2" opacity="0.7">
-          <line x1={-r * 0.6} y1="0" x2={r * 0.6} y2="0" />
-          <line x1="0" y1={-r * 0.6} x2="0" y2={r * 0.6} />
         </g>
         {/* Measurement label */}
         <text
@@ -182,10 +237,10 @@ function HeroScan() {
           film on top of the rotating brain. */}
       <LesionOverlay
         lesions={[
-          // Right temporal lesion (matches NCR + ET ring pills on the right)
-          { cx: 62, cy: 42, rEd: 11, rEt: 5.5, rNcr: 2.8, rot: 18, pulseDelay: '0s' },
-          // Left frontal smaller lesion (matches ED edema pill bottom-left)
-          { cx: 32, cy: 64, rEd: 8, rEt: 4, rNcr: 1.8, rot: -12, pulseDelay: '0.8s' },
+          // Right temporal mass — full BraTS stack
+          { cx: 64, cy: 44, rEd: 17, rEt: 8, rNcr: 4.2, rot: 14, seed: 7 },
+          // Left parietal smaller lesion
+          { cx: 30, cy: 62, rEd: 11, rEt: 5, rNcr: 2.4, rot: -22, seed: 19 },
         ]}
       />
 
@@ -292,8 +347,8 @@ function CaseVisualBrain() {
       />
       <LesionOverlay
         lesions={[
-          { cx: 56, cy: 38, rEd: 9, rEt: 4.5, rNcr: 2.4, rot: 22, pulseDelay: '0.2s' },
-          { cx: 38, cy: 58, rEd: 6, rEt: 3, rNcr: 1.4, rot: -18, pulseDelay: '0.9s' },
+          { cx: 58, cy: 40, rEd: 14, rEt: 7, rNcr: 3.4, rot: 28, seed: 31 },
+          { cx: 36, cy: 60, rEd: 9,  rEt: 4, rNcr: 1.9, rot: -14, seed: 47 },
         ]}
       />
       {/* Tiny class-legend chip (HUD-style key, mono spec) */}
