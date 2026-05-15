@@ -45,3 +45,12 @@ Thumbs.db
 
 # Dataset
 dataset/
+
+# Repo cleanup — only frontend-next is deployed on GitHub now.
+# The folders below stay on the local machine (Flask backend still
+# runs via ngrok) but are not pushed to GitHub anymore.
+/backend/
+/frontend/
+/models/
+/training/
+/docs/
