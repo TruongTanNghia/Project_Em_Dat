@@ -1,0 +1,1501 @@
+<!doctype html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADA Medical AI Suite — Project Spec v1.1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ═════════════════════════════════════════════════════════════
+       Project spec — docs register, distinct visual vocabulary
+       from the actual product landing.
+       Defaults to dark theme; supports light via [data-theme="light"].
+    ═════════════════════════════════════════════════════════════ */
+
+    :root[data-theme="dark"] {
+      --bg:        #0a0a0e;
+      --bg-2:      #111118;
+      --panel:     #14141c;
+      --panel-2:   #1a1a24;
+      --line:      #25252f;
+      --line-2:    #1d1d27;
+      --text:      #f5f5f7;
+      --text-2:    #b4b4be;
+      --text-3:    #7e7e88;
+      --text-mute: #555560;
+      --accent:    #a78bfa;
+      --accent-2:  #22d3ee;
+      --accent-3:  #f472b6;
+      --ok:        #10b981;
+      --warn:      #f59e0b;
+      --danger:    #f43f5e;
+      --grad-a:    rgba(167, 139, 250, 0.18);
+      --grad-b:    rgba(34, 211, 238, 0.15);
+      --grad-c:    rgba(244, 114, 182, 0.13);
+      --shadow:    0 24px 60px -30px rgba(0,0,0,0.6);
+    }
+    :root[data-theme="light"] {
+      --bg:        #fafafa;
+      --bg-2:      #f3f3f5;
+      --panel:     #ffffff;
+      --panel-2:   #f8f8fb;
+      --line:      #e4e4e8;
+      --line-2:    #ededf0;
+      --text:      #18181b;
+      --text-2:    #52525b;
+      --text-3:    #71717a;
+      --text-mute: #a1a1aa;
+      --accent:    #7c3aed;
+      --accent-2:  #0891b2;
+      --accent-3:  #db2777;
+      --ok:        #059669;
+      --warn:      #d97706;
+      --danger:    #e11d48;
+      --grad-a:    rgba(124, 58, 237, 0.10);
+      --grad-b:    rgba(8, 145, 178, 0.08);
+      --grad-c:    rgba(219, 39, 119, 0.07);
+      --shadow:    0 24px 60px -30px rgba(15,15,20,0.18);
+    }
+
+    :root {
+      --sans:  'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --mono:  'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      --easing: cubic-bezier(0.16, 1, 0.3, 1);
+      --toc-w:  240px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15.5px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      font-feature-settings: 'ss01', 'cv11';
+      transition: background-color 0.3s var(--easing), color 0.3s var(--easing);
+    }
+    ::selection { background: var(--accent); color: var(--bg); }
+
+    a { color: var(--accent-2); text-decoration: none; }
+    a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+    h1, h2, h3, h4 { letter-spacing: -0.02em; line-height: 1.12; margin: 0; }
+
+    code, .mono { font-family: var(--mono); font-size: 0.88em; }
+    p code, li code, td code, dd code {
+      background: var(--panel);
+      border: 1px solid var(--line-2);
+      padding: 1px 7px;
+      border-radius: 5px;
+      font-size: 0.82em;
+    }
+
+    /* ─── Scroll progress bar ─────────────────────────────── */
+    .scroll-progress {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-3));
+      transform-origin: 0 50%;
+      transform: scaleX(0);
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    /* ─── Topbar ──────────────────────────────────────────── */
+    /* No backdrop-filter here — it forces the compositor to re-blur
+       the entire page behind the bar on every scroll frame, which is
+       the main cause of the laggy feel. Solid background instead. */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+      padding: 14px clamp(20px, 4vw, 40px);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .topbar .brand {
+      display: inline-flex; align-items: center; gap: 12px;
+      font-weight: 600; font-size: 14.5px;
+      color: var(--text); text-decoration: none;
+    }
+    .brand-logo {
+      width: 26px; height: 26px;
+      display: inline-grid; place-items: center;
+      background: var(--text);
+      color: var(--bg);
+      border-radius: 7px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .brand .sep { color: var(--text-mute); margin: 0 4px; font-weight: 400; }
+    .brand .what { color: var(--text-3); font-weight: 400; }
+    .topbar .spacer { flex: 1; }
+    .topbar nav { display: flex; gap: 22px; }
+    .topbar nav a {
+      color: var(--text-2);
+      font-size: 13.5px;
+      font-weight: 500;
+    }
+    .topbar nav a:hover { color: var(--text); text-decoration: none; }
+
+    .theme-toggle {
+      width: 32px; height: 32px;
+      display: grid; place-items: center;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text-2);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s var(--easing);
+    }
+    .theme-toggle:hover { color: var(--text); border-color: var(--text-mute); }
+
+    /* ─── Hero ────────────────────────────────────────────── */
+    .hero {
+      position: relative;
+      padding: clamp(64px, 10vw, 140px) clamp(20px, 4vw, 40px) clamp(56px, 7vw, 96px);
+      overflow: hidden;
+      border-bottom: 1px solid var(--line);
+    }
+    /* Static radial gradients — large radii give the soft mesh feel
+       without filter:blur (filter:blur was the #1 GPU hog). No
+       animation either — saves continuous compositor work. */
+    .hero .mesh {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(900px 600px at 20% 30%, var(--grad-a), transparent 70%),
+        radial-gradient(700px 500px at 80% 40%, var(--grad-b), transparent 70%),
+        radial-gradient(600px 700px at 50% 80%, var(--grad-c), transparent 70%);
+      z-index: 0;
+    }
+    .hero .inner {
+      position: relative;
+      z-index: 1;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+    .hero .eyebrow {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+      padding: 6px 14px;
+      border: 1px solid color-mix(in srgb, var(--accent-2) 30%, transparent);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--accent-2) 8%, transparent);
+      margin-bottom: 26px;
+    }
+    .eyebrow .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent-2);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-2) 50%, transparent);
+      animation: pulseDot 2.4s var(--easing) infinite;
+    }
+    @keyframes pulseDot {
+      0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-2) 50%, transparent); }
+      100% { box-shadow: 0 0 0 12px transparent; }
+    }
+    .hero h1 {
+      font-size: clamp(40px, 7vw, 96px);
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      max-width: 14ch;
+      text-wrap: balance;
+    }
+    .hero h1 .accent {
+      background: linear-gradient(135deg, var(--accent) 10%, var(--accent-2) 70%, var(--accent-3));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .hero .lede {
+      margin-top: clamp(20px, 2vw, 32px);
+      font-size: clamp(16px, 1.35vw, 19px);
+      color: var(--text-2);
+      max-width: 62ch;
+      line-height: 1.55;
+    }
+    .hero .meta {
+      margin-top: 20px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: var(--text-mute);
+    }
+
+    /* ─── Metric strip ────────────────────────────────────── */
+    .stat-strip {
+      margin-top: clamp(40px, 5vw, 64px);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+    .stat {
+      padding: 22px 24px;
+      border-right: 1px solid var(--line);
+    }
+    .stat:last-child { border-right: none; }
+    .stat .n {
+      font-family: var(--sans);
+      font-size: clamp(28px, 3.5vw, 44px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      line-height: 1;
+      display: flex; align-items: baseline; gap: 4px;
+    }
+    .stat .n .unit {
+      font-size: 0.55em;
+      color: var(--text-3);
+      font-weight: 600;
+    }
+    .stat .lbl {
+      margin-top: 8px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    /* ─── Page layout ─────────────────────────────────────── */
+    .layout {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: clamp(48px, 6vw, 80px) clamp(20px, 4vw, 40px);
+      display: grid;
+      grid-template-columns: var(--toc-w) minmax(0, 1fr);
+      gap: clamp(40px, 6vw, 72px);
+    }
+
+    /* ─── Sidebar TOC ─────────────────────────────────────── */
+    aside.toc {
+      position: sticky;
+      top: 80px;
+      align-self: start;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      padding-right: 4px;
+      font-size: 13.5px;
+    }
+    .toc h4 {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+      margin-bottom: 14px;
+    }
+    .toc ul { list-style: none; padding: 0; margin: 0; }
+    .toc a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 12px;
+      border-radius: 7px;
+      color: var(--text-3);
+      line-height: 1.4;
+      transition: all 0.2s var(--easing);
+      border-left: 2px solid transparent;
+      margin-left: -2px;
+    }
+    .toc a:hover {
+      color: var(--text);
+      background: var(--panel);
+      text-decoration: none;
+    }
+    .toc a.active {
+      color: var(--text);
+      border-left-color: var(--accent);
+      background: var(--panel);
+      font-weight: 500;
+    }
+    .toc a .n {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--text-mute);
+      min-width: 18px;
+    }
+    .toc a.active .n { color: var(--accent); }
+    .toc-sep { height: 16px; }
+
+    /* ─── Main content ────────────────────────────────────── */
+    main.content { max-width: 780px; min-width: 0; }
+    main p {
+      margin: 0 0 14px;
+      color: var(--text-2);
+      max-width: 68ch;
+    }
+    main > section { scroll-margin-top: 80px; }
+
+    h2 {
+      font-size: clamp(26px, 3vw, 34px);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      margin: 72px 0 8px;
+      display: flex; align-items: baseline; gap: 14px;
+    }
+    h2:first-of-type { margin-top: 0; }
+    h2 .num {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+    h2 + p.lede {
+      font-size: 17px;
+      color: var(--text-2);
+      max-width: 60ch;
+      margin-top: 4px;
+      margin-bottom: 28px;
+    }
+    h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 36px 0 12px;
+      scroll-margin-top: 80px;
+    }
+
+    ul, ol { padding-left: 22px; margin: 0 0 16px; max-width: 68ch; }
+    li { margin: 5px 0; color: var(--text-2); }
+    li::marker { color: var(--text-mute); }
+    li strong { color: var(--text); font-weight: 600; }
+
+    hr.divider {
+      border: none;
+      height: 1px;
+      background: var(--line);
+      margin: 56px 0;
+    }
+
+    /* ─── Reveal on scroll ────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.7s var(--easing), transform 0.7s var(--easing);
+    }
+    .reveal.in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ─── Module cards ────────────────────────────────────── */
+    .mod-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-top: 28px;
+    }
+    /* Simplified hover — was using mask-composite gradient border
+       (extra compositor layer per card). Now just plain border-color +
+       lift, much cheaper and visually almost identical. */
+    .mod {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 24px 26px;
+      transition: transform 0.3s var(--easing), border-color 0.3s var(--easing), box-shadow 0.3s var(--easing);
+    }
+    .mod:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      box-shadow: var(--shadow);
+    }
+    .mod-head {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .mod-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      padding: 4px 9px;
+      border-radius: 5px;
+      font-weight: 600;
+    }
+    .mod-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+    }
+    .mod-desc {
+      color: var(--text-2);
+      margin: 0 0 18px;
+      font-size: 14.5px;
+      line-height: 1.6;
+    }
+    .mod-kv {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 6px 24px;
+      margin: 0;
+      font-size: 13px;
+    }
+    .mod-kv dt {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--text-mute);
+      text-transform: uppercase;
+    }
+    .mod-kv dd { margin: 0; color: var(--text); }
+
+    /* metric bar inside module */
+    .mod-metric {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px 18px;
+      align-items: center;
+      margin: 18px 0;
+      padding: 14px 16px;
+      background: var(--panel-2);
+      border: 1px solid var(--line-2);
+      border-radius: 10px;
+    }
+    .mod-metric .label {
+      grid-column: 1 / 3;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+    }
+    .mod-metric .bar {
+      height: 6px;
+      background: var(--line);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    .mod-metric .bar .fill {
+      position: absolute; inset: 0;
+      transform-origin: 0 50%;
+      transform: scaleX(0);
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      border-radius: inherit;
+      transition: transform 1.2s var(--easing);
+    }
+    .mod-metric.in .bar .fill { transform: scaleX(var(--p, 0.5)); }
+    .mod-metric .val {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+    }
+    .mod-metric.pending .bar .fill {
+      background: linear-gradient(90deg, var(--warn), var(--accent-3));
+      opacity: 0.5;
+    }
+
+    /* ─── Chip ────────────────────────────────────────────── */
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid currentColor;
+    }
+    .chip.ok      { color: var(--ok); }
+    .chip.warn    { color: var(--warn); }
+    .chip.new     { color: var(--accent); }
+    .chip.live    { color: var(--ok); }
+    .chip.live::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 50%, transparent);
+      animation: pulseDot 2s var(--easing) infinite;
+    }
+
+    /* ─── Architecture diagram ─────────────────────────────── */
+    .arch {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 32px;
+      margin: 24px 0 32px;
+      overflow: hidden;
+    }
+    /* Decorative gradient kept but pinned & lightweight — no extra
+       compositor layer needed when not animating. */
+    .arch::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 0% 0%, var(--grad-a), transparent 50%),
+        radial-gradient(circle at 100% 100%, var(--grad-b), transparent 50%);
+      pointer-events: none;
+    }
+    .arch-stack { position: relative; display: grid; gap: 10px; }
+    .arch-node {
+      position: relative;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px 22px;
+      display: grid;
+      grid-template-columns: 80px 1fr auto;
+      gap: 18px;
+      align-items: center;
+      transition: border-color 0.3s var(--easing);
+    }
+    .arch-node:hover { border-color: var(--accent); }
+    .arch-node .layer {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .arch-node .what {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 15px;
+    }
+    .arch-node .detail {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-3);
+      margin-top: 4px;
+    }
+    .arch-node .tag {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0.08em;
+      color: var(--text-mute);
+      padding: 3px 9px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      text-transform: uppercase;
+    }
+    .arch-arrow {
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-mute);
+      letter-spacing: 0.1em;
+      padding: 2px 0;
+    }
+    .arch-arrow .pkt {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 5px;
+      background: var(--bg);
+      color: var(--text-3);
+      border: 1px solid var(--line);
+    }
+
+    /* ─── Callout ─────────────────────────────────────────── */
+    .callout {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-size: 14px;
+      color: var(--text-2);
+      margin: 20px 0;
+    }
+    .callout::before {
+      content: 'i';
+      width: 22px; height: 22px;
+      display: grid; place-items: center;
+      border-radius: 6px;
+      background: color-mix(in srgb, var(--accent) 18%, transparent);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 12px;
+    }
+    .callout.warn { border-color: color-mix(in srgb, var(--warn) 50%, var(--line)); }
+    .callout.warn::before {
+      content: '!';
+      background: color-mix(in srgb, var(--warn) 18%, transparent);
+      color: var(--warn);
+    }
+    .callout b { color: var(--text); }
+
+    /* ─── Pre/code ────────────────────────────────────────── */
+    pre {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px 20px;
+      overflow-x: auto;
+      font-size: 13.5px;
+      line-height: 1.6;
+      margin: 18px 0;
+      color: var(--text-2);
+    }
+    pre code { background: none; padding: 0; border: none; }
+    pre .cmt { color: var(--text-mute); }
+    pre .kw  { color: var(--accent-3); }
+    pre .str { color: var(--accent-2); }
+    pre .num { color: var(--accent); }
+
+    /* ─── Bar chart (datasets) ────────────────────────────── */
+    .chart {
+      display: grid;
+      gap: 14px;
+      margin: 24px 0 32px;
+    }
+    .chart-row {
+      display: grid;
+      grid-template-columns: 180px 1fr 120px;
+      gap: 20px;
+      align-items: center;
+    }
+    .chart-row .label {
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .chart-row .label small {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-mute);
+      letter-spacing: 0.04em;
+      font-weight: 400;
+      margin-top: 2px;
+    }
+    .chart-row .bar {
+      height: 12px;
+      background: var(--line-2);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    .chart-row .bar .fill {
+      position: absolute; inset: 0;
+      transform-origin: 0 50%;
+      transform: scaleX(0);
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: transform 1.4s var(--easing);
+    }
+    .chart-row.pending .bar .fill {
+      background: repeating-linear-gradient(135deg, var(--warn) 0 8px, color-mix(in srgb, var(--warn) 40%, var(--bg)) 8px 16px);
+      opacity: 0.7;
+    }
+    .chart.in .chart-row .bar .fill { transform: scaleX(var(--p, 0.5)); }
+    .chart-row .val {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 600;
+      text-align: right;
+    }
+
+    /* ─── Tech stack grid ─────────────────────────────────── */
+    .stack {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 20px 0 28px;
+    }
+    .stack-item {
+      background: var(--panel);
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+    .stack-item .key {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--text-mute);
+      text-transform: uppercase;
+    }
+    .stack-item .val { color: var(--text); font-size: 14px; }
+    .stack-item .val code { font-size: 13px; }
+
+    /* ─── Table ───────────────────────────────────────────── */
+    .table-wrap {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 20px 0 28px;
+      background: var(--panel);
+    }
+    table {
+      width: 100%;
+      min-width: 540px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 12px 18px;
+      text-align: left;
+      border-bottom: 1px solid var(--line-2);
+      vertical-align: top;
+    }
+    th {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+      background: var(--panel-2);
+      font-weight: 600;
+    }
+    tr:last-child td { border-bottom: none; }
+    td b { color: var(--accent); font-weight: 600; }
+
+    /* ─── Roadmap timeline ────────────────────────────────── */
+    .timeline {
+      position: relative;
+      padding-left: 28px;
+      margin: 28px 0 32px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 8px; bottom: 8px; left: 7px;
+      width: 2px;
+      background: linear-gradient(180deg, var(--accent), var(--accent-2), var(--accent-3));
+      border-radius: 2px;
+    }
+    .tl-item {
+      position: relative;
+      padding: 10px 0 28px;
+    }
+    .tl-item::before {
+      content: '';
+      position: absolute;
+      left: -28px;
+      top: 16px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 2px solid var(--text-mute);
+    }
+    .tl-item.done::before {
+      border-color: var(--ok);
+      background: var(--ok);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 16%, transparent);
+    }
+    .tl-item.now::before {
+      border-color: var(--accent);
+      background: var(--accent);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+      animation: pulseDot 2.2s var(--easing) infinite;
+    }
+    .tl-date {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      letter-spacing: 0.08em;
+      color: var(--text-mute);
+      text-transform: uppercase;
+    }
+    .tl-item h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 4px 0 6px;
+    }
+    .tl-item p {
+      font-size: 14px;
+      color: var(--text-2);
+      margin: 0;
+      max-width: 60ch;
+    }
+
+    /* ─── Footer ──────────────────────────────────────────── */
+    footer.docfoot {
+      max-width: 1180px;
+      margin: 32px auto 0;
+      padding: 32px clamp(20px, 4vw, 40px) 56px;
+      border-top: 1px solid var(--line);
+      display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: var(--text-mute);
+    }
+    footer.docfoot .warn { color: var(--warn); }
+
+    /* ─── Responsive ──────────────────────────────────────── */
+    @media (max-width: 960px) {
+      .layout {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+      aside.toc {
+        position: static;
+        max-height: none;
+        padding: 16px 18px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--panel);
+      }
+      .stat-strip { grid-template-columns: repeat(2, 1fr); }
+      .stat:nth-child(2) { border-right: none; }
+      .stat:nth-child(1), .stat:nth-child(2) { border-bottom: 1px solid var(--line); }
+    }
+    @media (max-width: 720px) {
+      .topbar { gap: 12px; padding: 12px 16px; }
+      .topbar nav { gap: 14px; }
+      .brand .what { display: none; }
+      .arch-node { grid-template-columns: 1fr; gap: 6px; }
+      .arch-node .tag { justify-self: start; }
+      .chart-row { grid-template-columns: 1fr; gap: 6px; }
+      .chart-row .val { text-align: left; }
+    }
+    @media (max-width: 560px) {
+      body { font-size: 14.5px; }
+      .stack { grid-template-columns: 1fr; }
+      .stat-strip { grid-template-columns: 1fr; }
+      .stat { border-right: none; border-bottom: 1px solid var(--line); }
+      .stat:last-child { border-bottom: none; }
+      .hero h1 { font-size: clamp(34px, 10vw, 56px); }
+      h2 { font-size: clamp(22px, 6vw, 28px); margin-top: 56px; }
+      .mod { padding: 20px 22px; }
+      .mod-kv { grid-template-columns: 1fr; gap: 2px 0; }
+      .mod-kv dt { margin-top: 8px; }
+      th, td { padding: 10px 14px; font-size: 13px; }
+      .topbar nav a:not(:last-child) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scroll-progress" id="prog"></div>
+
+  <!-- ─── Topbar ────────────────────────────────────────────── -->
+  <header class="topbar">
+    <a href="#" class="brand">
+      <span class="brand-logo">A</span>
+      <span>ADA<span class="sep">·</span><span class="what">Medical AI · Project Spec</span></span>
+    </a>
+    <span class="spacer"></span>
+    <nav>
+      <a href="#modules">Modules</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#data">Data</a>
+      <a href="#status">Status</a>
+      <a href="https://project-em-dat.vercel.app" target="_blank" rel="noopener">Live ↗</a>
+      <a href="https://github.com/TruongTanNghia/Project_Em_Dat" target="_blank" rel="noopener">GitHub ↗</a>
+    </nav>
+    <button class="theme-toggle" id="theme-btn" aria-label="Toggle theme">◐</button>
+  </header>
+
+  <!-- ─── Hero ──────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="mesh" aria-hidden="true"></div>
+    <div class="inner">
+      <span class="eyebrow">
+        <span class="dot"></span>
+        Spec · v1.1 · last updated 2026-05-15
+      </span>
+      <h1>
+        Sáu pipeline AI lâm sàng,<br />
+        <span class="accent">một phòng đọc duy nhất.</span>
+      </h1>
+      <p class="lede">
+        Tài liệu mô tả phạm vi, kiến trúc, dataset và roadmap của ADA
+        Medical AI Suite. Bốn module production (EEG, Brain MRI, Lung CT,
+        Blood panel), hai module mới đang phát triển (Breast, Spine).
+      </p>
+      <div class="meta">Trương Tấn Nghĩa · <a href="https://project-em-dat.vercel.app" target="_blank" rel="noopener">project-em-dat.vercel.app</a></div>
+
+      <div class="stat-strip" id="stats">
+        <div class="stat">
+          <div class="n"><span class="count" data-to="6">0</span></div>
+          <div class="lbl">Pipelines</div>
+        </div>
+        <div class="stat">
+          <div class="n"><span class="count" data-to="65" data-suffix="k+">0</span></div>
+          <div class="lbl">Training samples</div>
+        </div>
+        <div class="stat">
+          <div class="n"><span class="count" data-to="4">0</span></div>
+          <div class="lbl">Imaging modalities</div>
+        </div>
+        <div class="stat">
+          <div class="n"><span class="count" data-to="0.84" data-decimals="2">0</span></div>
+          <div class="lbl">Best ROC-AUC</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Main layout ───────────────────────────────────────── -->
+  <div class="layout">
+
+    <!-- TOC sidebar -->
+    <aside class="toc">
+      <h4>On this page</h4>
+      <ul id="toc-list">
+        <li><a href="#overview"><span class="n">→</span> Tổng quan</a></li>
+        <li><a href="#modules"><span class="n">→</span> Sáu module</a></li>
+        <li><a href="#architecture"><span class="n">→</span> Kiến trúc</a></li>
+        <li><a href="#tech"><span class="n">→</span> Tech stack</a></li>
+        <li><a href="#data"><span class="n">→</span> Datasets &amp; metrics</a></li>
+        <li><a href="#api"><span class="n">→</span> API endpoints</a></li>
+        <li><a href="#dev"><span class="n">→</span> Local development</a></li>
+        <li><a href="#status"><span class="n">→</span> Status &amp; roadmap</a></li>
+      </ul>
+      <div class="toc-sep"></div>
+      <h4>Resources</h4>
+      <ul>
+        <li><a href="https://project-em-dat.vercel.app" target="_blank" rel="noopener"><span class="n">↗</span> Live demo</a></li>
+        <li><a href="https://github.com/TruongTanNghia/Project_Em_Dat" target="_blank" rel="noopener"><span class="n">↗</span> Source code</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main content -->
+    <main class="content">
+
+      <!-- ─── OVERVIEW ───────────────────────────────────── -->
+      <section id="overview" class="reveal">
+        <h2><span class="num">01</span>Tổng quan</h2>
+        <p class="lede">
+          Sáu pipeline độc lập gom về một backend chung và một giao diện chung.
+        </p>
+        <p>
+          ADA Medical AI Suite nhận đầu vào ở định dạng chuẩn lâm sàng
+          (EDF, NIfTI, DICOM, JSON, ảnh), trả về kết quả JSON cùng
+          visualization tương ứng. Mỗi pipeline trained trên dataset
+          chuẩn quốc tế hoặc Việt Nam, không phải mockup.
+        </p>
+
+        <div class="callout">
+          <div>
+            <b>Live</b> · Frontend deploy tại
+            <a href="https://project-em-dat.vercel.app" target="_blank" rel="noopener">project-em-dat.vercel.app</a>.
+            Backend Python chạy local, expose qua ngrok HTTPS tunnel.
+            <span class="chip live" style="margin-left: 8px">live</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── MODULES ────────────────────────────────────── -->
+      <section id="modules" class="reveal">
+        <h2><span class="num">02</span>Sáu module</h2>
+        <p class="lede">
+          Bốn module production, hai đang phát triển. Mỗi module có endpoint
+          <code>/api/predict-*</code> riêng.
+        </p>
+
+        <div class="mod-grid">
+
+          <!-- 01 EEG -->
+          <article class="mod">
+            <div class="mod-head">
+              <span class="mod-num">01</span>
+              <span class="mod-title">EEG · Phát hiện cơn động kinh</span>
+              <span class="chip ok">production</span>
+            </div>
+            <p class="mod-desc">
+              Phân loại từng cửa sổ 4 giây của tín hiệu EEG 23 kênh thành
+              normal / seizure. CNN spatial · BiGRU temporal · Attention.
+            </p>
+            <div class="mod-metric reveal-bar" style="--p: 0.84">
+              <div class="label">ROC-AUC · CHB-MIT</div>
+              <div class="bar"><div class="fill"></div></div>
+              <div class="val">0.84</div>
+            </div>
+            <dl class="mod-kv">
+              <dt>Method</dt>   <dd>PyTorch CNN + BiGRU + Attention</dd>
+              <dt>Dataset</dt>  <dd>CHB-MIT Scalp EEG (24 BN nhi)</dd>
+              <dt>Output</dt>   <dd>p(seizure) per window, burst timestamp</dd>
+              <dt>Endpoint</dt> <dd><code>POST /api/predict-edf</code></dd>
+            </dl>
+          </article>
+
+          <!-- 02 Brain -->
+          <article class="mod">
+            <div class="mod-head">
+              <span class="mod-num">02</span>
+              <span class="mod-title">Brain MRI · Phân đoạn u não</span>
+              <span class="chip ok">production</span>
+            </div>
+            <p class="mod-desc">
+              Phân đoạn 3D 4 channel (FLAIR + T1 + T1c + T2) ra ba lớp
+              NCR / ED / ET. Mesh 3D extract qua marching cubes.
+            </p>
+            <div class="mod-metric reveal-bar" style="--p: 0.83">
+              <div class="label">Dice WT · BraTS 2020</div>
+              <div class="bar"><div class="fill"></div></div>
+              <div class="val">0.83</div>
+            </div>
+            <dl class="mod-kv">
+              <dt>Method</dt>   <dd>Keras 3D U-Net + 4-way TTA</dd>
+              <dt>Dataset</dt>  <dd>BraTS 2020, 369 ca, 4 channel MRI</dd>
+              <dt>Output</dt>   <dd>volumetric mask + cm³ + mesh GLB</dd>
+              <dt>Endpoint</dt> <dd><code>POST /api/predict-brain</code></dd>
+            </dl>
+          </article>
+
+          <!-- 03 Lung -->
+          <article class="mod">
+            <div class="mod-head">
+              <span class="mod-num">03</span>
+              <span class="mod-title">Lung CT · Định vị nốt phổi</span>
+              <span class="chip ok">production</span>
+            </div>
+            <p class="mod-desc">
+              Segment nốt phổi trên CT, tính đường kính mm theo affine,
+              score malignancy 1–5 theo consensus 4 radiologist.
+            </p>
+            <div class="mod-metric reveal-bar" style="--p: 0.71">
+              <div class="label">mIoU · LIDC-IDRI</div>
+              <div class="bar"><div class="fill"></div></div>
+              <div class="val">0.71</div>
+            </div>
+            <dl class="mod-kv">
+              <dt>Method</dt>   <dd>PyTorch DeepLabV3</dd>
+              <dt>Dataset</dt>  <dd>LIDC-IDRI, ~1,018 CT</dd>
+              <dt>Output</dt>   <dd>mask + ø(mm) + malignancy 1–5</dd>
+              <dt>Endpoint</dt> <dd><code>POST /api/predict-lung</code></dd>
+            </dl>
+          </article>
+
+          <!-- 04 Blood -->
+          <article class="mod">
+            <div class="mod-head">
+              <span class="mod-num">04</span>
+              <span class="mod-title">Blood panel · Đọc xét nghiệm máu</span>
+              <span class="chip ok">production</span>
+            </div>
+            <p class="mod-desc">
+              Rule-based engine cross-check CBC + Lipid + Glucose với
+              reference range chuẩn lab, gắn cờ giá trị bất thường, tính
+              risk score đa chiều.
+            </p>
+            <dl class="mod-kv">
+              <dt>Method</dt>   <dd>Rule-based engine (no GPU)</dd>
+              <dt>Panels</dt>   <dd>CBC · Lipid · Glucose · HbA1c</dd>
+              <dt>Output</dt>   <dd>flagged values + risk score</dd>
+              <dt>Endpoint</dt> <dd><code>POST /api/predict-blood</code></dd>
+            </dl>
+          </article>
+
+          <!-- 05 Breast — NEW -->
+          <article class="mod">
+            <div class="mod-head">
+              <span class="mod-num">05</span>
+              <span class="mod-title">Breast · Phát hiện khối u vú</span>
+              <span class="chip new">new</span>
+              <span class="chip warn">in dev</span>
+            </div>
+            <p class="mod-desc">
+              Phát hiện và phân loại khối u vú trên siêu âm (BUSI) và nhũ
+              ảnh (CBIS-DDSM). U-Net segment + EfficientNet-B4 classify,
+              output gắn nhãn BI-RADS 0–6.
+            </p>
+            <div class="mod-metric pending reveal-bar" style="--p: 0.88">
+              <div class="label">Target AUC · BUSI + CBIS-DDSM</div>
+              <div class="bar"><div class="fill"></div></div>
+              <div class="val">0.88</div>
+            </div>
+            <dl class="mod-kv">
+              <dt>Method</dt>   <dd>EfficientNet-B4 (cls) + U-Net (seg)</dd>
+              <dt>Datasets</dt> <dd>BUSI · CBIS-DDSM, ~3,200 ảnh</dd>
+              <dt>Output</dt>   <dd>mask + BI-RADS 0–6 + p(malignant)</dd>
+              <dt>Endpoint</dt> <dd><code>POST /api/predict-breast</code> <span class="mono" style="color:var(--text-mute)">(planned)</span></dd>
+            </dl>
+          </article>
+
+          <!-- 06 Spine — NEW -->
+          <article class="mod">
+            <div class="mod-head">
+              <span class="mod-num">06</span>
+              <span class="mod-title">Spine · Phân tích cột sống X-quang</span>
+              <span class="chip new">new</span>
+              <span class="chip warn">in dev</span>
+            </div>
+            <p class="mod-desc">
+              Detect từng đốt sống trên X-quang lateral, classify 7 bệnh
+              lý phổ biến: wedge / burst fracture, osteophyte,
+              spondylolisthesis, scoliosis, disc degeneration, vertebral
+              collapse.
+            </p>
+            <div class="mod-metric pending reveal-bar" style="--p: 0.55">
+              <div class="label">Target mAP · VinDr-SpineXR</div>
+              <div class="bar"><div class="fill"></div></div>
+              <div class="val">0.55</div>
+            </div>
+            <dl class="mod-kv">
+              <dt>Method</dt>   <dd>YOLOv8 detect + ResNet50 classify</dd>
+              <dt>Datasets</dt> <dd>VinDr-SpineXR, ~10,000 X-quang</dd>
+              <dt>Output</dt>   <dd>bbox per vertebra + label + severity</dd>
+              <dt>Endpoint</dt> <dd><code>POST /api/predict-spine</code> <span class="mono" style="color:var(--text-mute)">(planned)</span></dd>
+            </dl>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- ─── ARCHITECTURE ───────────────────────────────── -->
+      <section id="architecture" class="reveal">
+        <h2><span class="num">03</span>Kiến trúc</h2>
+        <p class="lede">
+          Hai chân tách rời: Vercel host UI, máy local chạy AI, ngrok
+          làm cầu nối.
+        </p>
+
+        <div class="arch">
+          <div class="arch-stack">
+            <div class="arch-node">
+              <span class="layer">L1 · Browser</span>
+              <div>
+                <div class="what">User mở project-em-dat.vercel.app</div>
+                <div class="detail">Upload .edf / .nii / .dcm / .jpg → form-data POST</div>
+              </div>
+              <span class="tag">https</span>
+            </div>
+            <div class="arch-arrow"><span class="pkt">↓ request</span></div>
+            <div class="arch-node">
+              <span class="layer">L2 · Vercel</span>
+              <div>
+                <div class="what">Next.js 16 App Router</div>
+                <div class="detail">next.config.mjs rewrite /api/* → process.env.BACKEND_URL</div>
+              </div>
+              <span class="tag">edge</span>
+            </div>
+            <div class="arch-arrow"><span class="pkt">↓ proxy</span></div>
+            <div class="arch-node">
+              <span class="layer">L3 · ngrok</span>
+              <div>
+                <div class="what">https://&lt;uuid&gt;.ngrok-free.dev</div>
+                <div class="detail">HTTPS reverse-tunnel → localhost:5000 (URL đổi mỗi restart)</div>
+              </div>
+              <span class="tag">tunnel</span>
+            </div>
+            <div class="arch-arrow"><span class="pkt">↓ forward</span></div>
+            <div class="arch-node">
+              <span class="layer">L4 · Local</span>
+              <div>
+                <div class="what">Flask + PyTorch + Keras · port 5000</div>
+                <div class="detail">21 endpoints · CORS wide-open · 6 loaded models</div>
+              </div>
+              <span class="tag">runtime</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout warn">
+          <div>
+            Mỗi lần restart ngrok phải cập nhật <b>BACKEND_URL</b> trong
+            Vercel Settings → Environment Variables, sau đó redeploy với
+            <em>Use existing Build Cache</em> bỏ tick.
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── TECH STACK ─────────────────────────────────── -->
+      <section id="tech" class="reveal">
+        <h2><span class="num">04</span>Tech stack</h2>
+        <p class="lede">Một stack mỏng, tập trung vào model.</p>
+
+        <div class="stack">
+          <div class="stack-item">
+            <span class="key">FE framework</span>
+            <span class="val">Next.js 16 · React 19 · TypeScript</span>
+          </div>
+          <div class="stack-item">
+            <span class="key">3D viz</span>
+            <span class="val"><code>&lt;model-viewer&gt;</code> v4.1 + GLB</span>
+          </div>
+          <div class="stack-item">
+            <span class="key">Backend</span>
+            <span class="val">Python 3.10+ · Flask · flask-cors</span>
+          </div>
+          <div class="stack-item">
+            <span class="key">ML · EEG</span>
+            <span class="val">PyTorch CNN + BiGRU + Attention</span>
+          </div>
+          <div class="stack-item">
+            <span class="key">ML · Brain</span>
+            <span class="val">Keras 3D U-Net + marching cubes</span>
+          </div>
+          <div class="stack-item">
+            <span class="key">ML · Lung</span>
+            <span class="val">PyTorch DeepLabV3</span>
+          </div>
+          <div class="stack-item">
+            <span class="key">ML · Breast</span>
+            <span class="val">EfficientNet-B4 + U-Net <span class="chip new" style="margin-left:6px">new</span></span>
+          </div>
+          <div class="stack-item">
+            <span class="key">ML · Spine</span>
+            <span class="val">YOLOv8 + ResNet50 <span class="chip new" style="margin-left:6px">new</span></span>
+          </div>
+          <div class="stack-item">
+            <span class="key">Deploy</span>
+            <span class="val">Vercel (FE) + ngrok (BE)</span>
+          </div>
+          <div class="stack-item">
+            <span class="key">Fonts</span>
+            <span class="val">Mona Sans · JetBrains Mono</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── DATA ────────────────────────────────────────── -->
+      <section id="data" class="reveal">
+        <h2><span class="num">05</span>Datasets &amp; metrics</h2>
+        <p class="lede">Sáu module, sáu nguồn dữ liệu chuẩn.</p>
+
+        <div class="chart reveal-bar">
+          <div class="chart-row" style="--p: 0.84">
+            <div class="label">EEG seizure<small>CHB-MIT · 52,851 windows × 4s</small></div>
+            <div class="bar"><div class="fill"></div></div>
+            <div class="val">0.84 ROC-AUC</div>
+          </div>
+          <div class="chart-row" style="--p: 0.83">
+            <div class="label">Brain tumor<small>BraTS 2020 · 369 × 4ch</small></div>
+            <div class="bar"><div class="fill"></div></div>
+            <div class="val">0.83 Dice WT</div>
+          </div>
+          <div class="chart-row" style="--p: 0.71">
+            <div class="label">Lung nodule<small>LIDC-IDRI · ~1,018 CT</small></div>
+            <div class="bar"><div class="fill"></div></div>
+            <div class="val">0.71 mIoU</div>
+          </div>
+          <div class="chart-row" style="--p: 1.00">
+            <div class="label">Blood panel<small>Rule-based · no train</small></div>
+            <div class="bar"><div class="fill"></div></div>
+            <div class="val">production</div>
+          </div>
+          <div class="chart-row pending" style="--p: 0.88">
+            <div class="label">Breast mass <span class="chip new" style="margin-left:6px">new</span><small>BUSI + CBIS-DDSM · ~3,200 ảnh</small></div>
+            <div class="bar"><div class="fill"></div></div>
+            <div class="val">target 0.88 AUC</div>
+          </div>
+          <div class="chart-row pending" style="--p: 0.55">
+            <div class="label">Spine pathology <span class="chip new" style="margin-left:6px">new</span><small>VinDr-SpineXR · ~10,000 X-quang</small></div>
+            <div class="bar"><div class="fill"></div></div>
+            <div class="val">target 0.55 mAP</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── API ────────────────────────────────────────── -->
+      <section id="api" class="reveal">
+        <h2><span class="num">06</span>API endpoints</h2>
+        <p class="lede">Flask backend, ~21 endpoint, JSON response, CORS wide-open.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Endpoint</th><th>Method</th><th>Mô tả</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>/health</code></td>                <td>GET</td>  <td>Health check + loaded models</td></tr>
+              <tr><td><code>/api/predict-edf</code></td>       <td>POST</td> <td>Upload .edf → seizure per window</td></tr>
+              <tr><td><code>/api/predict-brain</code></td>     <td>POST</td> <td>MRI 4-channel → mask NCR/ED/ET + mesh GLB</td></tr>
+              <tr><td><code>/api/predict-lung</code></td>      <td>POST</td> <td>CT → nodule mask + ø + malignancy</td></tr>
+              <tr><td><code>/api/predict-blood</code></td>     <td>POST</td> <td>JSON panels → flagged + risk score</td></tr>
+              <tr><td><code>/api/predict-breast</code></td>    <td>POST</td> <td>US / mammo → BI-RADS <span class="chip warn">planned</span></td></tr>
+              <tr><td><code>/api/predict-spine</code></td>     <td>POST</td> <td>X-quang → 7 pathology classes <span class="chip warn">planned</span></td></tr>
+              <tr><td><code>/api/brain-models</code></td>      <td>GET</td>  <td>Danh sách brain checkpoint</td></tr>
+              <tr><td><code>/api/brain-model-switch</code></td><td>POST</td> <td>Switch active brain model</td></tr>
+              <tr><td><code>/api/*-status</code></td>          <td>GET</td>  <td>Aliases compat với legacy Express FE</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ─── DEV ────────────────────────────────────────── -->
+      <section id="dev" class="reveal">
+        <h2><span class="num">07</span>Local development</h2>
+        <p class="lede">Cần 3 terminal song song.</p>
+
+<pre><code><span class="cmt"># 1. Backend Flask AI service              → port 5000</span>
+<span class="kw">cd</span> backend
+python python_api.py
+
+<span class="cmt"># 2. Frontend Next.js dev server           → port 3000</span>
+<span class="kw">cd</span> frontend-next
+npm install        <span class="cmt"># lần đầu</span>
+npm run dev
+
+<span class="cmt"># 3. ngrok HTTPS tunnel                    (nếu cần)</span>
+ngrok http <span class="num">5000</span></code></pre>
+
+        <p>
+          Sau khi ngrok in HTTPS URL: Vercel → Settings → Environment
+          Variables → cập nhật <code>BACKEND_URL</code> → Deployments →
+          Redeploy bản mới nhất, bỏ tick <em>Use existing Build Cache</em>.
+        </p>
+      </section>
+
+      <!-- ─── STATUS ─────────────────────────────────────── -->
+      <section id="status" class="reveal">
+        <h2><span class="num">08</span>Status &amp; roadmap</h2>
+        <p class="lede">Đang ở đâu, đi đâu tiếp.</p>
+
+        <div class="timeline">
+          <div class="tl-item done">
+            <div class="tl-date">Q3 2025</div>
+            <h4>EEG seizure detection · production</h4>
+            <p>CNN + BiGRU + Attention trained CHB-MIT, ROC-AUC 0.84. Endpoint live.</p>
+          </div>
+          <div class="tl-item done">
+            <div class="tl-date">Q4 2025</div>
+            <h4>Brain MRI + Lung CT + Blood panel · production</h4>
+            <p>3D U-Net BraTS, DeepLabV3 LIDC, rule-based blood. Tất cả live.</p>
+          </div>
+          <div class="tl-item done">
+            <div class="tl-date">Q1 2026</div>
+            <h4>Frontend migrate sang Next.js · Vercel deploy</h4>
+            <p>Đổi từ Express legacy sang Next.js 16, deploy public với ngrok tunnel cho BE.</p>
+          </div>
+          <div class="tl-item now">
+            <div class="tl-date">Q2 2026 · now</div>
+            <h4>Module 05 + 06 · Breast &amp; Spine</h4>
+            <p>Chuẩn bị dataset BUSI + CBIS-DDSM (breast) và VinDr-SpineXR (spine), baseline EfficientNet-B4 + YOLOv8.</p>
+          </div>
+          <div class="tl-item">
+            <div class="tl-date">Q3 2026 · planned</div>
+            <h4>Move backend khỏi ngrok</h4>
+            <p>Container hoá Flask, deploy lên Render hoặc Fly.io để không phụ thuộc máy local.</p>
+          </div>
+        </div>
+
+        <hr class="divider" />
+
+        <h3>Trạng thái chi tiết</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Hạng mục</th><th>Trạng thái</th><th>Ghi chú</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Frontend deploy</td>      <td><span class="chip live">live</span></td>     <td>project-em-dat.vercel.app</td></tr>
+              <tr><td>Backend deploy</td>       <td><span class="chip ok">local + ngrok</span></td><td>URL đổi mỗi restart</td></tr>
+              <tr><td>EEG · Brain · Lung · Blood</td><td><span class="chip ok">production</span></td><td>Trained, weights local</td></tr>
+              <tr><td>Breast (Case 05)</td>     <td><span class="chip warn">in dev</span></td>   <td>BUSI + CBIS-DDSM, baseline EfficientNet</td></tr>
+              <tr><td>Spine (Case 06)</td>      <td><span class="chip warn">in dev</span></td>   <td>VinDr-SpineXR, baseline YOLOv8</td></tr>
+              <tr><td>Model weights</td>        <td><span class="chip ok">local only</span></td><td>Không push GitHub</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="docfoot">
+    <span>© 2026 ADA Group · Trương Tấn Nghĩa</span>
+    <span class="warn">Demo · không dùng cho chẩn đoán lâm sàng</span>
+  </footer>
+
+  <script>
+    /* ─── Theme toggle ────────────────────────────────────── */
+    const root = document.documentElement;
+    const btn  = document.getElementById('theme-btn');
+    const saved = localStorage.getItem('ada-theme');
+    if (saved) root.setAttribute('data-theme', saved);
+    btn.addEventListener('click', () => {
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('ada-theme', next);
+    });
+
+    /* ─── Scroll progress bar ─────────────────────────────── */
+    const prog = document.getElementById('prog');
+    function onScroll() {
+      const h = document.documentElement;
+      const max = h.scrollHeight - h.clientHeight;
+      const p = max > 0 ? h.scrollTop / max : 0;
+      prog.style.transform = `scaleX(${p})`;
+    }
+    document.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    /* ─── Count-up hero metrics ───────────────────────────── */
+    function animateCount(el) {
+      const to = parseFloat(el.dataset.to);
+      const decimals = parseInt(el.dataset.decimals || '0', 10);
+      const suffix = el.dataset.suffix || '';
+      const start = performance.now();
+      const dur = 1400;
+      const ease = t => 1 - Math.pow(1 - t, 3);
+      function tick(now) {
+        const t = Math.min(1, (now - start) / dur);
+        const v = to * ease(t);
+        el.textContent = v.toFixed(decimals) + suffix;
+        if (t < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+    const countObs = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          animateCount(e.target);
+          countObs.unobserve(e.target);
+        }
+      }
+    }, { threshold: 0.4 });
+    document.querySelectorAll('.count').forEach(el => countObs.observe(el));
+
+    /* ─── Reveal-on-scroll ────────────────────────────────── */
+    const revealObs = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          e.target.classList.add('in');
+          revealObs.unobserve(e.target);
+        }
+      }
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal, .reveal-bar').forEach(el => revealObs.observe(el));
+
+    /* ─── Scroll-spy TOC ──────────────────────────────────── */
+    const tocLinks = document.querySelectorAll('#toc-list a');
+    const sections = [...tocLinks].map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    const spyObs = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          const id = '#' + e.target.id;
+          tocLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === id));
+        }
+      }
+    }, { rootMargin: '-25% 0px -65% 0px' });
+    sections.forEach(s => spyObs.observe(s));
+  </script>
+
+</body>
+</html>

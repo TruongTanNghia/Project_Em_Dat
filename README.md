@@ -1,290 +1,206 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/🧠-EEG%20Brain%20Analysis-8B5CF6?style=for-the-badge&labelColor=1e1b4b" alt="EEG Brain Analysis"/>
-</p>
+<h1 align="center">ADA Group · Medical AI Suite</h1>
 
-<h1 align="center">🧠 EEG Brain Analysis</h1>
 <p align="center">
-  <strong>Hệ Thống Phân Tích Điện Não Đồ Bằng AI</strong><br/>
-  <em>Seizure Detection & Quantitative EEG Analysis</em>
+  <em>Bốn pipeline AI lâm sàng đã triển khai, trên một phòng đọc duy nhất.</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"/>
-  <img src="https://img.shields.io/badge/Node.js-22+-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js"/>
-  <img src="https://img.shields.io/badge/scikit--learn-ML-F7931E?style=flat-square&logo=scikit-learn&logoColor=white" alt="sklearn"/>
-  <img src="https://img.shields.io/badge/OpenAI-GPT--4o-412991?style=flat-square&logo=openai&logoColor=white" alt="OpenAI"/>
-  <img src="https://img.shields.io/badge/Flask-API-000000?style=flat-square&logo=flask&logoColor=white" alt="Flask"/>
-  <img src="https://img.shields.io/badge/Chart.js-Visualization-FF6384?style=flat-square&logo=chart.js&logoColor=white" alt="Chart.js"/>
+  <a href="https://project-em-dat.vercel.app">
+    <img src="https://img.shields.io/badge/live-project--em--dat.vercel.app-FF5A1F?style=flat-square&labelColor=0a0a0a" alt="Live demo"/>
+  </a>
+  <img src="https://img.shields.io/badge/frontend-Next.js%2016-000000?style=flat-square&logo=next.js" alt="Next.js"/>
+  <img src="https://img.shields.io/badge/backend-Flask%20%2B%20PyTorch-3776AB?style=flat-square&logo=python" alt="Flask + PyTorch"/>
+  <img src="https://img.shields.io/badge/deploy-Vercel%20%2B%20ngrok-1f6feb?style=flat-square&logo=vercel" alt="Vercel + ngrok"/>
 </p>
 
 ---
 
-## 📋 Giới Thiệu
+## Tổng quan
 
-**EEG Brain Analysis** là hệ thống phân tích điện não đồ (EEG) sử dụng Machine Learning và AI, được xây dựng cho mục đích nghiên cứu y khoa. Hệ thống có khả năng:
+ADA Group dựng pipeline AI cho 4 chuyên khoa và phơi kết quả qua một
+giao diện duy nhất. Mỗi case là pipeline production đã trained trên
+dataset chuẩn (BraTS, LIDC, CHB-MIT), không phải mockup.
 
-- 🔬 **Phát hiện cơn động kinh (Seizure Detection)** từ file `.edf` bằng mô hình ML đã huấn luyện
-- 🖼️ **Phân tích ảnh EEG** bằng GPT-4 Vision với đánh giá chuyên sâu
-- 📊 **Trực quan hóa tín hiệu não** theo thời gian thực với highlight vùng bất thường
-- 💬 **Chatbot tư vấn thần kinh học** hỗ trợ giải thích kết quả
-
-## 🏗️ Kiến Trúc Hệ Thống
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Frontend (HTML/JS/CSS)                │
-│    Upload .EDF / Ảnh → Biểu đồ → Chatbot → MCP        │
-└──────────────┬──────────────────────┬───────────────────┘
-               │                      │
-    ┌──────────▼──────────┐  ┌───────▼────────────┐
-    │  Node.js Server     │  │  Python Flask API   │
-    │  (Port 3000)        │  │  (Port 5000)        │
-    │                     │  │                     │
-    │  • Proxy requests   │  │  • Load ML Model    │
-    │  • OpenAI GPT-4     │  │  • Read .edf files  │
-    │  • Chat & History   │  │  • Extract qEEG     │
-    │  • MCP Server       │  │  • Predict Normal/  │
-    │  • WebSocket        │  │    Abnormal          │
-    └─────────────────────┘  └─────────────────────┘
-                                      │
-                             ┌────────▼────────┐
-                             │  ML Model (.pkl) │
-                             │  GradientBoosting│
-                             │  33 qEEG features│
-                             │  CHB-MIT Dataset │
-                             └─────────────────┘
-```
-
-## ⚡ Tính Năng Chính
-
-### 1. 📁 Phân Tích File EDF (Machine Learning)
-- Upload file `.edf` (European Data Format)
-- Trích xuất **33 đặc trưng qEEG** (Quantitative EEG):
-  - Công suất 5 dải sóng: Delta (0.5-4Hz), Theta (4-8Hz), Alpha (8-13Hz), Beta (13-30Hz), Gamma (30-50Hz)
-  - Tỉ lệ giữa các dải sóng (Theta/Alpha, Delta/Beta, ...)
-  - Chỉ số thống kê (Mean, Std, Kurtosis, Skewness, RMS, Zero-crossings)
-- Phân loại bằng **Gradient Boosting Classifier**: **Bình thường** ✅ hoặc **Bất thường** 🔴
-- Hiển thị chi tiết từng window 4 giây
-
-### 2. 🖼️ Phân Tích Ảnh EEG (GPT-4 Vision)
-- Upload ảnh chụp điện não đồ
-- GPT-4o phân tích chuyên sâu: sóng não, vùng não, bất thường
-- Trả về đánh giá chi tiết dạng JSON có cấu trúc
-
-### 3. 📊 Trực Quan Hóa
-- **🧠 EEG Waveform**: Biểu đồ tín hiệu đa kênh với vùng đỏ = bất thường
-- **⚠️ Anomaly Timeline**: Xác suất bất thường theo thời gian (bar chart)
-- **📊 Band Power**: Bar chart, Radar chart, Doughnut chart cho 5 dải sóng
-- **🧠 Band Power Timeline**: Sự thay đổi năng lượng sóng theo thời gian
-
-### 4. 💬 Chatbot Tư Vấn
-- Chatbot AI chuyên gia thần kinh học
-- Tự động liên kết context từ kết quả phân tích
-- Hỗ trợ tiếng Việt, câu hỏi gợi ý
-
-### 5. 🔌 MCP Server
-- Model Context Protocol server tích hợp
-- 3 tools: `analyze_eeg`, `generate_report`, `get_analysis_history`
-
-## 🚀 Cài Đặt & Chạy
-
-### Yêu Cầu
-- **Python** 3.10+
-- **Node.js** 18+
-- **OpenAI API Key** (cho GPT-4 Vision & Chatbot)
-
-### Bước 1: Clone & Cài đặt
-
-```bash
-git clone https://github.com/TruongTanNghia/Project_Em_Dat.git
-cd Project_Em_Dat
-
-# Cài Node.js dependencies
-cd frontend && npm install && cd ..
-
-# Cài Python dependencies
-pip install -r backend/requirements.txt
-```
-
-### Bước 2: Cấu hình
-
-Tạo file `.env`:
-```env
-OPENAI_API_KEY=sk-your-api-key-here
-PYTHON_API=http://localhost:5000
-PORT=3000
-```
-
-### Bước 3: Chuẩn bị Model
-
-> ⚠️ **Model files (`.pkl`, `.csv`) không được upload lên GitHub** vì file quá lớn.
-
-Có 2 cách:
-
-**Cách 1: Huấn luyện trên Kaggle** (khuyến nghị)
-1. Upload `train_eeg_kaggle.ipynb` lên [Kaggle](https://www.kaggle.com/)
-2. Thêm dataset: [CHB-MIT EEG Dataset](https://www.kaggle.com/datasets/abhishekinnvonix/seizure-epilepcy-chb-mit-eeg-dataset-pediatric)
-3. Chạy notebook → Tải các file output về thư mục `models/`:
-   - `eeg_seizure_model.pkl`
-   - `eeg_scaler.pkl`
-   - `eeg_feature_names.pkl`
-   - `eeg_features.csv`
-   - `eeg_threshold.pkl`
-
-**Cách 2: Auto re-train** 
-- Đặt file `eeg_features.csv` vào `models/`
-- Python API sẽ tự động train model khi khởi động lần đầu
-
-### Bước 4: Chạy
-
-Mở **2 terminal** (chạy từ project root):
-
-```bash
-# Terminal 1: Python API (ML Model)
-python backend/python_api.py
-# ✅ Output: 🧠 EEG Python API starting on port 5000...
-
-# Terminal 2: Node.js Server (Web)
-cd frontend && npm start
-# ✅ Output: 🧠 EEG Analysis Server running on http://localhost:3000
-```
-
-Mở trình duyệt → **http://localhost:3000** 🎉
-
-## 📁 Cấu Trúc Dự Án
-
-```
-Project_Em_Dat/
-├── 📂 backend/                  # Python ML service (port 5000)
-│   ├── python_api.py            # Flask API — PyTorch inference
-│   ├── train_eeg_kaggle.py      # Script train (Kaggle/Colab)
-│   └── requirements.txt
-│
-├── 📂 frontend/                 # UI + Node server (port 3000)
-│   ├── server.js                # Express + WebSocket + OpenAI proxy
-│   ├── mcp-server.js            # MCP Server (stdio)
-│   ├── package.json
-│   ├── package-lock.json
-│   ├── index.html               # Giao diện chính
-│   ├── 📂 css/
-│   │   └── styles.css           # Dark theme UI
-│   └── 📂 js/
-│       ├── app.js               # Logic upload/charts/chat + Three.js 3D viewer
-│       └── 📂 vendor/
-│           ├── three.min.js
-│           └── OrbitControls.js
-│
-├── 📂 models/                   # Model weights + metadata
-│   ├── best_cnn_model.pth       # PyTorch CNN+BiGRU+Attention
-│   ├── model_metadata.json
-│   └── evaluation_dl_charts.png
-│
-├── 📂 training/                 # Notebooks huấn luyện
-│   └── train_eeg_ver3.ipynb
-│
-├── 📂 docs/                     # Báo cáo đồ án
-│   ├── bao_cao_do_an.md
-│   └── bao_cao_do_an.pdf
-│
-├── 📂 uploads/                  # File upload runtime (gitignored)
-├── 📂 dataset/                  # CHB-MIT raw data (gitignored)
-├── 📄 .env                      # API keys (gitignored, root)
-├── 📄 .gitignore
-└── 📄 README.md
-```
-
-## 🧬 Chi Tiết Kỹ Thuật
-
-### Dataset
-- **CHB-MIT Scalp EEG Database** — PhysioNet
-- 24 bệnh nhân nhi khoa bị động kinh
-- ~900 file `.edf`, mỗi file ~1 tiếng
-- Tổng: **883,982 windows** (mỗi window 4 giây)
-
-### Feature Engineering (qEEG)
-
-| # | Nhóm | Features | Mô tả |
-|---|-------|----------|--------|
-| 1-10 | Band Power | `delta_power_mean/std`, `theta_*`, `alpha_*`, `beta_*`, `gamma_*` | Welch PSD cho 5 dải |
-| 11-14 | Ratios | `theta_alpha_ratio`, `delta_alpha_ratio`, `delta_beta_ratio`, `theta_beta_ratio` | Tỉ lệ chéo |
-| 15-19 | Relative | `delta_relative`, ..., `gamma_relative` | Công suất tương đối |
-| 20-33 | Statistics | `mean_mean/std`, `std_*`, `kurtosis_*`, `skewness_*`, `peak_to_peak_*`, `rms_*`, `zero_crossings_*` | Chỉ số thống kê |
-
-### Machine Learning Pipeline
-
-```
-File .edf → Đọc kênh EEG → Cắt window 4s → Trích xuất 33 features
-    → StandardScaler → GradientBoostingClassifier → Normal/Abnormal
-```
-
-- **Model**: Gradient Boosting (100 trees, depth=5)
-- **Class balancing**: `compute_sample_weight('balanced')`
-- **Training**: 52,851 samples (2,851 seizure + 50,000 normal)
-
-### Metrics
-| Model | Accuracy | AUC | F1 |
-|-------|----------|-----|-----|
-| Gradient Boosting | 99.6% | 0.926 | 0.244 |
-| Random Forest | 62.7% | 0.901 | 0.016 |
-
-> ⚠️ F1 thấp do dữ liệu rất mất cân bằng (seizure chỉ chiếm ~0.3%). AUC là metric tin cậy hơn.
-
-## 🖥️ Screenshots
-
-### Upload & Phân Tích
-Hỗ trợ 2 chế độ upload:
-- **📁 File .EDF** → Model AI phân loại Bình thường/Bất thường
-- **🖼️ Ảnh EEG** → GPT-4 Vision phân tích chuyên sâu
-
-### Biểu Đồ Trực Quan
-- Tín hiệu EEG đa kênh với vùng bất thường tô đỏ
-- Timeline xác suất bất thường với threshold line
-- Phân bố năng lượng 5 dải sóng não
-
-### Chatbot Tư Vấn
-- Tự động liên kết context phân tích
-- Trả lời bằng tiếng Việt chuyên nghiệp
-
-## 🔧 API Endpoints
-
-### Node.js (Port 3000)
-| Method | Endpoint | Mô tả |
-|--------|----------|--------|
-| POST | `/api/predict-edf` | Upload .edf → predict (proxy to Python) |
-| POST | `/api/analyze` | Upload ảnh → GPT-4 Vision |
-| POST | `/api/chat` | Chatbot |
-| GET | `/api/history` | Lịch sử phân tích |
-| GET | `/api/model-status` | Trạng thái ML model |
-| GET | `/api/mcp/status` | Trạng thái MCP server |
-| POST | `/api/mcp/execute` | Thực thi MCP tool |
-
-### Python Flask (Port 5000)
-| Method | Endpoint | Mô tả |
-|--------|----------|--------|
-| POST | `/api/predict-edf` | Nhận .edf → trả về prediction + waveform |
-| GET | `/api/model-info` | Thông tin model |
-| GET | `/health` | Health check |
-
-## 🤝 Đóng Góp
-
-1. Fork repo
-2. Tạo branch: `git checkout -b feature/ten-tinh-nang`
-3. Commit: `git commit -m "Add feature"`
-4. Push: `git push origin feature/ten-tinh-nang`
-5. Tạo Pull Request
-
-## 📝 Giấy Phép
-
-Dự án này được phát triển cho mục đích nghiên cứu và học tập.
+| Case | Module | Dataset | Method | Output chính |
+|:---:|:---|:---|:---|:---|
+| **01** | NEURO · Phát hiện động kinh EEG | CHB-MIT (24 BN nhi) | CNN + BiGRU + Attention | `p(seizure)` per window 4s, ROC-AUC 0.84 |
+| **02** | ONCOLOGY · Phân đoạn u não MRI | BraTS 2020, 4-channel | 3D U-Net + 4-way TTA | mask NCR / ED / ET, Dice WT 0.83 |
+| **03** | PULMONOLOGY · Định vị nốt phổi CT | LIDC-IDRI | DeepLabV3 | mask + ø mm + malignancy 1–5 |
+| **04** | HEMATOLOGY · Đọc xét nghiệm máu | reference range chuẩn lab | Rule-based engine | flagged values + risk score |
 
 ---
 
-<p align="center">
-  <strong>Phát triển bởi</strong><br/>
-  <a href="https://github.com/TruongTanNghia">Trương Tấn Nghĩa</a><br/>
-  <em>Đại học — Nghiên cứu Y tế AI</em>
-</p>
+## Kiến trúc
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Frontend  ·  Next.js 16 + React 19  ·  hosted on Vercel    │
+│                                                             │
+│   App Router · OKLCH design tokens · model-viewer 3D · TSX  │
+└──────────────────────────┬──────────────────────────────────┘
+                           │  /api/*  (proxied via next.config.mjs)
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  ngrok HTTPS tunnel        →   BACKEND_URL env var (Vercel) │
+└──────────────────────────┬──────────────────────────────────┘
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Backend  ·  Flask + PyTorch + TF/Keras  ·  localhost:5000  │
+│                                                             │
+│   21 endpoints  ·  EEG CNN+BiGRU  ·  3D U-Net  ·  DeepLabV3 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Production:** Vercel host `frontend-next/`. Python backend chạy trên
+máy local, expose qua ngrok HTTPS. Khi ngrok URL đổi (mỗi lần restart),
+cập nhật env var `BACKEND_URL` trong Vercel dashboard rồi redeploy.
+
+---
+
+## Live demo
+
+→ **[project-em-dat.vercel.app](https://project-em-dat.vercel.app)**
+
+> Lưu ý: 4 pipeline AI cần backend Flask đang chạy trên máy host và
+> ngrok đang sống. Nếu URL trả về 502, backend đang offline.
+
+---
+
+## Local development
+
+Mở 3 terminal (PowerShell trên Windows / bash trên Unix):
+
+```powershell
+# 1. Backend Flask  →  :5000
+cd backend
+python python_api.py
+
+# 2. Frontend Next.js  →  :3000
+cd frontend-next
+npm install   # lần đầu
+npm run dev
+
+# 3. ngrok tunnel  (chỉ cần khi muốn Vercel gọi vào BE local)
+ngrok http 5000
+```
+
+Sau khi ngrok in URL HTTPS:
+
+1. Vercel dashboard → project `project-em-dat` → Settings → Environment
+   Variables → cập nhật `BACKEND_URL`.
+2. Deployments → Redeploy bản mới nhất, **bỏ tick** *Use existing Build
+   Cache* để env var được pick up.
+
+---
+
+## Layout
+
+```
+.
+├── frontend-next/         Next.js wrapper (deploy trên Vercel)
+│   ├── app/               Server + client React components
+│   ├── public/models/     GLB anatomical models (brain, lung)
+│   ├── scripts/           Utility scripts (logo chroma-key, etc.)
+│   └── next.config.mjs    Rewrite /api/* → process.env.BACKEND_URL
+│
+├── .claude/skills/        Project skills cho Claude Code
+├── CLAUDE.md              Project context, conventions, deploy notes
+├── README.md              (file này)
+│
+├── backend/               Flask + PyTorch + TF/Keras   (local only)
+├── frontend/              Legacy Express server         (local only)
+├── models/                .keras / .pth / .pkl weights  (gitignored)
+├── training/              Notebook huấn luyện           (gitignored)
+├── docs/                  Báo cáo đồ án                 (gitignored)
+└── dataset/               BraTS / LIDC / CHB-MIT samples (gitignored)
+```
+
+> GitHub repo chỉ track `frontend-next/` (cái Vercel deploy). Backend,
+> model weights, dataset đều giữ local — file vẫn còn trên máy nhưng
+> không push lên GitHub để repo nhẹ và không leak dataset bệnh án.
+
+---
+
+## Tech stack
+
+| Layer | Stack |
+|:---|:---|
+| Frontend framework | Next.js 16 (App Router), React 19, TypeScript |
+| Design tokens | OKLCH colors, fluid `clamp()` typography, custom motion easings |
+| 3D viz | Google `<model-viewer>` v4.1 (GLB anatomical models) |
+| Fonts | Mona Sans (display + body), JetBrains Mono (annotations) |
+| Backend | Python 3.10+, Flask, flask-cors |
+| ML — EEG | PyTorch · CNN + BiGRU + Attention |
+| ML — Brain | Keras 3D U-Net · marching-cubes mesh extraction |
+| ML — Lung | PyTorch DeepLabV3 |
+| ML — Blood | Rule-based engine, reference range chuẩn lab |
+| Deploy | Vercel (frontend) + ngrok HTTPS tunnel (backend) |
+
+---
+
+## API endpoints (Flask, :5000)
+
+| Endpoint | Method | Mô tả |
+|:---|:---:|:---|
+| `/health` | GET | Health check, trả về status + loaded models |
+| `/api/predict-edf` | POST | Upload `.edf` → seizure prediction per 4s window |
+| `/api/predict-brain` | POST | Upload MRI 4-channel → mask NCR/ED/ET + mesh GLB |
+| `/api/predict-lung` | POST | Upload CT → nodule mask + diameter + malignancy |
+| `/api/predict-blood` | POST | JSON CBC/Lipid/Glucose → flagged values + risk score |
+| `/api/brain-models` | GET | Danh sách brain model variants có sẵn |
+| `/api/brain-model-switch` | POST | Switch active brain model checkpoint |
+| `/api/*-status` | GET | Aliases compat với legacy Express frontend |
+
+Tổng ~21 endpoints. Toàn bộ trả JSON, CORS mở rộng cho frontend Vercel.
+
+---
+
+## Datasets & metrics
+
+| Module | Dataset | Train size | Best metric |
+|:---|:---|:---:|:---:|
+| EEG seizure | CHB-MIT (PhysioNet) | 52,851 windows × 4s | ROC-AUC **0.84** |
+| Brain tumor | BraTS 2020 | 369 cases × 4 channels | Dice WT **0.83** |
+| Lung nodule | LIDC-IDRI | ~1,018 CT scans | mIoU **0.71** |
+| Blood panel | rule-based, không train | n/a | n/a |
+
+EEG class imbalance ~0.3% seizure: AUC là metric tin cậy hơn F1 vì F1
+nhạy với precision-recall ở scale dataset mất cân bằng cao.
+
+---
+
+## Design system
+
+UI tuân theo skill nội bộ tại `.agents/skills/impeccable/` — design
+rules được enforce trên mọi UI change:
+
+- **Color space:** OKLCH only (không hex / HSL / RGB).
+- **Brand:** orange-red hexagon mark + cobalt centre dot. Anti-reference:
+  blue+white+mint stock healthcare aesthetic.
+- **Surface mix:** warm cream paper `oklch(0.96 0.010 70)` cho page,
+  drenched dark cards `oklch(0.13 0.006 25)` cho monitor visuals
+  (aesthetic: "monitor on a paper desk").
+- **Typography:** scale ≥ 1.25× ratio, body 65–75ch, không gradient text.
+- **Motion:** ease-out exponential only, không bounce / elastic.
+
+---
+
+## Status
+
+| Item | State |
+|:---|:---|
+| Frontend deploy | ✓ `https://project-em-dat.vercel.app` |
+| Backend deploy | local + ngrok (URL đổi mỗi restart, set lại `BACKEND_URL`) |
+| Model weights | trained, giữ local, không push GitHub |
+| Datasets | gitignored, vài GB raw |
+
+---
+
+## License & disclaimer
+
+Mục đích **nghiên cứu** + **học tập**.
+Không dùng cho chẩn đoán lâm sàng.
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Made%20with-❤️-red?style=for-the-badge" alt="Made with love"/>
+  © 2026 <strong>ADA Group</strong> · <a href="https://github.com/TruongTanNghia">Trương Tấn Nghĩa</a>
 </p>
