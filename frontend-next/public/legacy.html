@@ -767,117 +767,233 @@
             </div>
         </section>
 
-        <!-- Section 5 (NEW): Anatomy Simulation — brain GLB + clickable atlas -->
+        <!-- Section 5 (NEW): Anatomy Simulation — 4-stage surgical workflow -->
         <section class="card section-anatomy">
             <div class="section-title">
                 <span class="section-num" style="background:linear-gradient(135deg,#a78bfa,#ff6b5a);">5</span>
-                MÔ PHỎNG GIẢI PHẨU 3D
-                <span class="anatomy-section-sub">brain · 6 thuỳ · click để xoay</span>
+                MÔ PHỎNG GIẢI PHẨU 3D — TỪ NÃO ĐẾN ĐƯỜNG MỔ
+                <span class="anatomy-section-sub">Từ mô hình 3D đến đường mổ tối ưu và mô phỏng lấy u</span>
             </div>
 
-            <div class="anatomy-layout">
-                <div class="anatomy-viewer" id="anatomyViewer">
-                    <span class="anatomy-tag">GLB · human-brain · front view</span>
-                    <button class="anatomy-reset" id="anatomyReset" type="button">↺ Reset view</button>
-                    <canvas id="anatomyCanvas" class="anatomy-canvas"></canvas>
-                    <div class="anatomy-placeholder" id="anatomyPlaceholder">
-                        <div class="spinner"></div>
-                        <span>Loading brain model...</span>
+            <!-- 4-stage workflow navigation -->
+            <nav class="stage-nav" role="tablist" aria-label="Surgical workflow stages">
+                <button class="stage-btn is-active" data-stage="model" role="tab" type="button">
+                    <span class="stage-num">1</span>
+                    <span class="stage-info">
+                        <span class="stage-name">Mô hình 3D não</span>
+                        <span class="stage-sub">Brain + khối u</span>
+                    </span>
+                </button>
+                <span class="stage-arrow" aria-hidden="true">→</span>
+                <button class="stage-btn" data-stage="plan" role="tab" type="button">
+                    <span class="stage-num">2</span>
+                    <span class="stage-info">
+                        <span class="stage-name">Lập đường mổ</span>
+                        <span class="stage-sub">Surgical Planning</span>
+                    </span>
+                    <span class="stage-soon">soon</span>
+                </button>
+                <span class="stage-arrow" aria-hidden="true">→</span>
+                <button class="stage-btn" data-stage="slice" role="tab" type="button">
+                    <span class="stage-num">3</span>
+                    <span class="stage-info">
+                        <span class="stage-name">Cắt lớp 3D</span>
+                        <span class="stage-sub">Theo đường mổ</span>
+                    </span>
+                    <span class="stage-soon">soon</span>
+                </button>
+                <span class="stage-arrow" aria-hidden="true">→</span>
+                <button class="stage-btn" data-stage="remove" role="tab" type="button">
+                    <span class="stage-num">4</span>
+                    <span class="stage-info">
+                        <span class="stage-name">Mô phỏng lấy u</span>
+                        <span class="stage-sub">Surgical Sim</span>
+                    </span>
+                    <span class="stage-soon">soon</span>
+                </button>
+            </nav>
+
+            <!-- ── Stage 1 · Mô hình 3D não (active) ─────────────── -->
+            <div class="stage-panel is-active" data-stage-panel="model" role="tabpanel">
+                <div class="anatomy-layout">
+                    <div class="anatomy-viewer" id="anatomyViewer">
+                        <span class="anatomy-tag">GLB · human-brain · front view</span>
+                        <button class="anatomy-reset" id="anatomyReset" type="button">↺ Reset view</button>
+                        <canvas id="anatomyCanvas" class="anatomy-canvas"></canvas>
+                        <div class="anatomy-placeholder" id="anatomyPlaceholder">
+                            <div class="spinner"></div>
+                            <span>Loading brain model...</span>
+                        </div>
+                    </div>
+
+                    <div class="atlas-panel">
+                        <div class="atlas-heading">Atlas giải phẩu · click để xem từng thuỳ</div>
+
+                        <div class="atlas-item" data-anatomy-lobe="frontal">
+                            <span class="atlas-num">01</span>
+                            <div class="atlas-body">
+                                <div class="atlas-name">Thuỳ trán<span class="atlas-en">Frontal lobe</span></div>
+                                <div class="atlas-role">Vận động chủ ý, ngôn ngữ biểu đạt (vùng Broca), ra quyết định.</div>
+                            </div>
+                            <span class="atlas-side">ANT</span>
+                        </div>
+
+                        <div class="atlas-item" data-anatomy-lobe="parietal">
+                            <span class="atlas-num">02</span>
+                            <div class="atlas-body">
+                                <div class="atlas-name">Thuỳ đỉnh<span class="atlas-en">Parietal lobe</span></div>
+                                <div class="atlas-role">Cảm giác xúc giác, định hướng không gian, tích hợp đa giác quan.</div>
+                            </div>
+                            <span class="atlas-side">SUP</span>
+                        </div>
+
+                        <div class="atlas-item ai-focus" data-anatomy-lobe="temporal">
+                            <span class="atlas-num">03</span>
+                            <div class="atlas-body">
+                                <div class="atlas-name">Thuỳ thái dương<span class="atlas-en">Temporal lobe</span></div>
+                                <div class="atlas-role">Thính giác, ngôn ngữ hiểu (Wernicke), trí nhớ dài hạn, nhận diện khuôn mặt.</div>
+                                <span class="atlas-chip">AI focus · BraTS tumor common</span>
+                            </div>
+                            <span class="atlas-side">LAT</span>
+                        </div>
+
+                        <div class="atlas-item" data-anatomy-lobe="occipital">
+                            <span class="atlas-num">04</span>
+                            <div class="atlas-body">
+                                <div class="atlas-name">Thuỳ chẩm<span class="atlas-en">Occipital lobe</span></div>
+                                <div class="atlas-role">Xử lý thị giác sơ cấp, nhận diện hình dạng và chuyển động.</div>
+                            </div>
+                            <span class="atlas-side">POST</span>
+                        </div>
+
+                        <div class="atlas-item" data-anatomy-lobe="cerebellum">
+                            <span class="atlas-num">05</span>
+                            <div class="atlas-body">
+                                <div class="atlas-name">Tiểu não<span class="atlas-en">Cerebellum</span></div>
+                                <div class="atlas-role">Phối hợp vận động tinh, thăng bằng, học kỹ năng vận động.</div>
+                            </div>
+                            <span class="atlas-side">INF</span>
+                        </div>
+
+                        <div class="atlas-item" data-anatomy-lobe="brainstem">
+                            <span class="atlas-num">06</span>
+                            <div class="atlas-body">
+                                <div class="atlas-name">Thân não<span class="atlas-en">Brainstem</span></div>
+                                <div class="atlas-role">Trung tâm tự động: nhịp tim, hô hấp, thân nhiệt, phản xạ sinh tồn.</div>
+                            </div>
+                            <span class="atlas-side">INF</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="atlas-panel">
-                    <div class="atlas-heading">Atlas giải phẩu · click để xem từng thuỳ</div>
-
-                    <div class="atlas-item" data-anatomy-lobe="frontal">
-                        <span class="atlas-num">01</span>
-                        <div class="atlas-body">
-                            <div class="atlas-name">Thuỳ trán<span class="atlas-en">Frontal lobe</span></div>
-                            <div class="atlas-role">Vận động chủ ý, ngôn ngữ biểu đạt (vùng Broca), ra quyết định.</div>
-                        </div>
-                        <span class="atlas-side">ANT</span>
+                <div class="anatomy-tumor-card" id="anatomyTumorInfo" hidden>
+                    <span class="anatomy-tumor-icon"></span>
+                    <div>
+                        <div class="anatomy-tumor-label">Vị trí khối u (AI)</div>
+                        <div class="anatomy-tumor-value" id="anatomyTumorLocation">—</div>
                     </div>
-
-                    <div class="atlas-item" data-anatomy-lobe="parietal">
-                        <span class="atlas-num">02</span>
-                        <div class="atlas-body">
-                            <div class="atlas-name">Thuỳ đỉnh<span class="atlas-en">Parietal lobe</span></div>
-                            <div class="atlas-role">Cảm giác xúc giác, định hướng không gian, tích hợp đa giác quan.</div>
-                        </div>
-                        <span class="atlas-side">SUP</span>
+                    <div>
+                        <div class="anatomy-tumor-label">Thể tích</div>
+                        <div class="anatomy-tumor-value" id="anatomyTumorVolume">—</div>
                     </div>
-
-                    <div class="atlas-item ai-focus" data-anatomy-lobe="temporal">
-                        <span class="atlas-num">03</span>
-                        <div class="atlas-body">
-                            <div class="atlas-name">Thuỳ thái dương<span class="atlas-en">Temporal lobe</span></div>
-                            <div class="atlas-role">Thính giác, ngôn ngữ hiểu (Wernicke), trí nhớ dài hạn, nhận diện khuôn mặt.</div>
-                            <span class="atlas-chip">AI focus · BraTS tumor common</span>
-                        </div>
-                        <span class="atlas-side">LAT</span>
+                    <div>
+                        <div class="anatomy-tumor-label">Toạ độ</div>
+                        <div class="anatomy-tumor-mono" id="anatomyTumorCoords">—</div>
                     </div>
+                </div>
 
-                    <div class="atlas-item" data-anatomy-lobe="occipital">
-                        <span class="atlas-num">04</span>
-                        <div class="atlas-body">
-                            <div class="atlas-name">Thuỳ chẩm<span class="atlas-en">Occipital lobe</span></div>
-                            <div class="atlas-role">Xử lý thị giác sơ cấp, nhận diện hình dạng và chuyển động.</div>
-                        </div>
-                        <span class="atlas-side">POST</span>
+                <div class="slice-controls">
+                    <div class="slice-controls-label">
+                        Mô phỏng cắt lớp
+                        <small>Slice qua não để xem mặt cắt</small>
                     </div>
-
-                    <div class="atlas-item" data-anatomy-lobe="cerebellum">
-                        <span class="atlas-num">05</span>
-                        <div class="atlas-body">
-                            <div class="atlas-name">Tiểu não<span class="atlas-en">Cerebellum</span></div>
-                            <div class="atlas-role">Phối hợp vận động tinh, thăng bằng, học kỹ năng vận động.</div>
-                        </div>
-                        <span class="atlas-side">INF</span>
+                    <div class="slice-buttons">
+                        <button class="slice-btn is-active" data-slice-mode="off" type="button">Off</button>
+                        <button class="slice-btn" data-slice-mode="axial" type="button">Axial</button>
+                        <button class="slice-btn" data-slice-mode="sagittal" type="button">Sagittal</button>
+                        <button class="slice-btn" data-slice-mode="coronal" type="button">Coronal</button>
                     </div>
-
-                    <div class="atlas-item" data-anatomy-lobe="brainstem">
-                        <span class="atlas-num">06</span>
-                        <div class="atlas-body">
-                            <div class="atlas-name">Thân não<span class="atlas-en">Brainstem</span></div>
-                            <div class="atlas-role">Trung tâm tự động: nhịp tim, hô hấp, thân nhiệt, phản xạ sinh tồn.</div>
-                        </div>
-                        <span class="atlas-side">INF</span>
-                    </div>
+                    <input type="range" id="anatomySliceSlider" class="slice-slider"
+                           min="-1" max="1" step="0.01" value="0" disabled
+                           aria-label="Vị trí mặt cắt">
+                    <div class="slice-readout" id="anatomySliceReadout">—</div>
                 </div>
             </div>
 
-            <div class="anatomy-tumor-card" id="anatomyTumorInfo" hidden>
-                <span class="anatomy-tumor-icon"></span>
-                <div>
-                    <div class="anatomy-tumor-label">Vị trí khối u (AI)</div>
-                    <div class="anatomy-tumor-value" id="anatomyTumorLocation">—</div>
-                </div>
-                <div>
-                    <div class="anatomy-tumor-label">Thể tích</div>
-                    <div class="anatomy-tumor-value" id="anatomyTumorVolume">—</div>
-                </div>
-                <div>
-                    <div class="anatomy-tumor-label">Toạ độ</div>
-                    <div class="anatomy-tumor-mono" id="anatomyTumorCoords">—</div>
+            <!-- ── Stage 2 · Lập đường mổ (placeholder) ─────────── -->
+            <div class="stage-panel" data-stage-panel="plan" role="tabpanel" hidden>
+                <div class="stage-placeholder">
+                    <div class="sp-icon">🛤️</div>
+                    <h4>Lập kế hoạch đường mổ — đang phát triển</h4>
+                    <p>Stage 2 sẽ vẽ <b>đường mổ tối ưu</b> (yellow probe) từ bề mặt sọ vào tâm khối u, đồng thời highlight các cấu trúc cần tránh trên đường đi.</p>
+                    <ul class="sp-features">
+                        <li><span class="sp-dot probe"></span>Yellow probe — đường mổ dự kiến (drag để xoay angle)</li>
+                        <li><span class="sp-dot vessel"></span>Green halo — vùng mạch máu lớn cần tránh</li>
+                        <li><span class="sp-dot func"></span>Purple halo — vùng chức năng (Broca, Wernicke, motor cortex)</li>
+                        <li><span class="sp-dot dist"></span>Khoảng cách tới mỗi cấu trúc tính real-time</li>
+                    </ul>
                 </div>
             </div>
 
-            <!-- Mô phỏng cắt lớp — clipping plane controls -->
-            <div class="slice-controls">
-                <div class="slice-controls-label">
-                    Mô phỏng cắt lớp
-                    <small>Slice qua não để xem mặt cắt</small>
+            <!-- ── Stage 3 · Cắt lớp 3D theo đường mổ (placeholder) -->
+            <div class="stage-panel" data-stage-panel="slice" role="tabpanel" hidden>
+                <div class="stage-placeholder">
+                    <div class="sp-icon">📐</div>
+                    <h4>Cắt lớp 3D theo đường mổ — đang phát triển</h4>
+                    <p>Stage 3 sẽ tạo <b>6 mặt cắt vuông góc</b> với đường mổ ở các độ sâu khác nhau, để đánh giá độ sâu khối u và mối liên quan với cấu trúc xung quanh.</p>
+                    <ul class="sp-features">
+                        <li><span class="sp-dot slice1"></span>6 lát cắt sequential dọc theo probe direction</li>
+                        <li><span class="sp-dot slice2"></span>Thumbnail strip — click jump tới slice</li>
+                        <li><span class="sp-dot slice3"></span>Auto-cycle slideshow option</li>
+                        <li><span class="sp-dot slice4"></span>Cross-reference axial / sagittal / coronal đồng bộ</li>
+                    </ul>
                 </div>
-                <div class="slice-buttons">
-                    <button class="slice-btn is-active" data-slice-mode="off" type="button">Off</button>
-                    <button class="slice-btn" data-slice-mode="axial" type="button">Axial</button>
-                    <button class="slice-btn" data-slice-mode="sagittal" type="button">Sagittal</button>
-                    <button class="slice-btn" data-slice-mode="coronal" type="button">Coronal</button>
+            </div>
+
+            <!-- ── Stage 4 · Mô phỏng lấy u (placeholder) ───────── -->
+            <div class="stage-panel" data-stage-panel="remove" role="tabpanel" hidden>
+                <div class="stage-placeholder">
+                    <div class="sp-icon">🧊</div>
+                    <h4>Mô phỏng lấy u — đang phát triển</h4>
+                    <p>Stage 4 sẽ animate <b>4 bước phẫu thuật</b> theo đường mổ đã chọn: mở bone flap → tiếp cận khối u → lấy u → đóng vết mổ.</p>
+                    <ul class="sp-features">
+                        <li><span class="sp-dot step1"></span>Bước 1 — mở bone flap (mảnh xương sọ)</li>
+                        <li><span class="sp-dot step2"></span>Bước 2 — tiếp cận khối u qua đường mổ planned</li>
+                        <li><span class="sp-dot step3"></span>Bước 3 — animation lấy khối u ra ngoài</li>
+                        <li><span class="sp-dot step4"></span>Bước 4 — đóng vết mổ, brain healed</li>
+                    </ul>
                 </div>
-                <input type="range" id="anatomySliceSlider" class="slice-slider"
-                       min="-1" max="1" step="0.01" value="0" disabled
-                       aria-label="Vị trí mặt cắt">
-                <div class="slice-readout" id="anatomySliceReadout">—</div>
+            </div>
+
+            <!-- ── Bottom panels: LỢI ÍCH · CÔNG NGHỆ · KẾT QUẢ ─── -->
+            <div class="anatomy-summary">
+                <div class="ana-card ana-benefits">
+                    <div class="ana-card-title">Lợi ích</div>
+                    <ul class="ana-list">
+                        <li>✓ Hiểu rõ vị trí · độ sâu · liên quan giải phẫu</li>
+                        <li>✓ Chọn đường mổ tối ưu, ít xâm lấn</li>
+                        <li>✓ Tránh tổn thương mạch máu &amp; vùng chức năng</li>
+                        <li>✓ Nâng cao độ chính xác và an toàn khi phẫu thuật</li>
+                    </ul>
+                </div>
+                <div class="ana-card ana-tech">
+                    <div class="ana-card-title">Công nghệ sử dụng</div>
+                    <div class="ana-tech-grid">
+                        <div class="ana-tech-item"><b>MRI/CT</b><span>DICOM ingest</span></div>
+                        <div class="ana-tech-item"><b>Mô hình 3D</b><span>GLB · Three.js</span></div>
+                        <div class="ana-tech-item"><b>Trí tuệ nhân tạo</b><span>3D U-Net · phân đoạn</span></div>
+                        <div class="ana-tech-item"><b>Mô phỏng</b><span>Clipping plane · tween</span></div>
+                    </div>
+                </div>
+                <div class="ana-card ana-result">
+                    <div class="ana-card-title">Kết quả cuối cùng</div>
+                    <p class="ana-result-text">Kế hoạch phẫu thuật <b>cá nhân hoá</b> — chính xác · an toàn · hiệu quả.</p>
+                    <div class="ana-result-tags">
+                        <span class="ana-tag">cá nhân hoá</span>
+                        <span class="ana-tag">chính xác mm</span>
+                        <span class="ana-tag">tiết kiệm thời gian</span>
+                    </div>
+                </div>
             </div>
         </section>
 

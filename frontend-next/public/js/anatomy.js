@@ -124,6 +124,7 @@
     setupAtlasCards();
     setupResetButton();
     setupSliceControls();
+    setupStageNav();
     listenForTumorEvent();
     window.addEventListener('resize', onResize, { passive: true });
     animate();
@@ -597,6 +598,35 @@
     const mm = Math.round(slice.pos * 70); // brain ≈ 14cm → ±70mm
     const labels = { axial: 'Z', sagittal: 'X', coronal: 'Y' };
     out.textContent = `${slice.mode.toUpperCase()} · ${labels[slice.mode]} = ${mm > 0 ? '+' : ''}${mm} mm`;
+  }
+
+  /* ─── Stage navigation (4-stage workflow) ──────────────── */
+  function setupStageNav() {
+    const buttons = document.querySelectorAll('[data-stage]');
+    const panels  = document.querySelectorAll('[data-stage-panel]');
+    if (!buttons.length || !panels.length) return;
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-stage');
+
+        buttons.forEach((b) => {
+          b.classList.toggle('is-active', b === btn);
+        });
+
+        panels.forEach((p) => {
+          const isActive = p.getAttribute('data-stage-panel') === target;
+          p.classList.toggle('is-active', isActive);
+          p.hidden = !isActive;
+        });
+
+        // Trigger a resize so the WebGL canvas re-fits if we just
+        // switched back to the model stage (canvas was display:none)
+        if (target === 'model') {
+          requestAnimationFrame(onResize);
+        }
+      });
+    });
   }
 
   /* ─── Public surface ────────────────────────────────────── */
