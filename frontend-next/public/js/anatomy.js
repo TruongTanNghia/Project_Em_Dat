@@ -85,6 +85,141 @@
   };
   const BRAIN_HALF = 0.07;  // half of normalized brain (matches TARGET_MAX/2 in loadBrain)
 
+  // Mạch máu — procedural vessels (Three.js TubeGeometry).
+  // Hệ động mạch nền não + 3 cặp động mạch chính + xoang tĩnh mạch lớn.
+  // Points trong toạ độ model space đã normalize. Tham khảo:
+  // Circle of Willis (vòng động mạch đa giác Willis), MCA/ACA/PCA, SSS.
+  let vesselsGroup = null;
+  const VESSEL_PATHS = [
+    {
+      id: 'cow', name: 'Circle of Willis', type: 'artery', radius: 0.0022,
+      points: [
+        [ 0.022, -0.045,  0.002],
+        [ 0.016, -0.046,  0.020],
+        [ 0.000, -0.047,  0.026],
+        [-0.016, -0.046,  0.020],
+        [-0.022, -0.045,  0.002],
+        [-0.018, -0.046, -0.016],
+        [ 0.000, -0.047, -0.022],
+        [ 0.018, -0.046, -0.016],
+      ],
+      closed: true,
+    },
+    {
+      id: 'basilar', name: 'Basilar artery', type: 'artery', radius: 0.0020,
+      points: [
+        [ 0.000, -0.062, -0.018],
+        [ 0.000, -0.054, -0.020],
+        [ 0.000, -0.047, -0.022],
+      ],
+      closed: false,
+    },
+    {
+      id: 'mca-r', name: 'MCA right', type: 'artery', radius: 0.0017,
+      points: [
+        [ 0.022, -0.045,  0.002],
+        [ 0.038, -0.030,  0.022],
+        [ 0.055, -0.012,  0.034],
+        [ 0.062,  0.008,  0.030],
+        [ 0.057,  0.025,  0.018],
+        [ 0.045,  0.035,  0.000],
+      ],
+      closed: false,
+    },
+    {
+      id: 'mca-l', name: 'MCA left', type: 'artery', radius: 0.0017,
+      points: [
+        [-0.022, -0.045,  0.002],
+        [-0.038, -0.030,  0.022],
+        [-0.055, -0.012,  0.034],
+        [-0.062,  0.008,  0.030],
+        [-0.057,  0.025,  0.018],
+        [-0.045,  0.035,  0.000],
+      ],
+      closed: false,
+    },
+    {
+      id: 'aca-r', name: 'ACA right', type: 'artery', radius: 0.0015,
+      points: [
+        [ 0.000, -0.045,  0.026],
+        [ 0.008, -0.022,  0.046],
+        [ 0.010,  0.005,  0.055],
+        [ 0.012,  0.028,  0.048],
+        [ 0.010,  0.045,  0.030],
+        [ 0.008,  0.055,  0.008],
+      ],
+      closed: false,
+    },
+    {
+      id: 'aca-l', name: 'ACA left', type: 'artery', radius: 0.0015,
+      points: [
+        [ 0.000, -0.045,  0.026],
+        [-0.008, -0.022,  0.046],
+        [-0.010,  0.005,  0.055],
+        [-0.012,  0.028,  0.048],
+        [-0.010,  0.045,  0.030],
+        [-0.008,  0.055,  0.008],
+      ],
+      closed: false,
+    },
+    {
+      id: 'pca-r', name: 'PCA right', type: 'artery', radius: 0.0015,
+      points: [
+        [ 0.018, -0.046, -0.016],
+        [ 0.030, -0.028, -0.034],
+        [ 0.034, -0.008, -0.052],
+        [ 0.025,  0.012, -0.060],
+        [ 0.010,  0.028, -0.055],
+      ],
+      closed: false,
+    },
+    {
+      id: 'pca-l', name: 'PCA left', type: 'artery', radius: 0.0015,
+      points: [
+        [-0.018, -0.046, -0.016],
+        [-0.030, -0.028, -0.034],
+        [-0.034, -0.008, -0.052],
+        [-0.025,  0.012, -0.060],
+        [-0.010,  0.028, -0.055],
+      ],
+      closed: false,
+    },
+    {
+      id: 'sss', name: 'Superior sagittal sinus', type: 'vein', radius: 0.0024,
+      points: [
+        [ 0.000,  0.040,  0.062],
+        [ 0.000,  0.058,  0.040],
+        [ 0.000,  0.066,  0.010],
+        [ 0.000,  0.066, -0.020],
+        [ 0.000,  0.055, -0.044],
+        [ 0.000,  0.035, -0.062],
+      ],
+      closed: false,
+    },
+    {
+      id: 'trans-r', name: 'Transverse + sigmoid right', type: 'vein', radius: 0.0018,
+      points: [
+        [ 0.000,  0.035, -0.062],
+        [ 0.020,  0.020, -0.060],
+        [ 0.035,  0.000, -0.050],
+        [ 0.040, -0.020, -0.034],
+        [ 0.035, -0.042, -0.020],
+      ],
+      closed: false,
+    },
+    {
+      id: 'trans-l', name: 'Transverse + sigmoid left', type: 'vein', radius: 0.0018,
+      points: [
+        [ 0.000,  0.035, -0.062],
+        [-0.020,  0.020, -0.060],
+        [-0.035,  0.000, -0.050],
+        [-0.040, -0.020, -0.034],
+        [-0.035, -0.042, -0.020],
+      ],
+      closed: false,
+    },
+  ];
+
   /* ─── Lazy init ─────────────────────────────────────────── */
   function bootstrap() {
     canvas = document.getElementById('anatomyCanvas');
@@ -120,10 +255,12 @@
 
     setupScene();
     loadBrain();
+    buildVessels();
     setupRaycaster();
     setupAtlasCards();
     setupResetButton();
     setupSliceControls();
+    setupVesselToggle();
     listenForTumorEvent();
     window.addEventListener('resize', onResize, { passive: true });
     animate();
@@ -473,6 +610,9 @@
       focus.ring.scale.set(s, s, s);
     }
 
+    // Vessel emissive pulse — gives the arteries a "heartbeat" feel
+    animateVesselsPulse();
+
     renderer.render(scene, camera);
   }
 
@@ -599,11 +739,82 @@
     out.textContent = `${slice.mode.toUpperCase()} · ${labels[slice.mode]} = ${mm > 0 ? '+' : ''}${mm} mm`;
   }
 
+  /* ─── Procedural vessels (Three.js TubeGeometry) ────────── */
+  function buildVessels() {
+    vesselsGroup = new THREE.Group();
+    vesselsGroup.name = 'vessels';
+
+    VESSEL_PATHS.forEach((path) => {
+      const points = path.points.map((p) => new THREE.Vector3(p[0], p[1], p[2]));
+      const curve = new THREE.CatmullRomCurve3(
+        points,
+        path.closed === true,
+        'catmullrom',
+        0.4
+      );
+
+      const tubularSeg = path.closed ? 96 : 48;
+      const radialSeg = 10;
+      const tubeGeom = new THREE.TubeGeometry(
+        curve, tubularSeg, path.radius, radialSeg, path.closed === true
+      );
+
+      const isArtery = path.type === 'artery';
+      const mat = new THREE.MeshPhongMaterial({
+        color:    isArtery ? 0xd9362a : 0x3f4794,
+        emissive: isArtery ? 0x4a0e08 : 0x14163a,
+        emissiveIntensity: 0.30,
+        specular: isArtery ? 0xff8a7a : 0x8a9cff,
+        shininess: 70,
+        transparent: true,
+        opacity: 0.96,
+        depthWrite: false,
+      });
+
+      const mesh = new THREE.Mesh(tubeGeom, mat);
+      mesh.userData.vesselId = path.id;
+      mesh.userData.vesselType = path.type;
+      mesh.renderOrder = 850;
+      vesselsGroup.add(mesh);
+    });
+
+    scene.add(vesselsGroup);
+  }
+
+  function setupVesselToggle() {
+    const btn = document.getElementById('anatomyVesselsToggle');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const on = btn.classList.toggle('is-active');
+      if (vesselsGroup) vesselsGroup.visible = on;
+    });
+  }
+
+  function animateVesselsPulse() {
+    if (!vesselsGroup || !vesselsGroup.visible) return;
+    const t = performance.now() / 750;
+    const arteryPulse = 0.30 + Math.sin(t) * 0.12;
+    const veinPulse   = 0.18 + Math.sin(t + 1.5) * 0.05;
+    vesselsGroup.children.forEach((m) => {
+      if (m.userData.vesselType === 'artery') {
+        m.material.emissiveIntensity = arteryPulse;
+      } else {
+        m.material.emissiveIntensity = veinPulse;
+      }
+    });
+  }
+
   /* ─── Public surface ────────────────────────────────────── */
   window.AnatomyView = {
     showTumor: showTumor,
     selectLobe: selectLobe,
     setSliceMode: setSliceMode,
+    toggleVessels: function (show) {
+      if (!vesselsGroup) return;
+      const btn = document.getElementById('anatomyVesselsToggle');
+      vesselsGroup.visible = (show !== undefined) ? !!show : !vesselsGroup.visible;
+      if (btn) btn.classList.toggle('is-active', vesselsGroup.visible);
+    },
   };
 
   /* ─── Go ────────────────────────────────────────────────── */

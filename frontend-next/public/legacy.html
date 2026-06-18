@@ -778,7 +778,14 @@
             <div class="anatomy-layout">
                 <div class="anatomy-viewer" id="anatomyViewer">
                     <span class="anatomy-tag">GLB · human-brain · front view</span>
-                    <button class="anatomy-reset" id="anatomyReset" type="button">↺ Reset view</button>
+                    <div class="anatomy-tools">
+                        <button class="anatomy-toggle is-active" id="anatomyVesselsToggle" type="button" title="Bật/tắt mạch máu">
+                            <span class="vt-dot artery"></span>
+                            <span class="vt-dot vein"></span>
+                            Mạch máu
+                        </button>
+                        <button class="anatomy-reset" id="anatomyReset" type="button">↺ Reset view</button>
+                    </div>
                     <canvas id="anatomyCanvas" class="anatomy-canvas"></canvas>
                     <div class="anatomy-placeholder" id="anatomyPlaceholder">
                         <div class="spinner"></div>

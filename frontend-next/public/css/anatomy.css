@@ -63,25 +63,60 @@
   z-index: 2;
 }
 
-.anatomy-reset {
+/* Toolbar — vessel toggle + reset view at top-right of viewer */
+.anatomy-tools {
   position: absolute;
   top: 12px; right: 12px;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+}
+
+.anatomy-reset,
+.anatomy-toggle {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
-  background: rgba(10, 14, 26, 0.75);
+  background: rgba(10, 14, 26, 0.78);
   border: 1px solid var(--border-glass);
   border-radius: 8px;
   padding: 6px 12px;
   cursor: pointer;
-  z-index: 2;
   transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 .anatomy-reset:hover {
   border-color: var(--accent-purple);
   color: var(--text-primary);
   background: rgba(139, 92, 246, 0.14);
+}
+.anatomy-toggle:hover {
+  border-color: rgba(220, 54, 42, 0.5);
+  color: var(--text-primary);
+  background: rgba(220, 54, 42, 0.10);
+}
+.anatomy-toggle.is-active {
+  border-color: rgba(220, 54, 42, 0.65);
+  color: var(--text-primary);
+  background: rgba(220, 54, 42, 0.16);
+  box-shadow: 0 0 14px rgba(220, 54, 42, 0.20);
+}
+.vt-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.vt-dot.artery {
+  background: #d9362a;
+  box-shadow: 0 0 6px rgba(217, 54, 42, 0.7);
+}
+.vt-dot.vein {
+  background: #4f56a8;
+  box-shadow: 0 0 6px rgba(79, 86, 168, 0.7);
 }
 
 .anatomy-placeholder {
