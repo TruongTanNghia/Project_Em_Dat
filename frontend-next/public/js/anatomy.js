@@ -140,18 +140,18 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(W, H, false);
 
-    // Lighting — soft key + cool fill + warm rim
-    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    // Lighting — warm neutral, no heavy blue tint
+    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 
-    const key = new THREE.DirectionalLight(0xffffff, 0.85);
+    const key = new THREE.DirectionalLight(0xffffff, 0.9);
     key.position.set(1, 1.2, 0.8);
     scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0x88a8ff, 0.32);
+    const fill = new THREE.DirectionalLight(0xfff0e6, 0.35);
     fill.position.set(-1, -0.4, 0.5);
     scene.add(fill);
 
-    const rim = new THREE.DirectionalLight(0xa78bfa, 0.28);
+    const rim = new THREE.DirectionalLight(0xb19cff, 0.22);
     rim.position.set(0, 0.2, -1);
     scene.add(rim);
 
@@ -180,17 +180,29 @@
       (gltf) => {
         brainModel = gltf.scene;
 
-        // Center model so origin is roughly centroid
-        const box = new THREE.Box3().setFromObject(brainModel);
+        // 1) Compute native bbox
+        let box = new THREE.Box3().setFromObject(brainModel);
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z) || 1;
+
+        // 2) Normalize scale: max dim = 0.14 (so hotspot coords [±0.06]
+        //    sit just inside the surface). GLB native could be 1 unit
+        //    or 100; this makes the scene predictable.
+        const TARGET_MAX = 0.14;
+        const scale = TARGET_MAX / maxDim;
+        brainModel.scale.setScalar(scale);
+
+        // 3) Recompute bbox after scaling, then center at origin
+        box = new THREE.Box3().setFromObject(brainModel);
         const center = box.getCenter(new THREE.Vector3());
         brainModel.position.sub(center);
 
-        // Make tissue semi-transparent so hotspots inside read through
+        // 4) Semi-transparent so hotspots inside read through
         brainModel.traverse((node) => {
           if (node.isMesh && node.material) {
             node.material = node.material.clone();
             node.material.transparent = true;
-            node.material.opacity = 0.70;
+            node.material.opacity = 0.68;
             node.material.depthWrite = false;
             node.material.side = THREE.DoubleSide;
           }
