@@ -6,7 +6,11 @@
   <title>ADA Medical AI Suite — Project Spec v1.1</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <!-- Google <model-viewer> web component for the 3D brain GLB.
+       ES module loads deferred; doesn't block first paint. -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js"></script>
   <style>
     /* ═════════════════════════════════════════════════════════════
        Project spec — docs register, distinct visual vocabulary
@@ -854,6 +858,128 @@
     }
     footer.docfoot .warn { color: var(--warn); }
 
+    /* ─── Anatomy reference (real GLB via model-viewer) ───── */
+    .anatomy-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      margin: 28px 0 32px;
+      align-items: stretch;
+    }
+    .anatomy-viewer {
+      position: relative;
+      background:
+        radial-gradient(circle at 50% 30%, var(--grad-a), transparent 60%),
+        linear-gradient(160deg, var(--panel-2), var(--bg-2));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      min-height: 420px;
+    }
+    .anatomy-viewer model-viewer {
+      width: 100%;
+      height: 100%;
+      min-height: 420px;
+      background-color: transparent;
+      --poster-color: transparent;
+    }
+    .anatomy-tag, .anatomy-fov {
+      position: absolute;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      padding: 4px 9px;
+      background: color-mix(in srgb, var(--bg) 70%, transparent);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .anatomy-tag { top: 12px; left: 12px; }
+    .anatomy-fov { bottom: 12px; left: 12px; color: var(--text-mute); }
+
+    /* Atlas labels list */
+    .atlas {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      align-content: start;
+      gap: 4px;
+      max-width: none;
+    }
+    .atlas-item {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      transition: border-color 0.3s var(--easing), background 0.3s var(--easing);
+      margin: 0;
+    }
+    .atlas-item:hover {
+      border-color: var(--line);
+      background: var(--panel);
+    }
+    .atlas-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-mute);
+      letter-spacing: 0.04em;
+      padding-top: 2px;
+    }
+    .atlas-name {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 14.5px;
+    }
+    .atlas-en {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      font-weight: 400;
+      color: var(--text-mute);
+      letter-spacing: 0.04em;
+      margin-left: 8px;
+    }
+    .atlas-role {
+      font-size: 13px;
+      color: var(--text-2);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+    .atlas-item.ai-focus {
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+      background: color-mix(in srgb, var(--accent) 6%, var(--panel));
+    }
+    .atlas-item.ai-focus .atlas-num,
+    .atlas-item.ai-focus .atlas-en { color: var(--accent); }
+    .ai-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding: 3px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--accent);
+      margin-top: 8px;
+    }
+    .ai-chip::before {
+      content: '';
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent);
+      animation: pulseDot 2.2s var(--easing) infinite;
+    }
+
     /* ─── Responsive ──────────────────────────────────────── */
     @media (max-width: 960px) {
       .layout {
@@ -880,6 +1006,9 @@
       .arch-node .tag { justify-self: start; }
       .chart-row { grid-template-columns: 1fr; gap: 6px; }
       .chart-row .val { text-align: left; }
+      .anatomy-grid { grid-template-columns: 1fr; gap: 18px; }
+      .anatomy-viewer { min-height: 340px; }
+      .anatomy-viewer model-viewer { min-height: 340px; }
     }
     @media (max-width: 560px) {
       body { font-size: 14.5px; }
@@ -968,6 +1097,7 @@
       <ul id="toc-list">
         <li><a href="#overview"><span class="n">→</span> Tổng quan</a></li>
         <li><a href="#modules"><span class="n">→</span> Sáu module</a></li>
+        <li><a href="#anatomy"><span class="n">→</span> Atlas giải phẫu</a></li>
         <li><a href="#architecture"><span class="n">→</span> Kiến trúc</a></li>
         <li><a href="#tech"><span class="n">→</span> Tech stack</a></li>
         <li><a href="#data"><span class="n">→</span> Datasets &amp; metrics</a></li>
@@ -1167,9 +1297,99 @@
         </div>
       </section>
 
+      <!-- ─── ANATOMY · BRAIN (real GLB via model-viewer) ─── -->
+      <section id="anatomy" class="reveal">
+        <h2><span class="num">03</span>Atlas giải phẫu · Brain</h2>
+        <p class="lede">
+          Mô hình GLB tham chiếu cho module 02. Sáu vùng giải phẫu
+          chính, kéo xoay để xem từ mọi góc. Vùng AI theo dõi được
+          highlight bằng accent màu tím.
+        </p>
+
+        <div class="anatomy-grid">
+          <div class="anatomy-viewer">
+            <span class="anatomy-tag">GLB · human-brain</span>
+            <span class="anatomy-fov">view · anterior · 80°</span>
+            <model-viewer
+              src="/models/brain/human-brain.glb"
+              alt="3D anatomical brain model for reference atlas"
+              auto-rotate
+              rotation-per-second="6deg"
+              camera-controls
+              disable-zoom
+              disable-pan
+              interaction-prompt="none"
+              exposure="1.0"
+              shadow-intensity="0.25"
+              tone-mapping="neutral"
+              camera-orbit="0deg 80deg 135%"
+              min-camera-orbit="auto 65deg 135%"
+              max-camera-orbit="auto 100deg 135%"
+              loading="lazy"
+              reveal="auto"
+              touch-action="pan-y"
+            ></model-viewer>
+          </div>
+
+          <ol class="atlas">
+            <li class="atlas-item">
+              <span class="atlas-num">01</span>
+              <div>
+                <div class="atlas-name">Thuỳ trán<span class="atlas-en">Frontal lobe</span></div>
+                <div class="atlas-role">Điều khiển vận động chủ ý, ngôn ngữ biểu đạt (vùng Broca), kế hoạch và ra quyết định.</div>
+              </div>
+            </li>
+            <li class="atlas-item">
+              <span class="atlas-num">02</span>
+              <div>
+                <div class="atlas-name">Thuỳ đỉnh<span class="atlas-en">Parietal lobe</span></div>
+                <div class="atlas-role">Cảm giác xúc giác, định hướng không gian, tích hợp đa giác quan.</div>
+              </div>
+            </li>
+            <li class="atlas-item ai-focus">
+              <span class="atlas-num">03</span>
+              <div>
+                <div class="atlas-name">Thuỳ thái dương<span class="atlas-en">Temporal lobe</span></div>
+                <div class="atlas-role">Thính giác, ngôn ngữ hiểu (vùng Wernicke), trí nhớ dài hạn, nhận diện khuôn mặt.</div>
+                <span class="ai-chip">AI focus · BraTS tumor common site</span>
+              </div>
+            </li>
+            <li class="atlas-item">
+              <span class="atlas-num">04</span>
+              <div>
+                <div class="atlas-name">Thuỳ chẩm<span class="atlas-en">Occipital lobe</span></div>
+                <div class="atlas-role">Xử lý thị giác sơ cấp, nhận diện hình dạng và chuyển động.</div>
+              </div>
+            </li>
+            <li class="atlas-item">
+              <span class="atlas-num">05</span>
+              <div>
+                <div class="atlas-name">Tiểu não<span class="atlas-en">Cerebellum</span></div>
+                <div class="atlas-role">Phối hợp vận động tinh, thăng bằng, học kỹ năng vận động.</div>
+              </div>
+            </li>
+            <li class="atlas-item">
+              <span class="atlas-num">06</span>
+              <div>
+                <div class="atlas-name">Thân não<span class="atlas-en">Brainstem</span></div>
+                <div class="atlas-role">Trung tâm tự động: nhịp tim, hô hấp, thân nhiệt, phản xạ sinh tồn.</div>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <div class="callout">
+          <div>
+            <b>Reference asset</b> · GLB từ <code>public/models/brain/human-brain.glb</code>
+            (~4 MB). Render real-time bằng Google <code>&lt;model-viewer&gt;</code> v4.1, không phải ảnh tĩnh.
+            Module phổi (lung GLB) sẽ thêm sau khi anh duyệt style brain.
+          </div>
+        </div>
+      </section>
+
       <!-- ─── ARCHITECTURE ───────────────────────────────── -->
       <section id="architecture" class="reveal">
-        <h2><span class="num">03</span>Kiến trúc</h2>
+        <h2><span class="num">04</span>Kiến trúc</h2>
         <p class="lede">
           Hai chân tách rời: Vercel host UI, máy local chạy AI, ngrok
           làm cầu nối.
@@ -1226,7 +1446,7 @@
 
       <!-- ─── TECH STACK ─────────────────────────────────── -->
       <section id="tech" class="reveal">
-        <h2><span class="num">04</span>Tech stack</h2>
+        <h2><span class="num">05</span>Tech stack</h2>
         <p class="lede">Một stack mỏng, tập trung vào model.</p>
 
         <div class="stack">
@@ -1275,7 +1495,7 @@
 
       <!-- ─── DATA ────────────────────────────────────────── -->
       <section id="data" class="reveal">
-        <h2><span class="num">05</span>Datasets &amp; metrics</h2>
+        <h2><span class="num">06</span>Datasets &amp; metrics</h2>
         <p class="lede">Sáu module, sáu nguồn dữ liệu chuẩn.</p>
 
         <div class="chart reveal-bar">
@@ -1314,7 +1534,7 @@
 
       <!-- ─── API ────────────────────────────────────────── -->
       <section id="api" class="reveal">
-        <h2><span class="num">06</span>API endpoints</h2>
+        <h2><span class="num">07</span>API endpoints</h2>
         <p class="lede">Flask backend, ~21 endpoint, JSON response, CORS wide-open.</p>
 
         <div class="table-wrap">
@@ -1340,7 +1560,7 @@
 
       <!-- ─── DEV ────────────────────────────────────────── -->
       <section id="dev" class="reveal">
-        <h2><span class="num">07</span>Local development</h2>
+        <h2><span class="num">08</span>Local development</h2>
         <p class="lede">Cần 3 terminal song song.</p>
 
 <pre><code><span class="cmt"># 1. Backend Flask AI service              → port 5000</span>
@@ -1364,7 +1584,7 @@ ngrok http <span class="num">5000</span></code></pre>
 
       <!-- ─── STATUS ─────────────────────────────────────── -->
       <section id="status" class="reveal">
-        <h2><span class="num">08</span>Status &amp; roadmap</h2>
+        <h2><span class="num">09</span>Status &amp; roadmap</h2>
         <p class="lede">Đang ở đâu, đi đâu tiếp.</p>
 
         <div class="timeline">
