@@ -76,6 +76,15 @@
   let autoRotate = true;
   let initialized = false;
 
+  // Mô phỏng cắt lớp — clipping plane state
+  const slice = {
+    mode: 'off',          // 'off' | 'axial' | 'sagittal' | 'coronal'
+    pos:  0,              // -1 ... 1 (normalized within ±BRAIN_HALF)
+    plane: new THREE.Plane(new THREE.Vector3(0, -1, 0), 0),
+    markerMesh: null,
+  };
+  const BRAIN_HALF = 0.07;  // half of normalized brain (matches TARGET_MAX/2 in loadBrain)
+
   /* ─── Lazy init ─────────────────────────────────────────── */
   function bootstrap() {
     canvas = document.getElementById('anatomyCanvas');
@@ -114,6 +123,7 @@
     setupRaycaster();
     setupAtlasCards();
     setupResetButton();
+    setupSliceControls();
     listenForTumorEvent();
     window.addEventListener('resize', onResize, { passive: true });
     animate();
@@ -139,6 +149,7 @@
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(W, H, false);
+    renderer.localClippingEnabled = true;  // for "mô phỏng cắt lớp"
 
     // Lighting — warm neutral, no heavy blue tint
     scene.add(new THREE.AmbientLight(0xffffff, 0.7));
@@ -197,14 +208,24 @@
         const center = box.getCenter(new THREE.Vector3());
         brainModel.position.sub(center);
 
-        // 4) Semi-transparent so hotspots inside read through
+        // 4) Override material: GLB's native color is saturated cyan
+        //    which doesn't read as brain tissue. Replace with a warm
+        //    pinkish-grey Phong material so it looks like real mô não.
         brainModel.traverse((node) => {
-          if (node.isMesh && node.material) {
-            node.material = node.material.clone();
-            node.material.transparent = true;
-            node.material.opacity = 0.68;
-            node.material.depthWrite = false;
-            node.material.side = THREE.DoubleSide;
+          if (node.isMesh) {
+            const newMat = new THREE.MeshPhongMaterial({
+              color:        0xd9b0a4,  // pinkish flesh
+              specular:     0xffe6dc,
+              shininess:    18,
+              transparent:  true,
+              opacity:      0.78,
+              depthWrite:   false,
+              side:         THREE.DoubleSide,
+              clippingPlanes: [],
+              clipShadows:  true,
+            });
+            node.material = newMat;
+            node.userData.brainMesh = true;
           }
         });
 
@@ -470,10 +491,119 @@
                    msg + '</span>';
   }
 
+  /* ─── Mô phỏng cắt lớp (clipping plane simulation) ──────── */
+  function setupSliceControls() {
+    // Visual marker — a translucent purple quad showing where the cut is
+    const geom = new THREE.PlaneGeometry(0.22, 0.22);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xa78bfa,
+      transparent: true,
+      opacity: 0.20,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    slice.markerMesh = new THREE.Mesh(geom, mat);
+    slice.markerMesh.visible = false;
+    slice.markerMesh.renderOrder = 500;
+    scene.add(slice.markerMesh);
+
+    // Button group
+    document.querySelectorAll('[data-slice-mode]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const mode = btn.getAttribute('data-slice-mode');
+        setSliceMode(mode);
+      });
+    });
+
+    // Slider
+    const slider = document.getElementById('anatomySliceSlider');
+    if (slider) {
+      slider.addEventListener('input', (e) => {
+        slice.pos = parseFloat(e.target.value);
+        updateSlicePlane();
+        updateSliceReadout();
+      });
+    }
+  }
+
+  function setSliceMode(mode) {
+    slice.mode = mode;
+    slice.pos = 0;
+    const slider = document.getElementById('anatomySliceSlider');
+    if (slider) {
+      slider.value = '0';
+      slider.disabled = (mode === 'off');
+    }
+
+    document.querySelectorAll('[data-slice-mode]').forEach((b) => {
+      b.classList.toggle('is-active', b.getAttribute('data-slice-mode') === mode);
+    });
+
+    if (mode === 'off') {
+      if (slice.markerMesh) slice.markerMesh.visible = false;
+      applyClippingPlanes([]);
+      updateSliceReadout();
+      return;
+    }
+
+    updateSlicePlane();
+    if (slice.markerMesh) slice.markerMesh.visible = true;
+    applyClippingPlanes([slice.plane]);
+    updateSliceReadout();
+  }
+
+  function updateSlicePlane() {
+    if (!slice.markerMesh) return;
+    const pos = slice.pos * BRAIN_HALF;
+
+    switch (slice.mode) {
+      case 'axial':    // horizontal cut, normal pointing down (+Y above kept, below clipped)
+        slice.plane.normal.set(0, -1, 0);
+        slice.plane.constant = pos;
+        slice.markerMesh.position.set(0, pos, 0);
+        slice.markerMesh.rotation.set(-Math.PI / 2, 0, 0);
+        break;
+      case 'sagittal': // vertical cut left-right
+        slice.plane.normal.set(-1, 0, 0);
+        slice.plane.constant = pos;
+        slice.markerMesh.position.set(pos, 0, 0);
+        slice.markerMesh.rotation.set(0, Math.PI / 2, 0);
+        break;
+      case 'coronal':  // front-back cut
+        slice.plane.normal.set(0, 0, -1);
+        slice.plane.constant = pos;
+        slice.markerMesh.position.set(0, 0, pos);
+        slice.markerMesh.rotation.set(0, 0, 0);
+        break;
+    }
+  }
+
+  function applyClippingPlanes(planes) {
+    if (!brainModel) return;
+    brainModel.traverse((node) => {
+      if (node.userData.brainMesh && node.material) {
+        node.material.clippingPlanes = planes;
+      }
+    });
+  }
+
+  function updateSliceReadout() {
+    const out = document.getElementById('anatomySliceReadout');
+    if (!out) return;
+    if (slice.mode === 'off') {
+      out.textContent = '—';
+      return;
+    }
+    const mm = Math.round(slice.pos * 70); // brain ≈ 14cm → ±70mm
+    const labels = { axial: 'Z', sagittal: 'X', coronal: 'Y' };
+    out.textContent = `${slice.mode.toUpperCase()} · ${labels[slice.mode]} = ${mm > 0 ? '+' : ''}${mm} mm`;
+  }
+
   /* ─── Public surface ────────────────────────────────────── */
   window.AnatomyView = {
     showTumor: showTumor,
     selectLobe: selectLobe,
+    setSliceMode: setSliceMode,
   };
 
   /* ─── Go ────────────────────────────────────────────────── */

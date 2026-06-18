@@ -861,6 +861,24 @@
                     <div class="anatomy-tumor-mono" id="anatomyTumorCoords">—</div>
                 </div>
             </div>
+
+            <!-- Mô phỏng cắt lớp — clipping plane controls -->
+            <div class="slice-controls">
+                <div class="slice-controls-label">
+                    Mô phỏng cắt lớp
+                    <small>Slice qua não để xem mặt cắt</small>
+                </div>
+                <div class="slice-buttons">
+                    <button class="slice-btn is-active" data-slice-mode="off" type="button">Off</button>
+                    <button class="slice-btn" data-slice-mode="axial" type="button">Axial</button>
+                    <button class="slice-btn" data-slice-mode="sagittal" type="button">Sagittal</button>
+                    <button class="slice-btn" data-slice-mode="coronal" type="button">Coronal</button>
+                </div>
+                <input type="range" id="anatomySliceSlider" class="slice-slider"
+                       min="-1" max="1" step="0.01" value="0" disabled
+                       aria-label="Vị trí mặt cắt">
+                <div class="slice-readout" id="anatomySliceReadout">—</div>
+            </div>
         </section>
 
         <!-- Section 6: Progression (was Section 5 before anatomy was added) -->
