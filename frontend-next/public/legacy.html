@@ -11,6 +11,7 @@
     <script src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=Geist+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/anatomy.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -766,9 +767,105 @@
             </div>
         </section>
 
-        <!-- Section 5: Progression -->
+        <!-- Section 5 (NEW): Anatomy Simulation — brain GLB + clickable atlas -->
+        <section class="card section-anatomy">
+            <div class="section-title">
+                <span class="section-num" style="background:linear-gradient(135deg,#a78bfa,#ff6b5a);">5</span>
+                MÔ PHỎNG GIẢI PHẨU 3D
+                <span class="anatomy-section-sub">brain · 6 thuỳ · click để xoay</span>
+            </div>
+
+            <div class="anatomy-layout">
+                <div class="anatomy-viewer" id="anatomyViewer">
+                    <span class="anatomy-tag">GLB · human-brain · front view</span>
+                    <button class="anatomy-reset" id="anatomyReset" type="button">↺ Reset view</button>
+                    <canvas id="anatomyCanvas" class="anatomy-canvas"></canvas>
+                    <div class="anatomy-placeholder" id="anatomyPlaceholder">
+                        <div class="spinner"></div>
+                        <span>Loading brain model...</span>
+                    </div>
+                </div>
+
+                <div class="atlas-panel">
+                    <div class="atlas-heading">Atlas giải phẩu · click để xem từng thuỳ</div>
+
+                    <div class="atlas-item" data-anatomy-lobe="frontal">
+                        <span class="atlas-num">01</span>
+                        <div class="atlas-body">
+                            <div class="atlas-name">Thuỳ trán<span class="atlas-en">Frontal lobe</span></div>
+                            <div class="atlas-role">Vận động chủ ý, ngôn ngữ biểu đạt (vùng Broca), ra quyết định.</div>
+                        </div>
+                        <span class="atlas-side">ANT</span>
+                    </div>
+
+                    <div class="atlas-item" data-anatomy-lobe="parietal">
+                        <span class="atlas-num">02</span>
+                        <div class="atlas-body">
+                            <div class="atlas-name">Thuỳ đỉnh<span class="atlas-en">Parietal lobe</span></div>
+                            <div class="atlas-role">Cảm giác xúc giác, định hướng không gian, tích hợp đa giác quan.</div>
+                        </div>
+                        <span class="atlas-side">SUP</span>
+                    </div>
+
+                    <div class="atlas-item ai-focus" data-anatomy-lobe="temporal">
+                        <span class="atlas-num">03</span>
+                        <div class="atlas-body">
+                            <div class="atlas-name">Thuỳ thái dương<span class="atlas-en">Temporal lobe</span></div>
+                            <div class="atlas-role">Thính giác, ngôn ngữ hiểu (Wernicke), trí nhớ dài hạn, nhận diện khuôn mặt.</div>
+                            <span class="atlas-chip">AI focus · BraTS tumor common</span>
+                        </div>
+                        <span class="atlas-side">LAT</span>
+                    </div>
+
+                    <div class="atlas-item" data-anatomy-lobe="occipital">
+                        <span class="atlas-num">04</span>
+                        <div class="atlas-body">
+                            <div class="atlas-name">Thuỳ chẩm<span class="atlas-en">Occipital lobe</span></div>
+                            <div class="atlas-role">Xử lý thị giác sơ cấp, nhận diện hình dạng và chuyển động.</div>
+                        </div>
+                        <span class="atlas-side">POST</span>
+                    </div>
+
+                    <div class="atlas-item" data-anatomy-lobe="cerebellum">
+                        <span class="atlas-num">05</span>
+                        <div class="atlas-body">
+                            <div class="atlas-name">Tiểu não<span class="atlas-en">Cerebellum</span></div>
+                            <div class="atlas-role">Phối hợp vận động tinh, thăng bằng, học kỹ năng vận động.</div>
+                        </div>
+                        <span class="atlas-side">INF</span>
+                    </div>
+
+                    <div class="atlas-item" data-anatomy-lobe="brainstem">
+                        <span class="atlas-num">06</span>
+                        <div class="atlas-body">
+                            <div class="atlas-name">Thân não<span class="atlas-en">Brainstem</span></div>
+                            <div class="atlas-role">Trung tâm tự động: nhịp tim, hô hấp, thân nhiệt, phản xạ sinh tồn.</div>
+                        </div>
+                        <span class="atlas-side">INF</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="anatomy-tumor-card" id="anatomyTumorInfo" hidden>
+                <span class="anatomy-tumor-icon"></span>
+                <div>
+                    <div class="anatomy-tumor-label">Vị trí khối u (AI)</div>
+                    <div class="anatomy-tumor-value" id="anatomyTumorLocation">—</div>
+                </div>
+                <div>
+                    <div class="anatomy-tumor-label">Thể tích</div>
+                    <div class="anatomy-tumor-value" id="anatomyTumorVolume">—</div>
+                </div>
+                <div>
+                    <div class="anatomy-tumor-label">Toạ độ</div>
+                    <div class="anatomy-tumor-mono" id="anatomyTumorCoords">—</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: Progression (was Section 5 before anatomy was added) -->
         <section class="card section-progression">
-            <div class="section-title"><span class="section-num">5</span> SO SÁNH &amp; THEO DÕI TIẾN TRIỂN</div>
+            <div class="section-title"><span class="section-num">6</span> SO SÁNH &amp; THEO DÕI TIẾN TRIỂN</div>
 
             <div class="progression-row">
                 <div class="timeline" id="brainTimeline">
@@ -785,9 +882,9 @@
             </div>
         </section>
 
-        <!-- Section 6: Recommendations -->
+        <!-- Section 7: Recommendations (was Section 6 before anatomy was added) -->
         <section class="card section-recommend brain-reco-card">
-            <div class="section-title"><span class="section-num">6</span> KHUYẾN NGHỊ (AI)</div>
+            <div class="section-title"><span class="section-num">7</span> KHUYẾN NGHỊ (AI)</div>
 
             <ul class="reco-list" id="brainRecoList">
                 <li class="reco-item empty">Phân tích ảnh để nhận khuyến nghị AI</li>
@@ -1366,5 +1463,6 @@
 </div><!-- /module-blood -->
 
 <script src="js/app.js"></script>
+<script src="js/anatomy.js" defer></script>
 </body>
 </html>

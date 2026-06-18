@@ -1,0 +1,304 @@
+/* ──────────────────────────────────────────────────────────────
+   anatomy.css — section "MÔ PHỎNG GIẢI PHẨU 3D" cho U não MRI tab
+   Style theo design tokens của styles.css (dark blue/purple/cyan).
+   Section nằm full-width trong brain-grid.
+─────────────────────────────────────────────────────────────── */
+
+.section-anatomy {
+  grid-column: 1 / -1;
+}
+
+.section-anatomy .anatomy-section-sub {
+  font-family: ui-monospace, "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-left: 12px;
+  font-weight: 500;
+}
+
+.anatomy-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 20px;
+  margin-top: 16px;
+}
+
+/* ─── 3D viewer container ───────────────────────────────── */
+.anatomy-viewer {
+  position: relative;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(167, 139, 250, 0.14), transparent 60%),
+    linear-gradient(160deg, rgba(17, 24, 39, 0.92), #080b15);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  min-height: 460px;
+  box-shadow: var(--shadow-md);
+}
+
+.anatomy-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 460px;
+  cursor: grab;
+}
+.anatomy-canvas:active { cursor: grabbing; }
+
+.anatomy-tag {
+  position: absolute;
+  top: 12px; left: 12px;
+  font-family: ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  background: rgba(10, 14, 26, 0.75);
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.anatomy-reset {
+  position: absolute;
+  top: 12px; right: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: rgba(10, 14, 26, 0.75);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  z-index: 2;
+  transition: var(--transition);
+}
+.anatomy-reset:hover {
+  border-color: var(--accent-purple);
+  color: var(--text-primary);
+  background: rgba(139, 92, 246, 0.14);
+}
+
+.anatomy-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--text-muted);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+.anatomy-placeholder .spinner {
+  width: 36px; height: 36px;
+  border: 2px solid var(--border-glass);
+  border-top-color: var(--accent-purple);
+  border-right-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: anatomySpin 0.9s linear infinite;
+}
+@keyframes anatomySpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Atlas labels list ─────────────────────────────────── */
+.atlas-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 460px;
+}
+
+.atlas-heading {
+  font-family: ui-monospace, "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.atlas-item {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 14px;
+  padding: 11px 14px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+  align-items: start;
+  user-select: none;
+}
+.atlas-item:hover {
+  border-color: rgba(167, 139, 250, 0.45);
+  background: rgba(139, 92, 246, 0.08);
+  transform: translateY(-1px);
+}
+.atlas-item.is-active {
+  border-color: var(--accent-purple);
+  background: rgba(139, 92, 246, 0.18);
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.25),
+              0 10px 28px -12px rgba(139, 92, 246, 0.55);
+}
+
+/* AI focus item — special highlight for the lobe AI tracks */
+.atlas-item.ai-focus {
+  border-color: rgba(255, 107, 90, 0.45);
+  background: rgba(255, 107, 90, 0.06);
+}
+.atlas-item.ai-focus:hover {
+  background: rgba(255, 107, 90, 0.10);
+}
+.atlas-item.ai-focus.is-active {
+  border-color: var(--accent-red);
+  background: rgba(255, 107, 90, 0.16);
+  box-shadow: 0 0 0 1px rgba(255, 107, 90, 0.32),
+              0 10px 28px -12px rgba(239, 68, 68, 0.55);
+}
+
+.atlas-num {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding-top: 2px;
+}
+.atlas-item.is-active .atlas-num { color: var(--accent-purple); }
+.atlas-item.ai-focus .atlas-num { color: rgba(255, 107, 90, 0.85); }
+.atlas-item.ai-focus.is-active .atlas-num { color: var(--accent-red); }
+
+.atlas-body { min-width: 0; }
+.atlas-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+.atlas-en {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 6px;
+  font-weight: 400;
+}
+.atlas-role {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+  line-height: 1.55;
+}
+
+.atlas-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-red);
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 107, 90, 0.55);
+  margin-top: 7px;
+}
+.atlas-chip::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+  animation: atlasPulse 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+@keyframes atlasPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
+  100% { box-shadow: 0 0 0 11px transparent; }
+}
+
+.atlas-side {
+  font-family: ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  padding-top: 4px;
+  align-self: start;
+  letter-spacing: 0.06em;
+}
+
+/* ─── Tumor location summary card ───────────────────────── */
+.anatomy-tumor-card {
+  margin-top: 18px;
+  padding: 16px 20px;
+  background:
+    linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(245, 158, 11, 0.05)),
+    var(--bg-glass);
+  border: 1px solid rgba(239, 68, 68, 0.40);
+  border-radius: var(--radius-md);
+  display: grid;
+  grid-template-columns: auto 1.4fr 1fr 1.2fr;
+  gap: 14px 28px;
+  align-items: center;
+}
+.anatomy-tumor-card[hidden] { display: none; }
+.anatomy-tumor-icon {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent-red), rgba(239, 68, 68, 0.05) 75%);
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.4);
+}
+.anatomy-tumor-label {
+  font-family: ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.anatomy-tumor-value {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.anatomy-tumor-mono {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+/* ─── Responsive ────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .anatomy-tumor-card { grid-template-columns: auto 1fr 1fr; }
+  .anatomy-tumor-card > div:last-child { grid-column: 2 / -1; }
+}
+
+@media (max-width: 900px) {
+  .anatomy-layout { grid-template-columns: 1fr; }
+  .anatomy-viewer { min-height: 380px; }
+  .anatomy-canvas { min-height: 380px; }
+  .atlas-panel { min-height: auto; }
+}
+
+@media (max-width: 560px) {
+  .anatomy-tumor-card {
+    grid-template-columns: auto 1fr;
+    gap: 12px 16px;
+    padding: 14px 16px;
+  }
+  .anatomy-tumor-card > div { grid-column: 2; }
+  .atlas-item { grid-template-columns: 24px 1fr; }
+  .atlas-side { display: none; }
+}
