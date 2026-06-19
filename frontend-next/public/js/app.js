@@ -3923,6 +3923,24 @@ function displayBrainResult(result, isNiftiInput) {
     document.getElementById('brainGrade').textContent =
         detected ? 'Cần đánh giá lâm sàng' : '—';
 
+    // ── Pipe tumor data DOWN to Section 5 (MÔ PHỎNG GIẢI PHẨU 3D) ──
+    // The anatomy section (anatomy.js) listens for this event and renders
+    // the same tumor in its own 3D viewer + opens the planning workflow.
+    if (detected) {
+        document.dispatchEvent(new CustomEvent('brain:tumor-detected', {
+            detail: {
+                volume:        volCm3,
+                maxDiameterMm: diam,
+                confidence:    conf,
+                centroid128:   result.centroid128 || { x: 64, y: 64, z: 64 },
+                detected:      true,
+            },
+        }));
+    } else {
+        // Notify section 5 to clear any old tumor display
+        document.dispatchEvent(new CustomEvent('brain:tumor-cleared'));
+    }
+
     // Detection canvas — 3 separate panels (Sagittal / Coronal / Axial)
     // instead of one cramped combined ortho plot.
     var detEl = document.getElementById('brainDetectionCanvas');

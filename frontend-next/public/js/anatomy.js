@@ -363,20 +363,70 @@
   /* ─── Tumor overlay ────────────────────────────────────── */
   function listenForTumorEvent() {
     document.addEventListener('brain:tumor-detected', (e) => {
-      const data = e.detail || {};
-      showTumor(data);
+      showTumor(e.detail || {});
+    });
+    document.addEventListener('brain:tumor-cleared', () => {
+      clearTumor();
     });
   }
 
-  function showTumor(data) {
+  // Map BraTS 128³ centroid → model space [-0.06 .. +0.06]³.
+  // Axis remapping is best-guess based on common MRI conventions —
+  // user can give feedback if tumor appears on wrong side.
+  function centroid128ToModel(c) {
+    if (!c) return null;
+    const k = 0.06 / 64;
+    return [
+      -((c.x || 64) - 64) * k,   // X flipped (radiology L/R convention)
+      ((c.z || 64) - 64) * k,    // axial slice → vertical
+      ((c.y || 64) - 64) * k,    // anterior-posterior
+    ];
+  }
+
+  // Rough heuristic: derive lobe name from centroid128 octant
+  function centroidToLobeName(c) {
+    if (!c) return 'Đã định vị';
+    const x = c.x || 64, y = c.y || 64, z = c.z || 64;
+    if (z > 88) return 'Thuỳ đỉnh';
+    if (z < 38) return 'Tiểu não / Thân não';
+    if (y > 92) return 'Thuỳ trán';
+    if (y < 38) return 'Thuỳ chẩm';
+    const side = x > 64 ? 'R' : 'L';
+    if (z > 60) return 'Thuỳ đỉnh / Thái dương · ' + side;
+    return 'Thuỳ thái dương · ' + side;
+  }
+
+  function clearTumor() {
     if (tumorSphere) {
+      if (tumorSphere.userData.glow) scene.remove(tumorSphere.userData.glow);
       scene.remove(tumorSphere);
       tumorSphere.geometry.dispose();
       tumorSphere.material.dispose();
       tumorSphere = null;
     }
+    const panel = document.getElementById('anatomyTumorInfo');
+    if (panel) panel.hidden = true;
+  }
 
-    const pos = data.position || [0.048, 0.005, 0.035]; // default = temporal R
+  function showTumor(data) {
+    clearTumor();
+
+    // 1) Resolve tumor position. Priority:
+    //    explicit data.position → centroid128 → fallback temporal R
+    let pos;
+    if (Array.isArray(data.position)) {
+      pos = data.position;
+    } else if (data.centroid128) {
+      pos = centroid128ToModel(data.centroid128);
+    } else {
+      pos = [0.048, 0.005, 0.035];
+    }
+
+    // 2) Resolve display label
+    if (!data.location && data.centroid128) {
+      data.location = centroidToLobeName(data.centroid128);
+    }
+
     const volumeCm3 = (typeof data.volume === 'number') ? data.volume : 6.0;
 
     // Radius scaled from cm³ volume: V = 4/3 π r³ → r = (3V/4π)^(1/3) (cm)
@@ -422,10 +472,10 @@
     const volEl = document.getElementById('anatomyTumorVolume');
     const coordEl = document.getElementById('anatomyTumorCoords');
 
-    if (locEl) locEl.textContent = data.location || 'Temporal lobe · R';
+    if (locEl) locEl.textContent = data.location || 'Đã định vị (AI)';
     if (volEl) {
       const v = (typeof data.volume === 'number') ? data.volume : 6.0;
-      volEl.textContent = v.toFixed(1) + ' cm³';
+      volEl.textContent = v.toFixed(2) + ' cm³';
     }
     if (coordEl) {
       coordEl.textContent =
