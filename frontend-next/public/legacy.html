@@ -920,18 +920,85 @@
                 </div>
             </div>
 
-            <!-- ── Stage 2 · Lập đường mổ (placeholder) ─────────── -->
+            <!-- ── Stage 2 · Lập đường mổ ──────────────────────── -->
             <div class="stage-panel" data-stage-panel="plan" role="tabpanel" hidden>
-                <div class="stage-placeholder">
-                    <div class="sp-icon">🛤️</div>
-                    <h4>Lập kế hoạch đường mổ — đang phát triển</h4>
-                    <p>Stage 2 sẽ vẽ <b>đường mổ tối ưu</b> (yellow probe) từ bề mặt sọ vào tâm khối u, đồng thời highlight các cấu trúc cần tránh trên đường đi.</p>
-                    <ul class="sp-features">
-                        <li><span class="sp-dot probe"></span>Yellow probe — đường mổ dự kiến (drag để xoay angle)</li>
-                        <li><span class="sp-dot vessel"></span>Green halo — vùng mạch máu lớn cần tránh</li>
-                        <li><span class="sp-dot func"></span>Purple halo — vùng chức năng (Broca, Wernicke, motor cortex)</li>
-                        <li><span class="sp-dot dist"></span>Khoảng cách tới mỗi cấu trúc tính real-time</li>
-                    </ul>
+                <div class="anatomy-layout">
+                    <div class="anatomy-viewer" id="planViewer">
+                        <span class="anatomy-tag">Surgical Path · auto-fit</span>
+                        <div class="plan-toolbar">
+                            <button class="plan-tbtn is-active" data-plan-show="probe" type="button" title="Probe">
+                                <span class="ll-dot probe"></span>Probe
+                            </button>
+                            <button class="plan-tbtn is-active" data-plan-show="vessels" type="button" title="Mạch máu">
+                                <span class="ll-dot green"></span>Mạch máu
+                            </button>
+                            <button class="plan-tbtn is-active" data-plan-show="func" type="button" title="Vùng chức năng">
+                                <span class="ll-dot purple"></span>Chức năng
+                            </button>
+                        </div>
+                        <canvas id="planCanvas" class="anatomy-canvas"></canvas>
+                        <div class="anatomy-placeholder" id="planPlaceholder">
+                            <div class="spinner"></div>
+                            <span>Loading planning view...</span>
+                        </div>
+                    </div>
+
+                    <div class="plan-sidebar">
+                        <div class="plan-header">
+                            <h4>Đường mổ AI đề xuất</h4>
+                            <p>Chỉnh góc vào để mô phỏng đường mổ. Hệ thống tính khoảng cách tới mạch máu &amp; vùng chức năng real-time.</p>
+                        </div>
+
+                        <div class="plan-control">
+                            <div class="plan-control-row">
+                                <label for="probeAzimuth">Góc azimuth</label>
+                                <span class="plan-readout" id="probeAzimuthReadout">180°</span>
+                            </div>
+                            <input type="range" id="probeAzimuth" class="slice-slider"
+                                   min="0" max="360" step="1" value="180"
+                                   aria-label="Góc azimuth">
+                        </div>
+
+                        <div class="plan-control">
+                            <div class="plan-control-row">
+                                <label for="probeElevation">Góc elevation</label>
+                                <span class="plan-readout" id="probeElevationReadout">+30°</span>
+                            </div>
+                            <input type="range" id="probeElevation" class="slice-slider"
+                                   min="-30" max="80" step="1" value="30"
+                                   aria-label="Góc elevation">
+                        </div>
+
+                        <div class="plan-metrics">
+                            <div class="plan-metric">
+                                <span class="plan-metric-label">Tới mạch máu gần nhất</span>
+                                <span class="plan-metric-value" id="distVessel">— mm</span>
+                                <span class="plan-metric-sub" id="distVesselName">—</span>
+                            </div>
+                            <div class="plan-metric">
+                                <span class="plan-metric-label">Tới vùng chức năng gần nhất</span>
+                                <span class="plan-metric-value" id="distFunc">— mm</span>
+                                <span class="plan-metric-sub" id="distFuncName">—</span>
+                            </div>
+                            <div class="plan-metric">
+                                <span class="plan-metric-label">Độ dài đường mổ</span>
+                                <span class="plan-metric-value" id="probeLength">— mm</span>
+                                <span class="plan-metric-sub">entry → tumor</span>
+                            </div>
+                            <div class="plan-metric safety">
+                                <span class="plan-metric-label">Score an toàn</span>
+                                <span class="plan-metric-value" id="safetyScore">— / 10</span>
+                                <span class="plan-metric-sub" id="safetyVerdict">—</span>
+                            </div>
+                        </div>
+
+                        <div class="plan-legend">
+                            <div class="plan-legend-item"><span class="ll-dot probe"></span>Đường mổ dự kiến</div>
+                            <div class="plan-legend-item"><span class="ll-dot green"></span>Mạch máu lớn (tránh)</div>
+                            <div class="plan-legend-item"><span class="ll-dot purple"></span>Vùng chức năng (tránh)</div>
+                            <div class="plan-legend-item"><span class="ll-dot red"></span>Khối u (mục tiêu)</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -766,3 +766,175 @@
     min-height: 220px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Stage 2 — Lập đường mổ (Surgical Planning)
+═══════════════════════════════════════════════════════════ */
+
+.plan-toolbar {
+  position: absolute;
+  top: 12px; right: 12px;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: rgba(10, 14, 26, 0.78);
+  border: 1px solid var(--border-glass);
+  border-radius: 9px;
+}
+.plan-tbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.plan-tbtn:hover { color: var(--text-secondary); background: rgba(255,255,255,0.04); }
+.plan-tbtn.is-active {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Sidebar — controls + metrics + legend */
+.plan-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 460px;
+}
+.plan-header h4 {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+.plan-header p {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.plan-control {
+  padding: 12px 14px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+}
+.plan-control-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.plan-control-row label {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.plan-readout {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-purple);
+}
+
+/* Metrics list */
+.plan-metrics {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+}
+.plan-metric {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 1px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-2, rgba(255,255,255,0.05));
+}
+.plan-metric:last-child { border-bottom: none; padding-bottom: 0; }
+.plan-metric-label {
+  grid-column: 1;
+  grid-row: 1;
+  font-family: ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.plan-metric-value {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  font-family: ui-monospace, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  align-self: center;
+  text-align: right;
+}
+.plan-metric-sub {
+  grid-column: 1;
+  grid-row: 2;
+  font-family: ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+.plan-metric.safety {
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 1px dashed var(--border-glass);
+  border-bottom: none;
+}
+.plan-metric.safety .plan-metric-value { font-size: 18px; }
+
+/* Legend */
+.plan-legend {
+  padding: 12px 14px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: 6px;
+}
+.plan-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Color dots (shared between toolbar + legend + sp-features) */
+.ll-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.ll-dot.probe  { background: #facc15; box-shadow: 0 0 8px rgba(250, 204, 21, 0.6); }
+.ll-dot.green  { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.55); }
+.ll-dot.purple { background: #c084fc; box-shadow: 0 0 8px rgba(192, 132, 252, 0.55); }
+.ll-dot.red    { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.55); }
+
+@media (max-width: 900px) {
+  .plan-sidebar { min-height: auto; }
+}
