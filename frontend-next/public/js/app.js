@@ -6214,12 +6214,8 @@ function renderProgressionChart(canvasId, data, unit, color) {
             if (r.mask_png_base64) {
                 const maskSrc = 'data:image/png;base64,' + r.mask_png_base64;
                 if (kgMask) kgMask.innerHTML = '<img src="' + maskSrc + '" style="filter: contrast(1.2);">';
-                if (kgOverlay) kgOverlay.innerHTML =
-                    '<div class="kg-overlay-wrap">' +
-                        '<img class="kg-bg" src="' + currentImgUrl + '">' +
-                        '<img class="kg-fg" src="' + maskSrc + '">' +
-                    '</div>';
-                // Stash for GT comparison later
+                // Render Kaggle-style overlay via canvas (jet colormap + red mask)
+                renderKaggleOverlay(kgOverlay, currentImgUrl, maskSrc);
                 window._lastPredMaskSrc = maskSrc;
                 window._lastImageSize = r.image_size || [400, 300];
             } else {
@@ -6312,6 +6308,89 @@ function renderProgressionChart(canvasId, data, unit, color) {
             reader.readAsDataURL(f);
         });
     }
+
+    // Render Kaggle-style overlay via canvas — jet colormap on the input
+    // image + red filled region where mask > 128. Mimics:
+    //   plt.imshow(image, cmap='gray'); plt.imshow(mask, cmap='jet', alpha=0.5)
+    window.renderKaggleOverlay = function (container, imgUrl, maskSrc) {
+        if (!container) return;
+        const img = new Image();
+        const mask = new Image();
+        let count = 0;
+        const done = () => {
+            count++;
+            if (count < 2) return;
+            const W = 384, H = 384;
+            const cnv = document.createElement('canvas');
+            cnv.width = W; cnv.height = H;
+            cnv.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;';
+            const ctx = cnv.getContext('2d');
+
+            // Draw scaled input → read pixels
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, W, H);
+            // fit input into canvas keeping aspect ratio
+            const drawFit = (im) => {
+                const ar = im.width / im.height;
+                let dw = W, dh = H;
+                if (ar > 1) dh = W / ar; else dw = H * ar;
+                const dx = (W - dw) / 2, dy = (H - dh) / 2;
+                ctx.drawImage(im, dx, dy, dw, dh);
+            };
+
+            drawFit(img);
+            const inputData = ctx.getImageData(0, 0, W, H);
+
+            // Draw scaled mask → read pixels
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, W, H);
+            drawFit(mask);
+            const maskData = ctx.getImageData(0, 0, W, H);
+
+            // Composite: jet colormap on input + red on mask
+            const result = ctx.createImageData(W, H);
+            const px = result.data;
+            const ind = inputData.data;
+            const mnd = maskData.data;
+            for (let i = 0; i < px.length; i += 4) {
+                const gray = ind[i];                          // assume R≈G≈B
+                const m = mnd[i];                              // mask intensity
+                const v = gray / 255;
+                // Jet colormap (matplotlib's classic)
+                let r, g, b;
+                if (v < 0.125)       { r = 0; g = 0; b = 0.5 + v * 4; }
+                else if (v < 0.375)  { r = 0; g = (v - 0.125) * 4; b = 1; }
+                else if (v < 0.625)  { r = (v - 0.375) * 4; g = 1; b = 1 - (v - 0.375) * 4; }
+                else if (v < 0.875)  { r = 1; g = 1 - (v - 0.625) * 4; b = 0; }
+                else                 { r = 1 - (v - 0.875) * 4; g = 0; b = 0; }
+                // Alpha-blend with original grayscale (~50/50 = matplotlib alpha=0.5 over gray)
+                const a = 0.55;
+                r = (gray / 255) * (1 - a) + r * a;
+                g = (gray / 255) * (1 - a) + g * a;
+                b = (gray / 255) * (1 - a) + b * a;
+                // If mask present → blend toward strong red
+                if (m > 128) {
+                    const ma = 0.55;
+                    r = r * (1 - ma) + 0.86 * ma;
+                    g = g * (1 - ma) + 0.10 * ma;
+                    b = b * (1 - ma) + 0.06 * ma;
+                }
+                px[i]     = Math.round(r * 255);
+                px[i + 1] = Math.round(g * 255);
+                px[i + 2] = Math.round(b * 255);
+                px[i + 3] = 255;
+            }
+            ctx.putImageData(result, 0, 0);
+            container.innerHTML = '';
+            container.appendChild(cnv);
+        };
+        img.onload  = done;
+        mask.onload = done;
+        img.crossOrigin  = 'anonymous';
+        mask.crossOrigin = 'anonymous';
+        img.src  = imgUrl;
+        mask.src = maskSrc;
+    };
 
     window.computeBreastMetrics = function (predB64OrSrc, gtSrc) {
         // Load both as Image objects, draw to canvas, compute pixel-wise overlap
