@@ -6204,6 +6204,35 @@ function renderProgressionChart(canvasId, data, unit, color) {
                 '</div>';
         }
 
+        // ── Kaggle-style 3-panel comparison grid ──
+        if (currentImgUrl) {
+            const kgInput = document.getElementById('kgInput');
+            const kgMask = document.getElementById('kgMask');
+            const kgOverlay = document.getElementById('kgOverlay');
+            if (kgInput) kgInput.innerHTML = '<img src="' + currentImgUrl + '">';
+
+            if (r.mask_png_base64) {
+                const maskSrc = 'data:image/png;base64,' + r.mask_png_base64;
+                if (kgMask) kgMask.innerHTML = '<img src="' + maskSrc + '" style="filter: contrast(1.2);">';
+                if (kgOverlay) kgOverlay.innerHTML =
+                    '<div class="kg-overlay-wrap">' +
+                        '<img class="kg-bg" src="' + currentImgUrl + '">' +
+                        '<img class="kg-fg" src="' + maskSrc + '">' +
+                    '</div>';
+                // Stash for GT comparison later
+                window._lastPredMaskSrc = maskSrc;
+                window._lastImageSize = r.image_size || [400, 300];
+            } else {
+                if (kgMask) kgMask.innerHTML = '<div class="kg-empty">Không có mask (mock fail)</div>';
+                if (kgOverlay) kgOverlay.innerHTML = '<div class="kg-empty">—</div>';
+            }
+
+            // If GT mask was previously uploaded, re-run Dice computation
+            if (window._lastGtMaskSrc && r.mask_png_base64) {
+                computeBreastMetrics(r.mask_png_base64, window._lastGtMaskSrc);
+            }
+        }
+
         // Classification (BiomedCLIP zero-shot)
         const classif = r.classification;
         const classifBlock = document.getElementById('breastClassif');
@@ -6261,6 +6290,78 @@ function renderProgressionChart(canvasId, data, unit, color) {
     function escapeHtmlB(s) {
         return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
+
+    // ── Ground Truth mask upload + Dice/IoU computation ──
+    const gtInput = document.getElementById('breastGtInput');
+    if (gtInput) {
+        gtInput.addEventListener('change', (e) => {
+            const f = e.target.files[0];
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                window._lastGtMaskSrc = ev.target.result;
+                const kgGt = document.getElementById('kgGt');
+                const kgGtPanel = document.getElementById('kgGtPanel');
+                if (kgGt) kgGt.innerHTML = '<img src="' + ev.target.result + '" style="filter: contrast(1.2);">';
+                if (kgGtPanel) kgGtPanel.style.display = 'flex';
+                // If we have predicted mask, compute Dice/IoU
+                if (window._lastPredMaskSrc) {
+                    computeBreastMetrics(window._lastPredMaskSrc.replace('data:image/png;base64,', ''), ev.target.result);
+                }
+            };
+            reader.readAsDataURL(f);
+        });
+    }
+
+    window.computeBreastMetrics = function (predB64OrSrc, gtSrc) {
+        // Load both as Image objects, draw to canvas, compute pixel-wise overlap
+        const predSrc = predB64OrSrc.startsWith('data:') ? predB64OrSrc : 'data:image/png;base64,' + predB64OrSrc;
+        const imgPred = new Image();
+        const imgGt   = new Image();
+        let loaded = 0;
+        const onReady = () => {
+            loaded++;
+            if (loaded < 2) return;
+            const W = Math.min(imgPred.width || 256, 512);
+            const H = Math.min(imgPred.height || 256, 512);
+            const c = document.createElement('canvas');
+            c.width = W; c.height = H;
+            const ctx = c.getContext('2d');
+            // Draw predicted, get pixel data
+            ctx.drawImage(imgPred, 0, 0, W, H);
+            const predData = ctx.getImageData(0, 0, W, H).data;
+            // Clear, draw GT, get pixel data
+            ctx.clearRect(0, 0, W, H);
+            ctx.drawImage(imgGt, 0, 0, W, H);
+            const gtData = ctx.getImageData(0, 0, W, H).data;
+            // Pixel-wise comparison — threshold 128
+            let tp = 0, fp = 0, fn = 0, tn = 0;
+            for (let i = 0; i < predData.length; i += 4) {
+                const p = predData[i] > 128 ? 1 : 0;
+                const g = gtData[i] > 128 ? 1 : 0;
+                if (p === 1 && g === 1) tp++;
+                else if (p === 1 && g === 0) fp++;
+                else if (p === 0 && g === 1) fn++;
+                else tn++;
+            }
+            const dice = (2 * tp + 1) / (2 * tp + fp + fn + 1);
+            const iou  = (tp + 1) / (tp + fp + fn + 1);
+            const acc  = (tp + tn) / (tp + tn + fp + fn);
+            const set = (id, val, dec) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = val.toFixed(dec);
+            };
+            set('kgDice', dice, 4);
+            set('kgIou', iou, 4);
+            set('kgAcc', acc, 4);
+            const metrics = document.getElementById('kgMetrics');
+            if (metrics) metrics.style.display = 'flex';
+        };
+        imgPred.onload = onReady;
+        imgGt.onload = onReady;
+        imgPred.src = predSrc;
+        imgGt.src   = gtSrc;
+    };
 
     document.addEventListener('DOMContentLoaded', () => {
         const apiBase = (window.CONFIG && window.CONFIG.PYTHON_API) || 'http://localhost:5000';

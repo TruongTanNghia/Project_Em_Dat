@@ -1752,6 +1752,52 @@
             </div>
         </section>
 
+        <!-- Section 2.5: Kaggle-style comparison grid (Input | Mask | Overlay) -->
+        <section class="card" style="grid-column: 1 / -1; background: linear-gradient(180deg, rgba(236,72,153,0.04), transparent);">
+            <div class="section-title">
+                <span class="section-num" style="background:linear-gradient(135deg,#ec4899,#db2777);">▲</span>
+                SO SÁNH 3-PANEL (Kaggle style)
+                <span style="font-family: ui-monospace, monospace; font-size: 11px; color: var(--text-muted); margin-left: 10px;">
+                    Input · Predicted Mask · Overlay
+                </span>
+            </div>
+            <div class="kaggle-grid" id="breastKaggleGrid">
+                <div class="kg-panel">
+                    <div class="kg-label">INPUT · Ultrasound</div>
+                    <div class="kg-img" id="kgInput">
+                        <div class="kg-empty">Upload + phân tích để xem</div>
+                    </div>
+                </div>
+                <div class="kg-panel">
+                    <div class="kg-label">PREDICTED MASK</div>
+                    <div class="kg-img" id="kgMask">
+                        <div class="kg-empty">—</div>
+                    </div>
+                </div>
+                <div class="kg-panel">
+                    <div class="kg-label">OVERLAY</div>
+                    <div class="kg-img" id="kgOverlay">
+                        <div class="kg-empty">—</div>
+                    </div>
+                </div>
+                <div class="kg-panel" id="kgGtPanel" style="display:none;">
+                    <div class="kg-label">GROUND TRUTH</div>
+                    <div class="kg-img" id="kgGt"></div>
+                </div>
+            </div>
+            <div class="kg-metrics" id="kgMetrics" style="display:none;">
+                <div class="kg-metric"><span class="kg-m-label">Dice</span><span class="kg-m-val" id="kgDice">—</span></div>
+                <div class="kg-metric"><span class="kg-m-label">IoU</span><span class="kg-m-val" id="kgIou">—</span></div>
+                <div class="kg-metric"><span class="kg-m-label">Pixel acc</span><span class="kg-m-val" id="kgAcc">—</span></div>
+            </div>
+            <div class="kg-actions">
+                <label class="kg-gt-upload">
+                    <input type="file" id="breastGtInput" accept="image/*" hidden>
+                    📎 Upload ground truth mask (optional, để tính Dice/IoU)
+                </label>
+            </div>
+        </section>
+
         <!-- Section 3: BI-RADS + features + AI classification -->
         <section class="card section-analysis" style="grid-column: 1 / -1;">
             <div class="section-title"><span class="section-num" style="background:linear-gradient(135deg,#ec4899,#db2777);">3</span> PHÂN LOẠI AI &amp; ĐẶC ĐIỂM</div>
