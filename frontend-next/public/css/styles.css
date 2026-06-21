@@ -5559,3 +5559,45 @@ button.is-busy {
     /* Three.js + Sketchfab — let touch rotate/zoom 3D */
     .brain-3d-pane canvas { touch-action: none; }
 }
+
+/* ──────────────────────────────────────────────────────────
+   Install banner — shown above Spine + Breast modules until
+   backend deps are installed.
+─────────────────────────────────────────────────────────── */
+.install-banner {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 18px;
+    background:
+        linear-gradient(135deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.03)),
+        var(--bg-glass);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+.install-banner .ib-icon {
+    font-size: 22px;
+    display: grid;
+    place-items: center;
+    width: 36px; height: 36px;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 8px;
+}
+.install-banner b {
+    color: var(--accent-amber);
+    font-weight: 700;
+}
+.install-banner code {
+    font-family: ui-monospace, 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 2px 7px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-glass);
+    border-radius: 5px;
+    color: var(--text-primary);
+}

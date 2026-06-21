@@ -2122,7 +2122,7 @@ function switchModule(name) {
 // `/legacy.html#brain` (or eeg/lung/blood), auto-switch to that module
 // instead of always landing on the default EEG tab.
 (function () {
-    var VALID = ['eeg', 'brain', 'lung', 'blood'];
+    var VALID = ['eeg', 'brain', 'lung', 'blood', 'spine', 'breast'];
     function applyHash() {
         var h = (window.location.hash || '').replace(/^#/, '').toLowerCase();
         if (VALID.indexOf(h) >= 0) {

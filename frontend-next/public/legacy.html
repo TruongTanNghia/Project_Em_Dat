@@ -41,6 +41,12 @@
         <button class="nav-module" data-module="blood" onclick="switchModule('blood')">
             🩸 <span>Xét nghiệm máu</span>
         </button>
+        <button class="nav-module" data-module="spine" onclick="switchModule('spine')">
+            🦴 <span>Cột sống</span>
+        </button>
+        <button class="nav-module" data-module="breast" onclick="switchModule('breast')">
+            🎗️ <span>Ung thư vú</span>
+        </button>
     </div>
 </nav>
 
@@ -1595,6 +1601,91 @@
         </section>
     </div>
 </div><!-- /module-blood -->
+
+<!-- ===== MODULE: SPINE — TotalSegmentator (Phase 1a scaffold) ===== -->
+<div class="module-container hidden" id="module-spine">
+    <header class="module-header" style="border-bottom-color: rgba(6,182,212,0.4);">
+        <div class="module-header-left">
+            <div class="module-logo">🦴</div>
+            <div>
+                <h1>PHÂN TÍCH CỘT SỐNG <span class="accent-gradient cyan">3D</span></h1>
+                <p>AI-Powered Spine Segmentation — TotalSegmentator (24 đốt sống C1-L5 + xương lân cận)</p>
+            </div>
+        </div>
+        <div class="module-header-right">
+            <div class="patient-chip"><span>Mã BN:</span> <b id="spinePatientId">—</b></div>
+            <div class="patient-chip"><span>Modality:</span> <b id="spineModality">CT</b></div>
+        </div>
+    </header>
+
+    <div class="install-banner" style="margin: 16px 24px 0;">
+        <div class="ib-icon">⚙️</div>
+        <div class="ib-body">
+            <b>Setup mode</b> — Module này cần backend <code>TotalSegmentator</code> cài đặt.
+            Xem hướng dẫn: <code>backend/INSTALL_NEW_MODELS.md</code> · sau khi cài + restart Flask, em wire endpoint <code>/api/predict-spine</code> để bật tính năng đầy đủ.
+        </div>
+    </div>
+
+    <div class="stage-placeholder" style="margin: 18px 24px 24px; min-height: 320px;">
+        <div class="sp-icon">🦴</div>
+        <h4>Module Cột sống — chờ backend TotalSegmentator</h4>
+        <p>Khi hoàn tất setup, module sẽ cho phép:</p>
+        <ul class="sp-features">
+            <li><span class="sp-dot slice1"></span><b>Upload</b> CT spine (.nii / .nii.gz) hoặc X-quang lateral</li>
+            <li><span class="sp-dot vessel"></span><b>Auto-segment</b> 24 đốt sống C1-C7, T1-T12, L1-L5 + sacrum</li>
+            <li><span class="sp-dot slice3"></span><b>3D render</b> vertebral column rotatable</li>
+            <li><span class="sp-dot probe"></span><b>Phát hiện bệnh lý</b>: wedge fracture, burst fracture, scoliosis, disc degeneration, spondylolisthesis</li>
+            <li><span class="sp-dot step2"></span><b>Đo Cobb angle</b> cho scoliosis tự động</li>
+            <li><span class="sp-dot func"></span><b>Per-vertebra report</b>: thể tích · biến dạng · severity</li>
+        </ul>
+        <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+            License: TotalSegmentator MIT — dùng được commercial. Dataset training: 1,228 CT toàn thân.
+        </p>
+    </div>
+</div><!-- /module-spine -->
+
+
+<!-- ===== MODULE: BREAST — MedSAM (Phase 1a scaffold) ===== -->
+<div class="module-container hidden" id="module-breast">
+    <header class="module-header" style="border-bottom-color: rgba(236,72,153,0.4);">
+        <div class="module-header-left">
+            <div class="module-logo">🎗️</div>
+            <div>
+                <h1>PHÂN TÍCH KHỐI U <span class="accent-gradient pink">VÚ AI</span></h1>
+                <p>AI-Powered Breast Mass Detection — MedSAM (segmentation prompt-based)</p>
+            </div>
+        </div>
+        <div class="module-header-right">
+            <div class="patient-chip"><span>Mã BN:</span> <b id="breastPatientId">—</b></div>
+            <div class="patient-chip"><span>Modality:</span> <b id="breastModality">Mammography</b></div>
+        </div>
+    </header>
+
+    <div class="install-banner" style="margin: 16px 24px 0;">
+        <div class="ib-icon">⚙️</div>
+        <div class="ib-body">
+            <b>Setup mode</b> — Module này cần backend <code>MedSAM</code> + checkpoint (~370MB).
+            Xem hướng dẫn: <code>backend/INSTALL_NEW_MODELS.md</code> · sau khi cài + restart Flask, em wire endpoint <code>/api/predict-breast</code> để bật tính năng đầy đủ.
+        </div>
+    </div>
+
+    <div class="stage-placeholder" style="margin: 18px 24px 24px; min-height: 320px;">
+        <div class="sp-icon">🎗️</div>
+        <h4>Module Ung thư vú — chờ backend MedSAM</h4>
+        <p>Khi hoàn tất setup, module sẽ cho phép:</p>
+        <ul class="sp-features">
+            <li><span class="sp-dot slice1"></span><b>Upload</b> mammography (CC + MLO) hoặc siêu âm vú</li>
+            <li><span class="sp-dot vessel"></span><b>Auto-segment</b> khối u với MedSAM prompt-based</li>
+            <li><span class="sp-dot slice3"></span><b>Overlay mask</b> đỏ trên ảnh gốc + caliper đo ø mm</li>
+            <li><span class="sp-dot probe"></span><b>Phân loại</b> BI-RADS 0-6 theo chuẩn ACR</li>
+            <li><span class="sp-dot step2"></span><b>Đặc điểm</b>: spiculated · ill-defined · circumscribed · density</li>
+            <li><span class="sp-dot func"></span><b>Risk score</b> + khuyến nghị theo dõi / sinh thiết</li>
+        </ul>
+        <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+            License: MedSAM Apache 2.0 — dùng được commercial. Pre-trained trên 1.5M ảnh y khoa.
+        </p>
+    </div>
+</div><!-- /module-breast -->
 
 <script src="js/app.js"></script>
 <script src="js/anatomy.js" defer></script>
