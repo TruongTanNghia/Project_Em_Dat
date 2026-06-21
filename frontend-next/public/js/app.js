@@ -6173,6 +6173,37 @@ function renderProgressionChart(canvasId, data, unit, color) {
                 '</div>';
         }
 
+        // Classification (BiomedCLIP zero-shot)
+        const classif = r.classification;
+        const classifBlock = document.getElementById('breastClassif');
+        if (classif) {
+            classifBlock.style.display = 'block';
+            const benign = classif.benign || 0;
+            const malign = classif.malignant || 0;
+            const normal = classif.normal || 0;
+            document.getElementById('breastProbBenign').style.width    = (benign * 100).toFixed(0) + '%';
+            document.getElementById('breastProbMalignant').style.width = (malign * 100).toFixed(0) + '%';
+            document.getElementById('breastProbNormal').style.width    = (normal * 100).toFixed(0) + '%';
+            document.getElementById('breastProbBenignVal').textContent    = (benign * 100).toFixed(1) + '%';
+            document.getElementById('breastProbMalignantVal').textContent = (malign * 100).toFixed(1) + '%';
+            document.getElementById('breastProbNormalVal').textContent    = (normal * 100).toFixed(1) + '%';
+
+            const verdictMap = {
+                benign:    { label: 'Lành tính',    color: 'var(--accent-green)' },
+                malignant: { label: 'Ác tính',      color: 'var(--accent-red)'   },
+                normal:    { label: 'Bình thường',  color: 'var(--accent-cyan)'  },
+            };
+            const v = verdictMap[classif.predicted] || { label: classif.predicted || '—', color: 'var(--text-primary)' };
+            const conf = Math.round((classif.confidence || 0) * 100);
+            const verdictEl = document.getElementById('breastClassifVerdict');
+            verdictEl.innerHTML = '<b style="color:' + v.color + '">' + v.label + '</b> · ' +
+                                  '<span style="color: var(--text-muted)">confidence ' + conf + '%</span>' +
+                                  (classif.mock ? ' <span class="chip-sev mild">demo</span>' : '');
+            document.getElementById('breastClassifModel').textContent = classif.model || 'BiomedCLIP';
+        } else {
+            classifBlock.style.display = 'none';
+        }
+
         const feats = r.features || {};
         const flist = document.getElementById('breastFeaturesList');
         const items = [
@@ -6205,12 +6236,21 @@ function renderProgressionChart(canvasId, data, unit, color) {
         fetch(apiBase + '/api/breast-status').then(r => r.json()).then((s) => {
             const body = document.getElementById('breastModeBody');
             if (!body) return;
-            if (s.available && s.checkpoint_present) {
-                body.innerHTML = '<b style="color:var(--accent-green)">✓ Real mode</b> — MedSAM ready · endpoint <code>/api/predict-breast</code> ON.';
-            } else if (s.available) {
-                body.innerHTML = '<b>Partial</b> — segment-anything installed nhưng <b>checkpoint chưa download</b>. Endpoint trả mock. Tải <code>medsam_vit_b.pth</code> đặt vào <code>backend/MedSAM/checkpoints/</code>.';
+            const medsamReady    = s.medsam && s.medsam.available && s.medsam.checkpoint_present;
+            const medsamLib      = s.medsam && s.medsam.available;
+            const biomedReady    = s.biomedclip && s.biomedclip.available;
+            if (medsamReady && biomedReady) {
+                body.innerHTML = '<b style="color:var(--accent-green)">✓ Full pipeline</b> — MedSAM segment + BiomedCLIP classify ready. Endpoint <code>/api/predict-breast</code> ON.';
+            } else if (biomedReady && !medsamLib) {
+                body.innerHTML = '<b style="color:var(--accent-cyan)">Partial</b> — BiomedCLIP classify <b>ON</b> · MedSAM segment <b>mock</b> (chưa cài <code>segment-anything</code>).';
+            } else if (medsamReady && !biomedReady) {
+                body.innerHTML = '<b style="color:var(--accent-cyan)">Partial</b> — MedSAM segment <b>ON</b> · BiomedCLIP classify <b>mock</b> (chưa cài <code>open_clip_torch</code>).';
+            } else if (biomedReady) {
+                body.innerHTML = '<b>Classify only</b> — BiomedCLIP ready · MedSAM cần checkpoint. Tải <code>medsam_vit_b.pth</code>.';
+            } else if (medsamLib) {
+                body.innerHTML = '<b>Partial</b> — segment-anything installed nhưng checkpoint chưa download · BiomedCLIP chưa cài.';
             } else {
-                body.innerHTML = '<b>Mock mode</b> — MedSAM chưa cài. Endpoint trả demo data. Xem <code>backend/INSTALL_NEW_MODELS.md</code>.';
+                body.innerHTML = '<b>Mock mode</b> — chưa cài MedSAM + BiomedCLIP. Endpoint trả demo data. Xem <code>backend/INSTALL_NEW_MODELS.md</code>.';
             }
         }).catch(() => {});
     });

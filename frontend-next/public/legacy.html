@@ -1752,10 +1752,36 @@
             </div>
         </section>
 
-        <!-- Section 3: BI-RADS + features -->
+        <!-- Section 3: BI-RADS + features + AI classification -->
         <section class="card section-analysis" style="grid-column: 1 / -1;">
-            <div class="section-title"><span class="section-num" style="background:linear-gradient(135deg,#ec4899,#db2777);">3</span> PHÂN LOẠI &amp; ĐẶC ĐIỂM</div>
-            <div class="breast-features" id="breastFeaturesList">
+            <div class="section-title"><span class="section-num" style="background:linear-gradient(135deg,#ec4899,#db2777);">3</span> PHÂN LOẠI AI &amp; ĐẶC ĐIỂM</div>
+
+            <div class="classif-block" id="breastClassif" style="display: none;">
+                <div class="classif-header">
+                    <span class="classif-label">PHÂN LOẠI ZERO-SHOT</span>
+                    <span class="classif-model" id="breastClassifModel">BiomedCLIP</span>
+                </div>
+                <div class="classif-verdict" id="breastClassifVerdict">—</div>
+                <div class="classif-bars">
+                    <div class="classif-bar benign">
+                        <div class="cb-label">Lành tính · Benign</div>
+                        <div class="cb-track"><div class="cb-fill" id="breastProbBenign"></div></div>
+                        <div class="cb-val" id="breastProbBenignVal">—</div>
+                    </div>
+                    <div class="classif-bar malignant">
+                        <div class="cb-label">Ác tính · Malignant</div>
+                        <div class="cb-track"><div class="cb-fill" id="breastProbMalignant"></div></div>
+                        <div class="cb-val" id="breastProbMalignantVal">—</div>
+                    </div>
+                    <div class="classif-bar normal">
+                        <div class="cb-label">Bình thường · Normal</div>
+                        <div class="cb-track"><div class="cb-fill" id="breastProbNormal"></div></div>
+                        <div class="cb-val" id="breastProbNormalVal">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="breast-features" id="breastFeaturesList" style="margin-top: 14px;">
                 <div class="reco-item empty">Phân tích để xem đặc điểm khối</div>
             </div>
             <div id="breastDescription" class="breast-desc" style="margin-top: 14px; display: none;"></div>
