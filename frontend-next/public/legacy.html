@@ -1618,29 +1618,70 @@
         </div>
     </header>
 
-    <div class="install-banner" style="margin: 16px 24px 0;">
+    <div class="install-banner" style="margin: 16px 24px 0;" id="spineModeBanner">
         <div class="ib-icon">⚙️</div>
-        <div class="ib-body">
-            <b>Setup mode</b> — Module này cần backend <code>TotalSegmentator</code> cài đặt.
-            Xem hướng dẫn: <code>backend/INSTALL_NEW_MODELS.md</code> · sau khi cài + restart Flask, em wire endpoint <code>/api/predict-spine</code> để bật tính năng đầy đủ.
+        <div class="ib-body" id="spineModeBody">
+            Đang kiểm tra backend... <code>GET /api/spine-status</code>
         </div>
     </div>
 
-    <div class="stage-placeholder" style="margin: 18px 24px 24px; min-height: 320px;">
-        <div class="sp-icon">🦴</div>
-        <h4>Module Cột sống — chờ backend TotalSegmentator</h4>
-        <p>Khi hoàn tất setup, module sẽ cho phép:</p>
-        <ul class="sp-features">
-            <li><span class="sp-dot slice1"></span><b>Upload</b> CT spine (.nii / .nii.gz) hoặc X-quang lateral</li>
-            <li><span class="sp-dot vessel"></span><b>Auto-segment</b> 24 đốt sống C1-C7, T1-T12, L1-L5 + sacrum</li>
-            <li><span class="sp-dot slice3"></span><b>3D render</b> vertebral column rotatable</li>
-            <li><span class="sp-dot probe"></span><b>Phát hiện bệnh lý</b>: wedge fracture, burst fracture, scoliosis, disc degeneration, spondylolisthesis</li>
-            <li><span class="sp-dot step2"></span><b>Đo Cobb angle</b> cho scoliosis tự động</li>
-            <li><span class="sp-dot func"></span><b>Per-vertebra report</b>: thể tích · biến dạng · severity</li>
-        </ul>
-        <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
-            License: TotalSegmentator MIT — dùng được commercial. Dataset training: 1,228 CT toàn thân.
-        </p>
+    <div class="spine-grid" style="margin: 18px 24px 24px;">
+        <!-- Section 1: Upload -->
+        <section class="card section-input">
+            <div class="section-title"><span class="section-num" style="background:linear-gradient(135deg,#06b6d4,#0891b2);">1</span> INPUT</div>
+            <div class="upload-zone" id="spineUploadZone">
+                <div class="upload-empty">
+                    📎<br>
+                    <b>Kéo thả</b> CT (.nii / .nii.gz) hoặc X-quang (PNG/JPG)<br>
+                    <small>Hoặc click nút bên dưới</small>
+                </div>
+            </div>
+            <input type="file" id="spineFileInput" accept=".nii,.nii.gz,.nii.gzip,image/*" hidden>
+            <button class="btn btn-primary btn-full" onclick="document.getElementById('spineFileInput').click()" style="margin-top: 10px;">
+                📎 Chọn file CT / X-quang
+            </button>
+            <button class="btn btn-secondary btn-full" onclick="runSpineAnalysis()" style="margin-top: 8px;" id="spineRunBtn" disabled>
+                🔍 Phân tích bằng TotalSegmentator
+            </button>
+            <div id="spineStatus" class="lung-status" hidden></div>
+        </section>
+
+        <!-- Section 2: Detection summary -->
+        <section class="card section-detection">
+            <div class="section-title"><span class="section-num" style="background:linear-gradient(135deg,#06b6d4,#0891b2);">2</span> KẾT QUẢ SEGMENTATION</div>
+            <div class="detection-stats">
+                <div class="stat-box">
+                    <div class="stat-label">Đốt sống detect</div>
+                    <div class="stat-value" id="spineVertCount">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Bệnh lý</div>
+                    <div class="stat-value warn" id="spinePathologyCount">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Severity</div>
+                    <div class="stat-value" id="spineSeverity">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Cobb angle</div>
+                    <div class="stat-value" id="spineCobb">—</div>
+                </div>
+            </div>
+            <div id="spinePathologyList" class="reco-list" style="margin-top: 12px;">
+                <div class="reco-item empty">Upload + phân tích để xem bệnh lý</div>
+            </div>
+        </section>
+
+        <!-- Section 3: Per-vertebra list -->
+        <section class="card section-analysis" style="grid-column: 1 / -1;">
+            <div class="section-title"><span class="section-num" style="background:linear-gradient(135deg,#06b6d4,#0891b2);">3</span> CHI TIẾT TỪNG ĐỐT SỐNG</div>
+            <div id="spineVertList" class="spine-vert-grid">
+                <div class="reco-item empty">Chưa có dữ liệu — phân tích để xem từng đốt</div>
+            </div>
+            <div class="disclaimer" style="margin-top: 14px;">
+                ⚠️ <b>Lưu ý:</b> Kết quả AI chỉ tham khảo. Cần bác sĩ chuyên khoa đánh giá lâm sàng.
+            </div>
+        </section>
     </div>
 </div><!-- /module-spine -->
 
@@ -1661,29 +1702,67 @@
         </div>
     </header>
 
-    <div class="install-banner" style="margin: 16px 24px 0;">
+    <div class="install-banner" style="margin: 16px 24px 0;" id="breastModeBanner">
         <div class="ib-icon">⚙️</div>
-        <div class="ib-body">
-            <b>Setup mode</b> — Module này cần backend <code>MedSAM</code> + checkpoint (~370MB).
-            Xem hướng dẫn: <code>backend/INSTALL_NEW_MODELS.md</code> · sau khi cài + restart Flask, em wire endpoint <code>/api/predict-breast</code> để bật tính năng đầy đủ.
+        <div class="ib-body" id="breastModeBody">
+            Đang kiểm tra backend... <code>GET /api/breast-status</code>
         </div>
     </div>
 
-    <div class="stage-placeholder" style="margin: 18px 24px 24px; min-height: 320px;">
-        <div class="sp-icon">🎗️</div>
-        <h4>Module Ung thư vú — chờ backend MedSAM</h4>
-        <p>Khi hoàn tất setup, module sẽ cho phép:</p>
-        <ul class="sp-features">
-            <li><span class="sp-dot slice1"></span><b>Upload</b> mammography (CC + MLO) hoặc siêu âm vú</li>
-            <li><span class="sp-dot vessel"></span><b>Auto-segment</b> khối u với MedSAM prompt-based</li>
-            <li><span class="sp-dot slice3"></span><b>Overlay mask</b> đỏ trên ảnh gốc + caliper đo ø mm</li>
-            <li><span class="sp-dot probe"></span><b>Phân loại</b> BI-RADS 0-6 theo chuẩn ACR</li>
-            <li><span class="sp-dot step2"></span><b>Đặc điểm</b>: spiculated · ill-defined · circumscribed · density</li>
-            <li><span class="sp-dot func"></span><b>Risk score</b> + khuyến nghị theo dõi / sinh thiết</li>
-        </ul>
-        <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
-            License: MedSAM Apache 2.0 — dùng được commercial. Pre-trained trên 1.5M ảnh y khoa.
-        </p>
+    <div class="breast-grid" style="margin: 18px 24px 24px;">
+        <!-- Section 1: Upload -->
+        <section class="card section-input">
+            <div class="section-title"><span class="section-num" style="background:linear-gradient(135deg,#ec4899,#db2777);">1</span> INPUT ẢNH</div>
+            <div class="upload-zone" id="breastUploadZone">
+                <div class="upload-empty">
+                    🖼️<br>
+                    <b>Kéo thả</b> ảnh mammography hoặc siêu âm vú<br>
+                    <small>PNG / JPG</small>
+                </div>
+            </div>
+            <input type="file" id="breastFileInput" accept="image/*" hidden>
+            <button class="btn btn-primary btn-full" onclick="document.getElementById('breastFileInput').click()" style="margin-top: 10px;">
+                🖼️ Chọn ảnh
+            </button>
+            <button class="btn btn-secondary btn-full" onclick="runBreastAnalysis()" style="margin-top: 8px;" id="breastRunBtn" disabled>
+                🔍 Phân tích bằng MedSAM
+            </button>
+            <div id="breastStatus" class="lung-status" hidden></div>
+        </section>
+
+        <!-- Section 2: Detection canvas + mask overlay -->
+        <section class="card section-detection">
+            <div class="section-title"><span class="section-num" style="background:linear-gradient(135deg,#ec4899,#db2777);">2</span> SEGMENTATION + OVERLAY</div>
+            <div class="detection-canvas" id="breastDetectionCanvas">
+                <div class="detection-placeholder">Upload + phân tích để xem mask</div>
+            </div>
+            <div class="detection-stats">
+                <div class="stat-box">
+                    <div class="stat-label">Đường kính</div>
+                    <div class="stat-value" id="breastDiameter">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Diện tích</div>
+                    <div class="stat-value" id="breastArea">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">BI-RADS</div>
+                    <div class="stat-value warn" id="breastBirads">—</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: BI-RADS + features -->
+        <section class="card section-analysis" style="grid-column: 1 / -1;">
+            <div class="section-title"><span class="section-num" style="background:linear-gradient(135deg,#ec4899,#db2777);">3</span> PHÂN LOẠI &amp; ĐẶC ĐIỂM</div>
+            <div class="breast-features" id="breastFeaturesList">
+                <div class="reco-item empty">Phân tích để xem đặc điểm khối</div>
+            </div>
+            <div id="breastDescription" class="breast-desc" style="margin-top: 14px; display: none;"></div>
+            <div class="disclaimer" style="margin-top: 14px;">
+                ⚠️ <b>Lưu ý:</b> Kết quả AI chỉ tham khảo. BI-RADS cuối cùng phải do bác sĩ X-quang chuyên khoa đánh giá.
+            </div>
+        </section>
     </div>
 </div><!-- /module-breast -->
 

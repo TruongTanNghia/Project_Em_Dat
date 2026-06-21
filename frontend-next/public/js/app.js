@@ -5946,3 +5946,272 @@ function renderProgressionChart(canvasId, data, unit, color) {
         }
     });
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   SPINE module — TotalSegmentator integration
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+    const fileInput = document.getElementById('spineFileInput');
+    const runBtn   = document.getElementById('spineRunBtn');
+    const statusEl = document.getElementById('spineStatus');
+    const zone     = document.getElementById('spineUploadZone');
+    if (!fileInput || !runBtn) return;
+
+    let currentFile = null;
+
+    fileInput.addEventListener('change', (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        currentFile = f;
+        runBtn.disabled = false;
+        if (zone) {
+            zone.innerHTML = '<div class="upload-empty" style="color: var(--accent-green);">✓<br><b>' +
+                escapeHtmlS(f.name) + '</b><br><small>' + (f.size / 1024).toFixed(1) +
+                ' KB · sẵn sàng phân tích</small></div>';
+        }
+    });
+
+    if (zone) {
+        zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('drag');
+            const f = e.dataTransfer.files[0];
+            if (f) { fileInput.files = e.dataTransfer.files; fileInput.dispatchEvent(new Event('change')); }
+        });
+    }
+
+    window.runSpineAnalysis = async function runSpineAnalysis() {
+        if (!currentFile) return;
+        const apiBase = (window.CONFIG && window.CONFIG.PYTHON_API) || 'http://localhost:5000';
+        statusEl.hidden = false;
+        statusEl.textContent = '⏳ Đang gọi TotalSegmentator...';
+        statusEl.style.color = '';
+        runBtn.disabled = true;
+
+        const fd = new FormData();
+        fd.append('scan', currentFile);
+
+        try {
+            const r = await fetch(apiBase + '/api/predict-spine', { method: 'POST', body: fd });
+            const data = await r.json();
+            if (data.error && !data.fallback_mock) {
+                statusEl.textContent = '❌ ' + data.error;
+                statusEl.style.color = 'var(--accent-red)';
+                runBtn.disabled = false;
+                return;
+            }
+            const result = data.fallback_mock || data;
+            displaySpineResults(result);
+            statusEl.textContent = result.mock
+                ? '✓ Demo data (TotalSegmentator chưa cài backend)'
+                : '✓ Real inference completed';
+            statusEl.style.color = result.mock ? 'var(--accent-amber)' : 'var(--accent-green)';
+        } catch (err) {
+            statusEl.textContent = '❌ Network: ' + err.message;
+            statusEl.style.color = 'var(--accent-red)';
+        } finally { runBtn.disabled = false; }
+    };
+
+    function displaySpineResults(r) {
+        document.getElementById('spineVertCount').textContent = r.count || (r.vertebrae || []).length;
+        document.getElementById('spinePathologyCount').textContent = (r.pathology || []).length;
+        document.getElementById('spineSeverity').textContent = vnSeverity(r.severity);
+        document.getElementById('spineCobb').textContent = r.cobb_angle != null ? r.cobb_angle.toFixed(1) + '°' : '—';
+
+        const sevEl = document.getElementById('spineSeverity');
+        sevEl.classList.remove('warn', 'ok', 'danger');
+        if (r.severity === 'severe') sevEl.classList.add('danger');
+        else if (r.severity === 'moderate' || r.severity === 'mild') sevEl.classList.add('warn');
+        else sevEl.classList.add('ok');
+
+        const pathList = document.getElementById('spinePathologyList');
+        if (!r.pathology || !r.pathology.length) {
+            pathList.innerHTML = '<div class="reco-item empty">✓ Không phát hiện bệnh lý</div>';
+        } else {
+            pathList.innerHTML = r.pathology.map((p) => {
+                const sev = vnSeverity(p.severity);
+                const conf = p.confidence != null ? Math.round(p.confidence * 100) + '%' : '—';
+                return '<div class="reco-item"><b>' + escapeHtmlS(p.vertebra) + '</b> · ' +
+                    escapeHtmlS(p.finding) +
+                    ' <span class="chip-sev ' + (p.severity || '') + '">' + sev + '</span>' +
+                    ' <small style="color: var(--text-muted)">conf ' + conf + '</small></div>';
+            }).join('');
+        }
+
+        const vlist = document.getElementById('spineVertList');
+        if (!r.vertebrae || !r.vertebrae.length) {
+            vlist.innerHTML = '<div class="reco-item empty">Không phát hiện đốt sống</div>';
+        } else {
+            vlist.innerHTML = r.vertebrae.map((v) => {
+                const level = v.name[0];
+                const cls = level === 'C' ? 'cervical' : level === 'T' ? 'thoracic' : level === 'L' ? 'lumbar' : 'sacrum';
+                return '<div class="vert-card ' + cls + '"><div class="vert-name">' + escapeHtmlS(v.name) +
+                    '</div><div class="vert-vol">' + v.volume_cm3.toFixed(2) + ' cm³</div></div>';
+            }).join('');
+        }
+    }
+
+    function vnSeverity(s) {
+        return ({ normal: 'Bình thường', mild: 'Nhẹ', moderate: 'Trung bình', severe: 'Nặng' })[s] || s || '—';
+    }
+    function escapeHtmlS(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const apiBase = (window.CONFIG && window.CONFIG.PYTHON_API) || 'http://localhost:5000';
+        fetch(apiBase + '/api/spine-status').then(r => r.json()).then((s) => {
+            const body = document.getElementById('spineModeBody');
+            if (!body) return;
+            if (s.available) {
+                body.innerHTML = '<b style="color:var(--accent-green)">✓ Real mode</b> — TotalSegmentator ready · endpoint <code>/api/predict-spine</code> ON.';
+            } else {
+                body.innerHTML = '<b>Mock mode</b> — TotalSegmentator chưa cài. Endpoint trả demo data. Để bật real inference: <code>pip install TotalSegmentator</code> rồi restart Flask. Xem <code>backend/INSTALL_NEW_MODELS.md</code>.';
+            }
+        }).catch(() => {});
+    });
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   BREAST module — MedSAM integration
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+    const fileInput = document.getElementById('breastFileInput');
+    const runBtn   = document.getElementById('breastRunBtn');
+    const statusEl = document.getElementById('breastStatus');
+    const zone     = document.getElementById('breastUploadZone');
+    if (!fileInput || !runBtn) return;
+
+    let currentFile = null;
+    let currentImgUrl = null;
+
+    fileInput.addEventListener('change', (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        currentFile = f;
+        runBtn.disabled = false;
+        if (currentImgUrl) URL.revokeObjectURL(currentImgUrl);
+        currentImgUrl = URL.createObjectURL(f);
+        if (zone) {
+            zone.innerHTML = '<img src="' + currentImgUrl + '" style="width:100%; max-height: 220px; object-fit: contain; border-radius: 8px;">';
+        }
+    });
+
+    if (zone) {
+        zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('drag');
+            const f = e.dataTransfer.files[0];
+            if (f) { fileInput.files = e.dataTransfer.files; fileInput.dispatchEvent(new Event('change')); }
+        });
+    }
+
+    window.runBreastAnalysis = async function runBreastAnalysis() {
+        if (!currentFile) return;
+        const apiBase = (window.CONFIG && window.CONFIG.PYTHON_API) || 'http://localhost:5000';
+        statusEl.hidden = false;
+        statusEl.textContent = '⏳ Đang gọi MedSAM...';
+        statusEl.style.color = '';
+        runBtn.disabled = true;
+
+        const fd = new FormData();
+        fd.append('image', currentFile);
+
+        try {
+            const r = await fetch(apiBase + '/api/predict-breast', { method: 'POST', body: fd });
+            const data = await r.json();
+            if (data.error && !data.fallback_mock) {
+                statusEl.textContent = '❌ ' + data.error;
+                statusEl.style.color = 'var(--accent-red)';
+                runBtn.disabled = false;
+                return;
+            }
+            const result = data.fallback_mock || data;
+            displayBreastResults(result);
+            statusEl.textContent = result.mock
+                ? '✓ Demo data (MedSAM chưa cài backend)'
+                : '✓ Real inference completed';
+            statusEl.style.color = result.mock ? 'var(--accent-amber)' : 'var(--accent-green)';
+        } catch (err) {
+            statusEl.textContent = '❌ Network: ' + err.message;
+            statusEl.style.color = 'var(--accent-red)';
+        } finally { runBtn.disabled = false; }
+    };
+
+    function displayBreastResults(r) {
+        document.getElementById('breastDiameter').textContent = (r.diameter_mm != null ? r.diameter_mm.toFixed(1) : '—') + ' mm';
+        document.getElementById('breastArea').textContent     = (r.area_mm2 != null ? r.area_mm2.toFixed(1) : '—') + ' mm²';
+        document.getElementById('breastBirads').textContent   = r.birads_category || ('BI-RADS ' + (r.birads || '—'));
+
+        const biradsEl = document.getElementById('breastBirads');
+        biradsEl.classList.remove('warn', 'ok', 'danger');
+        const b = r.birads || 0;
+        if (b >= 5) biradsEl.classList.add('danger');
+        else if (b >= 3) biradsEl.classList.add('warn');
+        else biradsEl.classList.add('ok');
+
+        const canvasEl = document.getElementById('breastDetectionCanvas');
+        if (currentImgUrl && r.bbox) {
+            const [x1, y1, x2, y2] = r.bbox;
+            const [W, H] = r.image_size || [400, 300];
+            canvasEl.innerHTML =
+                '<div style="position: relative; width: 100%; max-width: 480px; margin: 0 auto;">' +
+                    '<img src="' + currentImgUrl + '" style="width:100%; display: block; border-radius: 8px;">' +
+                    (r.mask_png_base64 ?
+                        '<img src="data:image/png;base64,' + r.mask_png_base64 + '" ' +
+                        'style="position: absolute; inset: 0; width:100%; height: 100%; mix-blend-mode: screen; opacity: 0.55; filter: hue-rotate(330deg);">'
+                        : '') +
+                    '<div style="position: absolute;' +
+                        ' left: ' + (x1 / W * 100) + '%; top: ' + (y1 / H * 100) + '%;' +
+                        ' width: ' + ((x2 - x1) / W * 100) + '%; height: ' + ((y2 - y1) / H * 100) + '%;' +
+                        ' border: 2px solid #ec4899; border-radius: 4px;' +
+                        ' box-shadow: 0 0 18px rgba(236, 72, 153, 0.5);"></div>' +
+                '</div>';
+        }
+
+        const feats = r.features || {};
+        const flist = document.getElementById('breastFeaturesList');
+        const items = [
+            { v: feats.spiculated,    label: 'Bờ tua gai (spiculated)' },
+            { v: feats.irregular,     label: 'Hình dạng không đều' },
+            { v: feats.density,       label: 'Mật độ' },
+            { v: feats.calcification, label: 'Vôi hoá' },
+        ];
+        flist.innerHTML = items.map((it) => {
+            let val;
+            if (typeof it.v === 'boolean') val = it.v ? '<b style="color:var(--accent-red)">✓ Có</b>' : '✗ Không';
+            else if (it.v != null) val = '<b>' + escapeHtmlB(String(it.v)) + '</b>';
+            else val = '—';
+            return '<div class="reco-item">' + it.label + ': ' + val + '</div>';
+        }).join('');
+
+        const desc = document.getElementById('breastDescription');
+        if (r.description) {
+            desc.style.display = 'block';
+            desc.innerHTML = '<b>Mô tả:</b> ' + escapeHtmlB(r.description);
+        }
+    }
+
+    function escapeHtmlB(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const apiBase = (window.CONFIG && window.CONFIG.PYTHON_API) || 'http://localhost:5000';
+        fetch(apiBase + '/api/breast-status').then(r => r.json()).then((s) => {
+            const body = document.getElementById('breastModeBody');
+            if (!body) return;
+            if (s.available && s.checkpoint_present) {
+                body.innerHTML = '<b style="color:var(--accent-green)">✓ Real mode</b> — MedSAM ready · endpoint <code>/api/predict-breast</code> ON.';
+            } else if (s.available) {
+                body.innerHTML = '<b>Partial</b> — segment-anything installed nhưng <b>checkpoint chưa download</b>. Endpoint trả mock. Tải <code>medsam_vit_b.pth</code> đặt vào <code>backend/MedSAM/checkpoints/</code>.';
+            } else {
+                body.innerHTML = '<b>Mock mode</b> — MedSAM chưa cài. Endpoint trả demo data. Xem <code>backend/INSTALL_NEW_MODELS.md</code>.';
+            }
+        }).catch(() => {});
+    });
+})();

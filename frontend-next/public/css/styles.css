@@ -5601,3 +5601,129 @@ button.is-busy {
     border-radius: 5px;
     color: var(--text-primary);
 }
+
+/* ──────────────────────────────────────────────────────────
+   Spine module — vertebrae grid + spine-specific layout
+─────────────────────────────────────────────────────────── */
+.spine-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+@media (max-width: 900px) {
+    .spine-grid { grid-template-columns: 1fr; }
+}
+
+.spine-vert-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 8px;
+    margin-top: 4px;
+}
+.vert-card {
+    padding: 10px 8px;
+    text-align: center;
+    border-radius: 8px;
+    border: 1px solid var(--border-glass);
+    background: var(--bg-glass);
+    transition: var(--transition);
+}
+.vert-card:hover { transform: translateY(-1px); border-color: var(--accent-cyan); }
+.vert-card .vert-name {
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.vert-card .vert-vol {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+.vert-card.cervical  { border-left: 3px solid #06b6d4; }
+.vert-card.thoracic  { border-left: 3px solid #8b5cf6; }
+.vert-card.lumbar    { border-left: 3px solid #ec4899; }
+.vert-card.sacrum    { border-left: 3px solid #f59e0b; }
+
+.chip-sev {
+    display: inline-block;
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    margin-left: 6px;
+    text-transform: uppercase;
+}
+.chip-sev.normal   { color: var(--accent-green); }
+.chip-sev.mild     { color: var(--accent-cyan); }
+.chip-sev.moderate { color: var(--accent-amber); }
+.chip-sev.severe   { color: var(--accent-red); }
+
+/* ──────────────────────────────────────────────────────────
+   Breast module — breast-specific layout
+─────────────────────────────────────────────────────────── */
+.breast-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+@media (max-width: 900px) {
+    .breast-grid { grid-template-columns: 1fr; }
+}
+
+.breast-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+@media (max-width: 600px) {
+    .breast-features { grid-template-columns: 1fr; }
+}
+
+.breast-desc {
+    padding: 12px 14px;
+    background:
+        linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(236, 72, 153, 0.03)),
+        var(--bg-glass);
+    border: 1px solid rgba(236, 72, 153, 0.35);
+    border-radius: 8px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+.upload-zone {
+    border: 2px dashed var(--border-glass);
+    border-radius: var(--radius-md);
+    padding: 24px 16px;
+    text-align: center;
+    background: var(--bg-glass);
+    transition: var(--transition);
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.upload-zone:hover { border-color: var(--accent-cyan); }
+.upload-zone.drag {
+    border-color: var(--accent-cyan);
+    background: rgba(6, 182, 212, 0.08);
+}
+.upload-zone .upload-empty {
+    font-size: 28px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+.upload-zone .upload-empty b {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+.upload-zone .upload-empty small {
+    font-size: 11px;
+    color: var(--text-muted);
+}
