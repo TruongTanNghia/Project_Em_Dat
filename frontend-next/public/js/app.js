@@ -6132,10 +6132,26 @@ function renderProgressionChart(canvasId, data, unit, color) {
             }
             const result = data.fallback_mock || data;
             displayBreastResults(result);
-            statusEl.textContent = result.mock
-                ? '✓ Demo data (MedSAM chưa cài backend)'
-                : '✓ Real inference completed';
-            statusEl.style.color = result.mock ? 'var(--accent-amber)' : 'var(--accent-green)';
+
+            // Nuanced status: classify + segment can independently be real or mock
+            const segMock     = !!result.mock;
+            const classifMock = !!(result.classification && result.classification.mock);
+            let msg, color;
+            if (!segMock && !classifMock) {
+                msg = '✓ Full pipeline real (MedSAM + BiomedCLIP)';
+                color = 'var(--accent-green)';
+            } else if (segMock && !classifMock) {
+                msg = '✓ Classification REAL (BiomedCLIP) · Segmentation mock (chưa cài segment-anything)';
+                color = 'var(--accent-cyan)';
+            } else if (!segMock && classifMock) {
+                msg = '✓ Segmentation REAL (MedSAM) · Classification mock (chưa cài open_clip_torch)';
+                color = 'var(--accent-cyan)';
+            } else {
+                msg = '✓ Demo mode — cả 2 component đều mock';
+                color = 'var(--accent-amber)';
+            }
+            statusEl.textContent = msg;
+            statusEl.style.color = color;
         } catch (err) {
             statusEl.textContent = '❌ Network: ' + err.message;
             statusEl.style.color = 'var(--accent-red)';
