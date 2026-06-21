@@ -6174,6 +6174,15 @@ function renderProgressionChart(canvasId, data, unit, color) {
         if (currentImgUrl && r.bbox) {
             const [x1, y1, x2, y2] = r.bbox;
             const [W, H] = r.image_size || [400, 300];
+            const src = r.bbox_source || 'unknown';
+            const srcLabel = {
+                'user': 'User drew',
+                'auto-heuristic': 'Auto (Otsu + connected components)',
+                'auto-heuristic (mock segment)': 'Auto-bbox · mask mock',
+                'default-centre': 'Default centre · không detect được',
+            }[src] || src;
+            const srcColor = src.startsWith('auto') ? 'var(--accent-green)' :
+                             src === 'user' ? 'var(--accent-cyan)' : 'var(--accent-amber)';
             canvasEl.innerHTML =
                 '<div style="position: relative; width: 100%; max-width: 480px; margin: 0 auto;">' +
                     '<img src="' + currentImgUrl + '" style="width:100%; display: block; border-radius: 8px;">' +
@@ -6186,6 +6195,10 @@ function renderProgressionChart(canvasId, data, unit, color) {
                         ' width: ' + ((x2 - x1) / W * 100) + '%; height: ' + ((y2 - y1) / H * 100) + '%;' +
                         ' border: 2px solid #ec4899; border-radius: 4px;' +
                         ' box-shadow: 0 0 18px rgba(236, 72, 153, 0.5);"></div>' +
+                '</div>' +
+                '<div style="margin-top: 10px; text-align: center; font-family: ui-monospace, monospace; ' +
+                'font-size: 11px; color: ' + srcColor + '; letter-spacing: 0.06em;">' +
+                'BBOX SOURCE · <b>' + srcLabel + '</b>' +
                 '</div>';
         }
 
