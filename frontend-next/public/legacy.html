@@ -1730,13 +1730,18 @@
             <div id="breastStatus" class="lung-status" hidden></div>
         </section>
 
-        <!-- Section 2: Detection canvas + mask overlay -->
-        <section class="card section-detection">
-            <div class="section-title"><span class="section-num" style="background:linear-gradient(135deg,#ec4899,#db2777);">2</span> SEGMENTATION + OVERLAY</div>
-            <div class="detection-canvas" id="breastDetectionCanvas">
-                <div class="detection-placeholder">Upload + phân tích để xem mask</div>
+        <!-- Section 2: AI Segmentation Result (input · mask · overlay + GT) -->
+        <section class="card" style="grid-column: 1 / -1; background: linear-gradient(180deg, rgba(236,72,153,0.04), transparent);">
+            <div class="section-title">
+                <span class="section-num" style="background:linear-gradient(135deg,#ec4899,#db2777);">2</span>
+                AI SEGMENTATION RESULT
+                <span style="font-family: ui-monospace, monospace; font-size: 11px; color: var(--text-muted); margin-left: 10px;">
+                    Input · Predicted Mask · Overlay · (Ground Truth)
+                </span>
             </div>
-            <div class="detection-stats">
+
+            <!-- Top stats row: Đường kính · Diện tích · BI-RADS -->
+            <div class="detection-stats" style="margin-bottom: 16px;">
                 <div class="stat-box">
                     <div class="stat-label">Đường kính</div>
                     <div class="stat-value" id="breastDiameter">—</div>
@@ -1750,17 +1755,7 @@
                     <div class="stat-value warn" id="breastBirads">—</div>
                 </div>
             </div>
-        </section>
 
-        <!-- Section 2.5: Kaggle-style comparison grid (Input | Mask | Overlay) -->
-        <section class="card" style="grid-column: 1 / -1; background: linear-gradient(180deg, rgba(236,72,153,0.04), transparent);">
-            <div class="section-title">
-                <span class="section-num" style="background:linear-gradient(135deg,#ec4899,#db2777);">▲</span>
-                SO SÁNH 3-PANEL (Kaggle style)
-                <span style="font-family: ui-monospace, monospace; font-size: 11px; color: var(--text-muted); margin-left: 10px;">
-                    Input · Predicted Mask · Overlay
-                </span>
-            </div>
             <div class="kaggle-grid" id="breastKaggleGrid">
                 <div class="kg-panel">
                     <div class="kg-label">INPUT · Ultrasound</div>
@@ -1785,6 +1780,7 @@
                     <div class="kg-img" id="kgGt"></div>
                 </div>
             </div>
+            <div id="breastBboxSource" class="kg-bbox-src" style="display:none;"></div>
             <div class="kg-metrics" id="kgMetrics" style="display:none;">
                 <div class="kg-metric"><span class="kg-m-label">Dice</span><span class="kg-m-val" id="kgDice">—</span></div>
                 <div class="kg-metric"><span class="kg-m-label">IoU</span><span class="kg-m-val" id="kgIou">—</span></div>

@@ -6170,41 +6170,31 @@ function renderProgressionChart(canvasId, data, unit, color) {
         else if (b >= 3) biradsEl.classList.add('warn');
         else biradsEl.classList.add('ok');
 
-        const canvasEl = document.getElementById('breastDetectionCanvas');
-        if (currentImgUrl && r.bbox) {
-            const [x1, y1, x2, y2] = r.bbox;
-            const [W, H] = r.image_size || [400, 300];
-            const src = r.bbox_source || 'unknown';
-            const srcLabel = {
-                'user': 'User drew',
-                'auto-heuristic': 'Auto (Otsu + connected components)',
-                'auto-heuristic (mock segment)': 'Auto-bbox · mask mock',
-                'default-centre': 'Default centre · không detect được',
-                'attention-unet (BUSI)': 'Attention U-Net BUSI · mask thật từ AI',
-            }[src] || src;
-            const srcColor = src.startsWith('attention') ? 'var(--accent-purple)' :
-                             src.startsWith('auto') ? 'var(--accent-green)' :
-                             src === 'user' ? 'var(--accent-cyan)' : 'var(--accent-amber)';
-            canvasEl.innerHTML =
-                '<div style="position: relative; width: 100%; max-width: 480px; margin: 0 auto;">' +
-                    '<img src="' + currentImgUrl + '" style="width:100%; display: block; border-radius: 8px;">' +
-                    (r.mask_png_base64 ?
-                        '<img src="data:image/png;base64,' + r.mask_png_base64 + '" ' +
-                        'style="position: absolute; inset: 0; width:100%; height: 100%; mix-blend-mode: screen; opacity: 0.55; filter: hue-rotate(330deg);">'
-                        : '') +
-                    '<div style="position: absolute;' +
-                        ' left: ' + (x1 / W * 100) + '%; top: ' + (y1 / H * 100) + '%;' +
-                        ' width: ' + ((x2 - x1) / W * 100) + '%; height: ' + ((y2 - y1) / H * 100) + '%;' +
-                        ' border: 2px solid #ec4899; border-radius: 4px;' +
-                        ' box-shadow: 0 0 18px rgba(236, 72, 153, 0.5);"></div>' +
-                '</div>' +
-                '<div style="margin-top: 10px; text-align: center; font-family: ui-monospace, monospace; ' +
-                'font-size: 11px; color: ' + srcColor + '; letter-spacing: 0.06em;">' +
-                'BBOX SOURCE · <b>' + srcLabel + '</b>' +
-                '</div>';
+        // BBOX SOURCE label rendered inside Section 2 (AI SEGMENTATION RESULT)
+        // — old standalone overlay panel removed per redesign.
+        const srcLabelMap = {
+            'user': 'User drew',
+            'auto-heuristic': 'Auto (Otsu + connected components)',
+            'auto-heuristic (U-Net fallback)': 'Auto-bbox · U-Net fallback',
+            'default-centre': 'Default centre · không detect được',
+            'attention-unet (BUSI)': 'Attention U-Net BUSI · mask thật từ AI',
+        };
+        const src = r.bbox_source || 'unknown';
+        window._bboxSourceLabel = srcLabelMap[src] || src;
+        window._bboxSourceColor =
+            src.startsWith('attention') ? 'var(--accent-purple)' :
+            src.startsWith('auto')      ? 'var(--accent-green)'  :
+            src === 'user'              ? 'var(--accent-cyan)'   :
+                                          'var(--accent-amber)';
+
+        // ── 3-panel comparison grid + BBOX source label ──
+        const bboxSrcEl = document.getElementById('breastBboxSource');
+        if (bboxSrcEl && window._bboxSourceLabel) {
+            bboxSrcEl.style.display = 'block';
+            bboxSrcEl.style.color   = window._bboxSourceColor;
+            bboxSrcEl.innerHTML = 'BBOX SOURCE · <b>' + window._bboxSourceLabel + '</b>';
         }
 
-        // ── Kaggle-style 3-panel comparison grid ──
         if (currentImgUrl) {
             const kgInput = document.getElementById('kgInput');
             const kgMask = document.getElementById('kgMask');
