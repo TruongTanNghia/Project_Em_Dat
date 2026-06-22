@@ -6138,16 +6138,16 @@ function renderProgressionChart(canvasId, data, unit, color) {
             const classifMock = !!(result.classification && result.classification.mock);
             let msg, color;
             if (!segMock && !classifMock) {
-                msg = '✓ Full pipeline real (MedSAM + BiomedCLIP)';
+                msg = '✓ Full pipeline real (Attention U-Net + BiomedCLIP)';
                 color = 'var(--accent-green)';
             } else if (segMock && !classifMock) {
-                msg = '✓ Classification REAL (BiomedCLIP) · Segmentation mock (chưa cài segment-anything)';
+                msg = '✓ Classification REAL (BiomedCLIP) · Segmentation fallback heuristic';
                 color = 'var(--accent-cyan)';
             } else if (!segMock && classifMock) {
-                msg = '✓ Segmentation REAL (MedSAM) · Classification mock (chưa cài open_clip_torch)';
+                msg = '✓ Segmentation REAL (Attention U-Net) · Classification mock';
                 color = 'var(--accent-cyan)';
             } else {
-                msg = '✓ Demo mode — cả 2 component đều mock';
+                msg = '✓ Demo mode — cả 2 component đều fallback';
                 color = 'var(--accent-amber)';
             }
             statusEl.textContent = msg;
