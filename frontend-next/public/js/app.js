@@ -6448,26 +6448,16 @@ function renderProgressionChart(canvasId, data, unit, color) {
             const body = document.getElementById('breastModeBody');
             if (!body) return;
             const unetReady   = s.attention_unet && s.attention_unet.available && s.attention_unet.checkpoint_present;
-            const medsamReady = s.medsam && s.medsam.available && s.medsam.checkpoint_present;
-            const medsamLib   = s.medsam && s.medsam.available;
             const biomedReady = s.biomedclip && s.biomedclip.available;
 
             if (unetReady && biomedReady) {
-                body.innerHTML = '<b style="color:var(--accent-green)">✓ Full pipeline</b> — Attention U-Net BUSI segment + BiomedCLIP classify. Endpoint <code>/api/predict-breast</code> ON.';
+                body.innerHTML = '<b style="color:var(--accent-green)">✓ Full pipeline</b> — <b>Attention U-Net BUSI</b> segment + <b>BiomedCLIP</b> classify. Endpoint <code>/api/predict-breast</code> ON.';
             } else if (unetReady) {
-                body.innerHTML = '<b style="color:var(--accent-green)">✓ Segment REAL</b> — Attention U-Net BUSI ready. BiomedCLIP classify <b>mock</b>.';
-            } else if (medsamReady && biomedReady) {
-                body.innerHTML = '<b style="color:var(--accent-green)">✓ Full pipeline</b> — MedSAM segment + BiomedCLIP classify ready.';
-            } else if (biomedReady && !medsamLib) {
-                body.innerHTML = '<b style="color:var(--accent-cyan)">Partial</b> — BiomedCLIP classify <b>ON</b> · Segmentation <b>mock</b> (chưa có Attention U-Net hoặc MedSAM).';
-            } else if (medsamReady && !biomedReady) {
-                body.innerHTML = '<b style="color:var(--accent-cyan)">Partial</b> — MedSAM segment <b>ON</b> · BiomedCLIP classify <b>mock</b>.';
+                body.innerHTML = '<b style="color:var(--accent-green)">✓ Segment REAL</b> — Attention U-Net BUSI ready. Classification <b>mock</b> (cài <code>open_clip_torch</code> để bật).';
             } else if (biomedReady) {
-                body.innerHTML = '<b>Classify only</b> — BiomedCLIP ready · Segmentation cần U-Net hoặc MedSAM checkpoint.';
-            } else if (medsamLib) {
-                body.innerHTML = '<b>Partial</b> — segment-anything installed nhưng checkpoint chưa download · BiomedCLIP chưa cài.';
+                body.innerHTML = '<b style="color:var(--accent-cyan)">Classify only</b> — BiomedCLIP <b>ON</b> · Segmentation <b>fallback heuristic</b> (Attention U-Net không load).';
             } else {
-                body.innerHTML = '<b>Mock mode</b> — chưa cài segmenter + classifier. Xem <code>backend/INSTALL_NEW_MODELS.md</code>.';
+                body.innerHTML = '<b>Mock mode</b> — chưa load được Attention U-Net + BiomedCLIP. Kiểm tra <code>models/Busi/AttentionCustomUNet.h5</code>.';
             }
         }).catch(() => {});
     });
