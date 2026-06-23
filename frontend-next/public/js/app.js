@@ -6437,17 +6437,23 @@ function renderProgressionChart(canvasId, data, unit, color) {
         fetch(apiBase + '/api/breast-status').then(r => r.json()).then((s) => {
             const body = document.getElementById('breastModeBody');
             if (!body) return;
+            const bcsReady    = s.breast_segmentor && s.breast_segmentor.available && s.breast_segmentor.checkpoint_present;
             const unetReady   = s.attention_unet && s.attention_unet.available && s.attention_unet.checkpoint_present;
+            const crfReady    = s.densecrf && s.densecrf.available;
             const biomedReady = s.biomedclip && s.biomedclip.available;
 
-            if (unetReady && biomedReady) {
-                body.innerHTML = '<b style="color:var(--accent-green)">✓ Full pipeline</b> — <b>Attention U-Net BUSI</b> segment + <b>BiomedCLIP</b> classify. Endpoint <code>/api/predict-breast</code> ON.';
-            } else if (unetReady) {
-                body.innerHTML = '<b style="color:var(--accent-green)">✓ Segment REAL</b> — Attention U-Net BUSI ready. Classification <b>mock</b> (cài <code>open_clip_torch</code> để bật).';
+            const segmenter = bcsReady ? 'BreastCancerSegmentor' : (unetReady ? 'Attention U-Net' : null);
+            const segReady = !!segmenter;
+            const crfBadge = crfReady ? ' + <b>DenseCRF</b>' : '';
+
+            if (segReady && biomedReady) {
+                body.innerHTML = '<b style="color:var(--accent-green)">✓ Full pipeline</b> — <b>' + segmenter + '</b>' + crfBadge + ' segment + <b>BiomedCLIP</b> classify. Endpoint <code>/api/predict-breast</code> ON.';
+            } else if (segReady) {
+                body.innerHTML = '<b style="color:var(--accent-green)">✓ Segment REAL</b> — ' + segmenter + crfBadge + ' ready. Classification <b>mock</b> (cài <code>open_clip_torch</code> để bật).';
             } else if (biomedReady) {
-                body.innerHTML = '<b style="color:var(--accent-cyan)">Classify only</b> — BiomedCLIP <b>ON</b> · Segmentation <b>fallback heuristic</b> (Attention U-Net không load).';
+                body.innerHTML = '<b style="color:var(--accent-cyan)">Classify only</b> — BiomedCLIP <b>ON</b> · Segmentation <b>fallback heuristic</b> (segmenter không load).';
             } else {
-                body.innerHTML = '<b>Mock mode</b> — chưa load được Attention U-Net + BiomedCLIP. Kiểm tra <code>models/Busi/AttentionCustomUNet.h5</code>.';
+                body.innerHTML = '<b>Mock mode</b> — chưa load được segmenter + classifier. Kiểm tra <code>models/Busi/BreastCancerSegmentor.h5</code>.';
             }
         }).catch(() => {});
     });
