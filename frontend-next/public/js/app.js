@@ -6081,11 +6081,44 @@ function renderProgressionChart(canvasId, data, unit, color) {
     const fileInput = document.getElementById('breastFileInput');
     const runBtn   = document.getElementById('breastRunBtn');
     const statusEl = document.getElementById('breastStatus');
-    const zone     = document.getElementById('breastUploadZone');
+    const uploadBtn = document.getElementById('breastUploadBtn');
+    const stage    = document.getElementById('breastStage');
+    const mainCanvas = document.getElementById('breastDetectionCanvas');
+    const dropHint = document.getElementById('breastDropHint');
+    const viewTitle = document.getElementById('breastViewTitle');
+    const viewSub  = document.getElementById('breastViewSub');
     if (!fileInput || !runBtn) return;
 
     let currentFile = null;
     let currentImgUrl = null;
+
+    function drawToMainCanvas(url, file) {
+        if (!mainCanvas) return;
+        const img = new Image();
+        img.onload = () => {
+            const ctx = mainCanvas.getContext('2d');
+            ctx.fillStyle = '#070708';
+            ctx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
+            const ar = img.width / img.height;
+            const car = mainCanvas.width / mainCanvas.height;
+            let dw, dh;
+            if (ar > car) { dw = mainCanvas.width; dh = mainCanvas.width / ar; }
+            else          { dh = mainCanvas.height; dw = mainCanvas.height * ar; }
+            const dx = (mainCanvas.width - dw) / 2;
+            const dy = (mainCanvas.height - dh) / 2;
+            ctx.drawImage(img, dx, dy, dw, dh);
+            if (viewTitle && file) viewTitle.textContent = 'US Breast';
+            if (viewSub && file) viewSub.textContent = file.name + ' · ' + img.width + ' × ' + img.height;
+            if (dropHint) {
+                dropHint.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5-5 5 5M12 5v12"/></svg> Drop new image to replace · or click Upload';
+            }
+        };
+        img.src = url;
+    }
+
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', () => fileInput.click());
+    }
 
     fileInput.addEventListener('change', (e) => {
         const f = e.target.files[0];
@@ -6094,17 +6127,18 @@ function renderProgressionChart(canvasId, data, unit, color) {
         runBtn.disabled = false;
         if (currentImgUrl) URL.revokeObjectURL(currentImgUrl);
         currentImgUrl = URL.createObjectURL(f);
-        if (zone) {
-            zone.innerHTML = '<img src="' + currentImgUrl + '" style="width:100%; max-height: 220px; object-fit: contain; border-radius: 8px;">';
-        }
+        drawToMainCanvas(currentImgUrl, f);
     });
 
-    if (zone) {
-        zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag'); });
-        zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
-        zone.addEventListener('drop', (e) => {
+    if (stage) {
+        stage.addEventListener('dragover', (e) => { e.preventDefault(); stage.classList.add('dragover'); });
+        stage.addEventListener('dragleave', (e) => {
+            if (e.relatedTarget && stage.contains(e.relatedTarget)) return;
+            stage.classList.remove('dragover');
+        });
+        stage.addEventListener('drop', (e) => {
             e.preventDefault();
-            zone.classList.remove('drag');
+            stage.classList.remove('dragover');
             const f = e.dataTransfer.files[0];
             if (f) { fileInput.files = e.dataTransfer.files; fileInput.dispatchEvent(new Event('change')); }
         });
@@ -6252,25 +6286,81 @@ function renderProgressionChart(canvasId, data, unit, color) {
 
         const feats = r.features || {};
         const flist = document.getElementById('breastFeaturesList');
+        // Build BI-RADS-style feature list (shape features from rule-based classifier preferred)
         const items = [
-            { v: feats.spiculated,    label: 'Bờ tua gai (spiculated)' },
-            { v: feats.irregular,     label: 'Hình dạng không đều' },
-            { v: feats.density,       label: 'Mật độ' },
-            { v: feats.calcification, label: 'Vôi hoá' },
+            { v: feats.circularity,   label: 'Circularity' },
+            { v: feats.solidity,      label: 'Solidity' },
+            { v: feats.aspect_ratio,  label: 'Aspect ratio' },
+            { v: feats.mean_intensity, label: 'Echogenicity' },
+            { v: feats.spiculated,    label: 'Spiculated margin' },
+            { v: feats.density,       label: 'Density' },
         ];
-        flist.innerHTML = items.map((it) => {
+        const isPacs = flist.classList.contains('bx-features') || flist.querySelector('.bx-feat-row, .bx-feat-empty');
+        flist.innerHTML = items.filter(it => it.v !== undefined).map((it) => {
             let val;
-            if (typeof it.v === 'boolean') val = it.v ? '<b style="color:var(--accent-red)">✓ Có</b>' : '✗ Không';
-            else if (it.v != null) val = '<b>' + escapeHtmlB(String(it.v)) + '</b>';
-            else val = '—';
-            return '<div class="reco-item">' + it.label + ': ' + val + '</div>';
-        }).join('');
+            if (typeof it.v === 'boolean') {
+                val = it.v ? 'Yes' : 'No';
+            } else if (typeof it.v === 'number') {
+                val = it.v.toFixed(3);
+            } else {
+                val = String(it.v);
+            }
+            if (isPacs) {
+                return '<div class="bx-feat-row"><span class="k">' + it.label + '</span><span class="v">' + escapeHtmlB(val) + '</span></div>';
+            }
+            return '<div class="reco-item">' + it.label + ': <b>' + escapeHtmlB(val) + '</b></div>';
+        }).join('') || '<div class="bx-feat-empty">No detection yet</div>';
 
         const desc = document.getElementById('breastDescription');
         if (r.description) {
             desc.style.display = 'block';
-            desc.innerHTML = '<b>Mô tả:</b> ' + escapeHtmlB(r.description);
+            desc.textContent = r.description;
         }
+
+        // ── PACS-specific UI updates (ring score + verdict class + bx-stat bars + bx-meas) ──
+        if (classif) {
+            const ring = document.getElementById('breastRing');
+            if (ring) {
+                const conf = Math.round((classif.confidence || 0) * 100);
+                ring.style.setProperty('--bx-score', conf);
+            }
+            const verdictEl = document.getElementById('breastClassifVerdict');
+            if (verdictEl && classif.predicted) {
+                const labelMap = { benign: 'Benign', malignant: 'Malignant', normal: 'Normal' };
+                verdictEl.textContent = labelMap[classif.predicted] || classif.predicted;
+                verdictEl.classList.remove('benign', 'malignant', 'normal');
+                verdictEl.classList.add(classif.predicted);
+            }
+            const sub = document.getElementById('breastBiradsSub');
+            if (sub) {
+                const conf = Math.round((classif.confidence || 0) * 100);
+                const biradsMap = {
+                    1: 'Negative',
+                    2: 'Benign',
+                    3: 'Probably benign',
+                    4: 'Suspicious',
+                    5: 'Highly suggestive of malignancy',
+                };
+                const bn = r.birads || 0;
+                sub.textContent = (biradsMap[bn] || '') + ' · ' + conf + '% confidence';
+            }
+        }
+        // Animate bx-stat bar widths
+        ['breastProbBenign', 'breastProbMalignant', 'breastProbNormal'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el && el.parentElement && el.parentElement.classList.contains('bx-stat-bar')) {
+                el.style.width = el.style.width || '0%';  // already set above via .style.width
+            }
+        });
+        // Update bx-meas-row bbox_source value
+        const bboxRow = document.getElementById('breastBboxSource');
+        if (bboxRow && bboxRow.classList.contains('bx-meas-row')) {
+            bboxRow.style.display = 'grid';
+            const vEl = bboxRow.querySelector('.bx-meas-v');
+            if (vEl && window._bboxSourceLabel) vEl.textContent = window._bboxSourceLabel;
+        }
+        // Set diameter/area in PACS format (with mm/mm² already appended)
+        // (existing code already updates breastDiameter, breastArea — works for both layouts)
     }
 
     function escapeHtmlB(s) {
