@@ -6092,14 +6092,106 @@ function renderProgressionChart(canvasId, data, unit, color) {
     let currentFile = null;
     let currentImgUrl = null;
 
+    // ── PACS viewport state ───────────────────────────────────────────
+    // The main canvas renders: black bg → image fit (drawBox) → measurements,
+    // all stacked through a single zoom+pan transform. Tools mutate this state
+    // and call render(). Coordinates everywhere are CANVAS-space (the image's
+    // base fit position) so measurements track the anatomy across zoom/pan.
+    const viewport = { scale: 1, offsetX: 0, offsetY: 0 };
+    let currentImage = null;            // HTMLImageElement currently displayed
+    let drawBox = null;                 // { dx, dy, dw, dh } base fit
+    let currentTool = 'pointer';        // 'pointer' | 'pan' | 'zoom' | 'ruler'
+    let measurements = [];              // [{ x1, y1, x2, y2 }] canvas-space
+    let pendingMeasure = null;          // { x1, y1 } waiting for second click
+
+    function applyViewport(ctx) {
+        const cw = mainCanvas.width, ch = mainCanvas.height;
+        ctx.translate(cw / 2 + viewport.offsetX, ch / 2 + viewport.offsetY);
+        ctx.scale(viewport.scale, viewport.scale);
+        ctx.translate(-cw / 2, -ch / 2);
+    }
+
+    function screenToCanvas(clientX, clientY) {
+        const rect = mainCanvas.getBoundingClientRect();
+        const sx = (clientX - rect.left) * (mainCanvas.width / rect.width);
+        const sy = (clientY - rect.top) * (mainCanvas.height / rect.height);
+        const cw = mainCanvas.width, ch = mainCanvas.height;
+        return {
+            x: (sx - cw / 2 - viewport.offsetX) / viewport.scale + cw / 2,
+            y: (sy - ch / 2 - viewport.offsetY) / viewport.scale + ch / 2,
+        };
+    }
+
+    function drawMeasurement(ctx, m, isPending) {
+        const s = viewport.scale;
+        ctx.strokeStyle = '#FF6B9D';
+        ctx.fillStyle = '#FF6B9D';
+        ctx.lineWidth = 1.5 / s;
+        if (isPending && m.x2 == null) {
+            ctx.beginPath();
+            ctx.arc(m.x1, m.y1, 4 / s, 0, Math.PI * 2);
+            ctx.fill();
+            return;
+        }
+        ctx.beginPath();
+        ctx.moveTo(m.x1, m.y1);
+        ctx.lineTo(m.x2, m.y2);
+        ctx.stroke();
+        [[m.x1, m.y1], [m.x2, m.y2]].forEach(([x, y]) => {
+            ctx.beginPath();
+            ctx.arc(x, y, 3 / s, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        const dx = m.x2 - m.x1, dy = m.y2 - m.y1;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const midX = (m.x1 + m.x2) / 2;
+        const midY = (m.y1 + m.y2) / 2;
+        const label = dist.toFixed(0) + ' px';
+        ctx.font = (12 / s) + 'px ui-monospace, "SF Mono", Menlo, monospace';
+        const w = ctx.measureText(label).width;
+        const padX = 5 / s, padY = 3 / s, lh = 14 / s;
+        const bx = midX - w / 2 - padX;
+        const by = midY - lh / 2 - padY - 10 / s;
+        ctx.fillStyle = 'rgba(7, 7, 8, 0.88)';
+        ctx.fillRect(bx, by, w + padX * 2, lh + padY * 2);
+        ctx.strokeStyle = 'rgba(255, 107, 157, 0.35)';
+        ctx.lineWidth = 1 / s;
+        ctx.strokeRect(bx, by, w + padX * 2, lh + padY * 2);
+        ctx.fillStyle = '#FF6B9D';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, midX, by + (lh + padY * 2) / 2);
+    }
+
+    function render() {
+        if (!mainCanvas) return;
+        const ctx = mainCanvas.getContext('2d');
+        const cw = mainCanvas.width, ch = mainCanvas.height;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = '#070708';
+        ctx.fillRect(0, 0, cw, ch);
+        if (currentImage && drawBox) {
+            ctx.save();
+            applyViewport(ctx);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(currentImage, drawBox.dx, drawBox.dy, drawBox.dw, drawBox.dh);
+            ctx.restore();
+        }
+        if (measurements.length || pendingMeasure) {
+            ctx.save();
+            applyViewport(ctx);
+            measurements.forEach(m => drawMeasurement(ctx, m, false));
+            if (pendingMeasure) drawMeasurement(ctx, pendingMeasure, true);
+            ctx.restore();
+        }
+    }
+
     function drawToMainCanvas(url, opts) {
         if (!mainCanvas) return;
         opts = opts || {};
         const img = new Image();
         img.onload = () => {
-            const ctx = mainCanvas.getContext('2d');
-            ctx.fillStyle = '#070708';
-            ctx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
             const ar = img.width / img.height;
             const car = mainCanvas.width / mainCanvas.height;
             let dw, dh;
@@ -6107,7 +6199,14 @@ function renderProgressionChart(canvasId, data, unit, color) {
             else          { dh = mainCanvas.height; dw = mainCanvas.height * ar; }
             const dx = (mainCanvas.width - dw) / 2;
             const dy = (mainCanvas.height - dh) / 2;
-            ctx.drawImage(img, dx, dy, dw, dh);
+            currentImage = img;
+            drawBox = { dx, dy, dw, dh };
+            if (opts.resetView !== false) {
+                viewport.scale = 1; viewport.offsetX = 0; viewport.offsetY = 0;
+                measurements = [];
+                pendingMeasure = null;
+            }
+            render();
             if (viewTitle) viewTitle.textContent = opts.title || 'US Breast';
             if (viewSub) {
                 if (opts.subText) viewSub.textContent = opts.subText;
@@ -6118,6 +6217,113 @@ function renderProgressionChart(canvasId, data, unit, color) {
             }
         };
         img.src = url;
+    }
+
+    // ── Toolbar ────────────────────────────────────────────────────────
+    const CURSORS = {
+        pointer: 'default',
+        pan: 'grab',
+        zoom: 'zoom-in',
+        ruler: 'crosshair',
+    };
+    function setTool(name) {
+        if (!CURSORS[name]) return;
+        currentTool = name;
+        pendingMeasure = null;
+        document.querySelectorAll('#breastToolbar .bx-tool').forEach(b => {
+            b.classList.toggle('active', b.dataset.tool === name);
+        });
+        if (mainCanvas) mainCanvas.style.cursor = CURSORS[name];
+        render();
+    }
+    document.querySelectorAll('#breastToolbar .bx-tool').forEach(btn => {
+        btn.addEventListener('click', () => setTool(btn.dataset.tool));
+    });
+    // Keyboard shortcuts — only when focus isn't in a text input.
+    document.addEventListener('keydown', (e) => {
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        // Only fire when the breast tab is the active view.
+        const breastSection = document.getElementById('module-breast');
+        if (!breastSection || breastSection.classList.contains('hidden')) return;
+        if (e.key === 'v' || e.key === 'V') setTool('pointer');
+        else if (e.key === 'h' || e.key === 'H') setTool('pan');
+        else if (e.key === 'z' || e.key === 'Z') setTool('zoom');
+        else if (e.key === 'm' || e.key === 'M') setTool('ruler');
+        else if (e.key === 'Escape') { pendingMeasure = null; render(); }
+    });
+
+    // ── Canvas interactions (pan / zoom / ruler) ───────────────────────
+    let panActive = false;
+    let panStart = null;     // { x: clientX, y: clientY, offsetX, offsetY }
+    function zoomAt(clientX, clientY, factor) {
+        const beforeCanvas = screenToCanvas(clientX, clientY);
+        viewport.scale = Math.max(0.25, Math.min(8, viewport.scale * factor));
+        // Recompute offset so the same canvas-point sits under the cursor.
+        const rect = mainCanvas.getBoundingClientRect();
+        const sx = (clientX - rect.left) * (mainCanvas.width / rect.width);
+        const sy = (clientY - rect.top) * (mainCanvas.height / rect.height);
+        const cw = mainCanvas.width, ch = mainCanvas.height;
+        viewport.offsetX = sx - cw / 2 - (beforeCanvas.x - cw / 2) * viewport.scale;
+        viewport.offsetY = sy - ch / 2 - (beforeCanvas.y - ch / 2) * viewport.scale;
+        render();
+    }
+    if (mainCanvas) {
+        mainCanvas.addEventListener('mousedown', (e) => {
+            if (!currentImage) return;
+            if (currentTool === 'pan') {
+                panActive = true;
+                panStart = { x: e.clientX, y: e.clientY, offsetX: viewport.offsetX, offsetY: viewport.offsetY };
+                mainCanvas.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!panActive || !panStart) return;
+            const rect = mainCanvas.getBoundingClientRect();
+            const k = mainCanvas.width / rect.width;
+            viewport.offsetX = panStart.offsetX + (e.clientX - panStart.x) * k;
+            viewport.offsetY = panStart.offsetY + (e.clientY - panStart.y) * k;
+            render();
+        });
+        window.addEventListener('mouseup', () => {
+            if (panActive) {
+                panActive = false;
+                if (mainCanvas) mainCanvas.style.cursor = CURSORS[currentTool] || 'default';
+            }
+        });
+        mainCanvas.addEventListener('click', (e) => {
+            if (!currentImage) return;
+            if (currentTool === 'zoom') {
+                zoomAt(e.clientX, e.clientY, e.shiftKey ? 1 / 1.5 : 1.5);
+            } else if (currentTool === 'ruler') {
+                const p = screenToCanvas(e.clientX, e.clientY);
+                if (!pendingMeasure) {
+                    pendingMeasure = { x1: p.x, y1: p.y };
+                } else {
+                    measurements.push({ x1: pendingMeasure.x1, y1: pendingMeasure.y1, x2: p.x, y2: p.y });
+                    pendingMeasure = null;
+                }
+                render();
+            }
+        });
+        mainCanvas.addEventListener('wheel', (e) => {
+            if (!currentImage) return;
+            e.preventDefault();
+            const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+            zoomAt(e.clientX, e.clientY, factor);
+        }, { passive: false });
+    }
+
+    // ── Reset view button ──────────────────────────────────────────────
+    const resetBtn = document.getElementById('breastResetView');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            viewport.scale = 1; viewport.offsetX = 0; viewport.offsetY = 0;
+            measurements = [];
+            pendingMeasure = null;
+            render();
+        });
     }
 
     // Read the rendered image inside a thumbnail container. Returns null if
@@ -6156,7 +6362,8 @@ function renderProgressionChart(canvasId, data, unit, color) {
                 return;
             }
             const meta = THUMB_META[key] || { title: 'US Breast', sub: '' };
-            drawToMainCanvas(url, { title: meta.title, subText: meta.sub });
+            // Preserve zoom/pan/measurements — same anatomy, just different overlay.
+            drawToMainCanvas(url, { title: meta.title, subText: meta.sub, resetView: false });
             document.querySelectorAll('.bx-thumb[data-bx-thumb]').forEach(t => t.classList.remove('active'));
             thumb.classList.add('active');
         });

@@ -1772,11 +1772,11 @@
             <button class="bx-btn" id="breastResetView" type="button">Reset view</button>
           </div>
 
-          <div class="bx-toolbar">
-            <button class="bx-tool active" title="Select"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l8 18 2.5-7.5L21 11z"/></svg></button>
-            <button class="bx-tool" title="Pan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13V5a1.5 1.5 0 013 0v6m0-2a1.5 1.5 0 013 0v4m0-2a1.5 1.5 0 013 0v3a6 6 0 01-6 6h-2a8 8 0 01-7.93-7l-.07-.5a1.5 1.5 0 012.86-1"/></svg></button>
-            <button class="bx-tool" title="Zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M21 21l-5-5"/></svg></button>
-            <button class="bx-tool" title="Ruler"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 16.4L7.6 21 21 7.6 16.4 3z"/><path d="M7 12l2 2M10 9l2 2M13 6l2 2"/></svg></button>
+          <div class="bx-toolbar" id="breastToolbar">
+            <button class="bx-tool active" data-tool="pointer" title="Select (V) — default cursor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l8 18 2.5-7.5L21 11z"/></svg></button>
+            <button class="bx-tool" data-tool="pan" title="Pan (H) — drag to move image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13V5a1.5 1.5 0 013 0v6m0-2a1.5 1.5 0 013 0v4m0-2a1.5 1.5 0 013 0v3a6 6 0 01-6 6h-2a8 8 0 01-7.93-7l-.07-.5a1.5 1.5 0 012.86-1"/></svg></button>
+            <button class="bx-tool" data-tool="zoom" title="Zoom (Z) — click to zoom in, Shift+click to zoom out, wheel always works"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M21 21l-5-5"/></svg></button>
+            <button class="bx-tool" data-tool="ruler" title="Ruler (M) — click two points to measure pixel distance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 16.4L7.6 21 21 7.6 16.4 3z"/><path d="M7 12l2 2M10 9l2 2M13 6l2 2"/></svg></button>
           </div>
 
           <div class="bx-canvas-wrap">
