@@ -6508,6 +6508,10 @@ function renderProgressionChart(canvasId, data, unit, color) {
                 // Render Kaggle-style overlay via canvas (jet colormap + red mask)
                 renderKaggleOverlay(kgOverlay, currentImgUrl, maskSrc);
                 window._lastPredMaskSrc = maskSrc;
+                // Feed the mask to the 3D volume reconstructor (if module loaded).
+                if (typeof window.breast3dUpdate === 'function') {
+                    window.breast3dUpdate(maskSrc, r.features || null);
+                }
                 window._lastImageSize = r.image_size || [400, 300];
             } else {
                 if (kgMask) kgMask.innerHTML = '<div class="kg-empty">Không có mask (mock fail)</div>';
@@ -6814,4 +6818,393 @@ function renderProgressionChart(canvasId, data, unit, color) {
             }
         }).catch(() => {});
     });
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   BREAST 3D — Volume reconstruction from segmentation mask
+   ───────────────────────────────────────────────────────────────
+   Tab strip toggles between 2D ultrasound (canvas) and 3D volume
+   (Three.js scene). The 3D mesh is built by extracting the largest
+   contour from the mask via marching squares, then extruding into
+   THREE.ExtrudeGeometry with bevel — the silhouette matches the
+   segmentation outline and the bevel rounds the edges into a
+   tumor-like blob shape.
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+    const tabs = document.querySelectorAll('#breastViewMode .bx-mode-tab');
+    const mode2d = document.getElementById('breastMode2d');
+    const mode3d = document.getElementById('breastMode3d');
+    const canvas3d = document.getElementById('breast3dCanvas');
+    const emptyEl = document.getElementById('breast3dEmpty');
+    const statsEl = document.getElementById('breast3dStats');
+    const gizmoEl = document.getElementById('breast3dGizmo');
+    const vertsEl = document.getElementById('b3dVerts');
+    const volEl = document.getElementById('b3dVol');
+    const diamEl = document.getElementById('b3dDiam');
+    const autoBtn = document.getElementById('breast3dAutoRotate');
+    const wireBtn = document.getElementById('breast3dWireframe');
+    const resetBtn = document.getElementById('breast3dResetCam');
+    if (!tabs.length || !canvas3d) return;
+
+    let scene = null, camera = null, renderer = null, controls = null;
+    let mesh = null, wireMesh = null;
+    let initialized = false;
+    let currentMode = '2d';
+    let pendingMaskSrc = null;     // queued mask if 3D not yet initialized
+    let pendingFeatures = null;
+
+    // ── Tab switching ──────────────────────────────────────────────
+    function setMode(mode) {
+        currentMode = mode;
+        tabs.forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+        if (mode === '3d') {
+            if (mode2d) mode2d.hidden = true;
+            if (mode3d) mode3d.hidden = false;
+            if (!initialized) initThree();
+            if (pendingMaskSrc) {
+                rebuildMeshFromMask(pendingMaskSrc, pendingFeatures);
+                pendingMaskSrc = null;
+            }
+            // size + render the freshly visible canvas
+            requestAnimationFrame(resize);
+        } else {
+            if (mode2d) mode2d.hidden = false;
+            if (mode3d) mode3d.hidden = true;
+        }
+    }
+    tabs.forEach(t => t.addEventListener('click', () => setMode(t.dataset.mode)));
+
+    // ── Three.js scene ─────────────────────────────────────────────
+    function initThree() {
+        if (typeof THREE === 'undefined') {
+            console.warn('[breast3d] Three.js not loaded');
+            return;
+        }
+        scene = new THREE.Scene();
+        scene.background = null;
+
+        camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+        camera.position.set(2.4, 1.6, 2.4);
+
+        renderer = new THREE.WebGLRenderer({
+            canvas: canvas3d,
+            antialias: true,
+            alpha: true,
+        });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setClearColor(0x000000, 0);
+
+        // Lights — key + fill + rim, color-tinted toward the brand pink so
+        // the tumor blob reads as warm/organic rather than flat plastic.
+        const key = new THREE.DirectionalLight(0xfff0f3, 1.0);
+        key.position.set(3, 4, 2);
+        scene.add(key);
+        const fill = new THREE.DirectionalLight(0xc8d8ff, 0.4);
+        fill.position.set(-2, 1, -2);
+        scene.add(fill);
+        const rim = new THREE.DirectionalLight(0xff8aaa, 0.6);
+        rim.position.set(-1, -2, 3);
+        scene.add(rim);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+
+        // Orbit controls — auto-rotate on by default per the toolbar pill.
+        if (typeof THREE.OrbitControls === 'function') {
+            controls = new THREE.OrbitControls(camera, canvas3d);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.08;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 1.2;
+            controls.minDistance = 1.2;
+            controls.maxDistance = 8;
+        }
+
+        // Resize follows the canvas-wrap parent's content box.
+        window.addEventListener('resize', resize);
+        if (canvas3d.parentElement && typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(resize).observe(canvas3d.parentElement);
+        }
+        resize();
+
+        // Animate loop
+        function tick() {
+            requestAnimationFrame(tick);
+            if (currentMode !== '3d') return;
+            if (controls) controls.update();
+            renderer.render(scene, camera);
+        }
+        tick();
+
+        initialized = true;
+    }
+
+    function resize() {
+        if (!renderer || !canvas3d.parentElement) return;
+        const w = canvas3d.parentElement.clientWidth;
+        const h = canvas3d.parentElement.clientHeight;
+        if (w <= 0 || h <= 0) return;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+    }
+
+    // ── Marching squares contour extraction ────────────────────────
+    // Walk the mask pixel grid, find cells straddling the threshold,
+    // and link them into a closed polyline. Returns the largest
+    // contour as an array of [x, y] in pixel space.
+    function extractContour(binary, w, h) {
+        // Sample on a coarser grid for performance — typical mask is
+        // 256x256; 1px stride is fine.
+        const segments = [];
+        const get = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? 0 : (binary[y * w + x] ? 1 : 0);
+        for (let y = 0; y < h - 1; y++) {
+            for (let x = 0; x < w - 1; x++) {
+                const tl = get(x, y), tr = get(x + 1, y);
+                const bl = get(x, y + 1), br = get(x + 1, y + 1);
+                const code = (tl << 3) | (tr << 2) | (br << 1) | bl;
+                if (code === 0 || code === 15) continue;
+                const cx = x + 0.5, cy = y + 0.5;
+                const top = [x + 0.5, y], right = [x + 1, y + 0.5];
+                const bottom = [x + 0.5, y + 1], left = [x, y + 0.5];
+                const cases = {
+                    1: [left, bottom], 2: [bottom, right], 3: [left, right],
+                    4: [top, right], 5: [left, top, bottom, right], 6: [top, bottom],
+                    7: [left, top], 8: [left, top], 9: [top, bottom],
+                    10: [left, bottom, top, right], 11: [top, right],
+                    12: [left, right], 13: [bottom, right], 14: [left, bottom],
+                };
+                const segs = cases[code];
+                if (segs.length === 2) segments.push([segs[0], segs[1]]);
+                else if (segs.length === 4) { segments.push([segs[0], segs[1]]); segments.push([segs[2], segs[3]]); }
+            }
+        }
+        if (!segments.length) return [];
+        // Link segments into polylines by matching endpoints.
+        const key = p => p[0].toFixed(2) + ',' + p[1].toFixed(2);
+        const startMap = new Map();
+        segments.forEach((s, i) => {
+            const k = key(s[0]);
+            if (!startMap.has(k)) startMap.set(k, []);
+            startMap.get(k).push(i);
+        });
+        const used = new Set();
+        const polylines = [];
+        for (let i = 0; i < segments.length; i++) {
+            if (used.has(i)) continue;
+            const line = [segments[i][0], segments[i][1]];
+            used.add(i);
+            let safety = 0;
+            while (safety++ < 10000) {
+                const tail = line[line.length - 1];
+                const candidates = startMap.get(key(tail)) || [];
+                let next = -1;
+                for (const c of candidates) { if (!used.has(c)) { next = c; break; } }
+                if (next < 0) break;
+                used.add(next);
+                line.push(segments[next][1]);
+                if (key(line[0]) === key(line[line.length - 1])) break;
+            }
+            polylines.push(line);
+        }
+        let largest = polylines[0];
+        for (const p of polylines) if (p.length > largest.length) largest = p;
+        return largest;
+    }
+
+    // Douglas–Peucker simplification — keeps contour silhouette but
+    // cuts vertex count so Three.js doesn't choke on 800-point shapes.
+    function simplify(points, tolerance) {
+        if (points.length < 3) return points;
+        const sqDist = (p, q) => { const dx = p[0] - q[0], dy = p[1] - q[1]; return dx * dx + dy * dy; };
+        const sqSegDist = (p, a, b) => {
+            let x = a[0], y = a[1];
+            let dx = b[0] - x, dy = b[1] - y;
+            if (dx !== 0 || dy !== 0) {
+                const t = ((p[0] - x) * dx + (p[1] - y) * dy) / (dx * dx + dy * dy);
+                if (t > 1) { x = b[0]; y = b[1]; }
+                else if (t > 0) { x += dx * t; y += dy * t; }
+            }
+            dx = p[0] - x; dy = p[1] - y;
+            return dx * dx + dy * dy;
+        };
+        const sqTol = tolerance * tolerance;
+        const keep = new Uint8Array(points.length);
+        keep[0] = 1; keep[points.length - 1] = 1;
+        const stack = [[0, points.length - 1]];
+        while (stack.length) {
+            const [s, e] = stack.pop();
+            let maxD = 0, idx = -1;
+            for (let i = s + 1; i < e; i++) {
+                const d = sqSegDist(points[i], points[s], points[e]);
+                if (d > maxD) { maxD = d; idx = i; }
+            }
+            if (maxD > sqTol && idx > 0) {
+                keep[idx] = 1;
+                stack.push([s, idx]);
+                stack.push([idx, e]);
+            }
+        }
+        const out = [];
+        for (let i = 0; i < points.length; i++) if (keep[i]) out.push(points[i]);
+        return out;
+    }
+
+    // ── Build mesh from mask image ─────────────────────────────────
+    function rebuildMeshFromMask(maskSrc, features) {
+        if (!initialized || !scene) {
+            pendingMaskSrc = maskSrc;
+            pendingFeatures = features;
+            return;
+        }
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            // Sample at a fixed resolution for stable contour quality.
+            const sample = 192;
+            const off = document.createElement('canvas');
+            off.width = sample; off.height = sample;
+            const octx = off.getContext('2d');
+            octx.drawImage(img, 0, 0, sample, sample);
+            const data = octx.getImageData(0, 0, sample, sample).data;
+            const binary = new Uint8Array(sample * sample);
+            // White = lesion. Use brightness > 0.5 as the cut.
+            for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+                const lum = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                binary[p] = lum > 127 ? 1 : 0;
+            }
+            const contour = extractContour(binary, sample, sample);
+            if (contour.length < 8) {
+                clearMesh();
+                if (emptyEl) emptyEl.style.display = 'flex';
+                return;
+            }
+            const simplified = simplify(contour, 1.2);
+            buildMeshFromContour(simplified, sample, features);
+        };
+        img.onerror = () => {
+            console.warn('[breast3d] mask image failed to load');
+        };
+        img.src = maskSrc;
+    }
+
+    function clearMesh() {
+        if (mesh) {
+            scene.remove(mesh);
+            if (mesh.geometry) mesh.geometry.dispose();
+            if (mesh.material) mesh.material.dispose();
+            mesh = null;
+        }
+        if (wireMesh) {
+            scene.remove(wireMesh);
+            if (wireMesh.geometry) wireMesh.geometry.dispose();
+            if (wireMesh.material) wireMesh.material.dispose();
+            wireMesh = null;
+        }
+    }
+
+    function buildMeshFromContour(contour, sampleSize, features) {
+        clearMesh();
+        // Center + scale contour to roughly fit within [-1, 1].
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        contour.forEach(p => {
+            if (p[0] < minX) minX = p[0];
+            if (p[0] > maxX) maxX = p[0];
+            if (p[1] < minY) minY = p[1];
+            if (p[1] > maxY) maxY = p[1];
+        });
+        const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+        const span = Math.max(maxX - minX, maxY - minY) || 1;
+        const scale = 1.5 / span;
+        const norm = contour.map(p => [(p[0] - cx) * scale, -(p[1] - cy) * scale]);
+
+        const shape = new THREE.Shape();
+        shape.moveTo(norm[0][0], norm[0][1]);
+        for (let i = 1; i < norm.length; i++) shape.lineTo(norm[i][0], norm[i][1]);
+        shape.closePath();
+
+        // Depth is informed by features.aspect_ratio + solidity — irregular
+        // lesions (low solidity) get less Z to read as flatter; round dense
+        // ones get a fuller volume.
+        const solidity = (features && features.solidity) ? features.solidity : 0.9;
+        const depth = 0.25 + 0.4 * solidity;
+        const bevel = depth * 0.5;
+        const geom = new THREE.ExtrudeGeometry(shape, {
+            depth: depth,
+            bevelEnabled: true,
+            bevelThickness: bevel,
+            bevelSize: bevel * 0.75,
+            bevelSegments: 12,
+            curveSegments: 24,
+            steps: 1,
+        });
+        geom.translate(0, 0, -depth / 2);
+        geom.computeVertexNormals();
+
+        const material = new THREE.MeshStandardMaterial({
+            color: 0xff8aaa,
+            roughness: 0.55,
+            metalness: 0.08,
+            flatShading: false,
+        });
+        mesh = new THREE.Mesh(geom, material);
+        scene.add(mesh);
+
+        // Wireframe overlay — created upfront, visibility toggled by pill.
+        const wireGeom = new THREE.WireframeGeometry(geom);
+        const wireMat = new THREE.LineBasicMaterial({
+            color: 0xff6b9d, transparent: true, opacity: 0.35,
+        });
+        wireMesh = new THREE.LineSegments(wireGeom, wireMat);
+        wireMesh.visible = wireBtn && wireBtn.getAttribute('aria-pressed') === 'true';
+        scene.add(wireMesh);
+
+        // Stats overlay
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (statsEl) statsEl.hidden = false;
+        if (gizmoEl) gizmoEl.hidden = false;
+        if (vertsEl) vertsEl.textContent = geom.attributes.position.count.toString();
+        // Crude volume estimate — area of contour (px²) × depth × scale³ → arbitrary units shown as "vox"
+        const area = polygonArea(norm);
+        const volume = Math.abs(area) * depth;
+        if (volEl) volEl.textContent = volume.toFixed(2) + ' u³';
+        const maxDiam = Math.max(maxX - minX, maxY - minY) * (256 / sampleSize);
+        if (diamEl) diamEl.textContent = maxDiam.toFixed(0) + ' px';
+    }
+
+    function polygonArea(pts) {
+        let s = 0;
+        for (let i = 0; i < pts.length; i++) {
+            const j = (i + 1) % pts.length;
+            s += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1];
+        }
+        return s / 2;
+    }
+
+    // ── Toolbar buttons ────────────────────────────────────────────
+    if (autoBtn) {
+        autoBtn.addEventListener('click', () => {
+            const on = autoBtn.getAttribute('aria-pressed') !== 'true';
+            autoBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            if (controls) controls.autoRotate = on;
+        });
+    }
+    if (wireBtn) {
+        wireBtn.addEventListener('click', () => {
+            const on = wireBtn.getAttribute('aria-pressed') !== 'true';
+            wireBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            if (wireMesh) wireMesh.visible = on;
+        });
+    }
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            if (!camera) return;
+            camera.position.set(2.4, 1.6, 2.4);
+            camera.lookAt(0, 0, 0);
+            if (controls) { controls.target.set(0, 0, 0); controls.update(); }
+        });
+    }
+
+    // Public API — called from displayBreastResults when a mask is ready.
+    window.breast3dUpdate = function (maskSrc, features) {
+        rebuildMeshFromMask(maskSrc, features || null);
+    };
 })();

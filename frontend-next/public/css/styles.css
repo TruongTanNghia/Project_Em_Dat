@@ -6325,7 +6325,7 @@ button.is-busy {
     transition: border-color 120ms ease-out;
 }
 .bx-thumb.active { border-color: var(--bx-pink); }
-.bx-thumb:not(.active):hover { border-color: var(--bx-border-strong); }
+.bx-thumb:not(.active):hover { border-color: var(--bx-rail); }
 .bx-thumb-img {
     width: 100%; aspect-ratio: 1;
     background: var(--bx-bg-canvas);
@@ -6642,3 +6642,179 @@ button.is-busy {
     .bx-side, .bx-ai, .bx-thumbs { border-left: none; border-right: none; }
     .bx-viewer { grid-template-columns: 1fr; }
 }
+
+/* ─── View mode tabs (2D ↔ 3D) ───────────────────────────────── */
+/* Tab strip sits absolute at the very top of .bx-stage. Everything
+   else inside the stage that was positioned at top:12px is shifted
+   down by VIEW_MODE_HEIGHT (36px) to make room. */
+.bx-view-mode {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 8;
+    height: 36px;
+    display: flex; align-items: stretch;
+    gap: 2px;
+    padding: 0 10px;
+    border-bottom: 1px solid var(--bx-rail);
+    background: oklch(from var(--bx-panel) calc(l - 0.02) c h);
+}
+.bx-mode-tab {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: transparent;
+    border: 0;
+    color: var(--bx-ink-3);
+    font: 500 11.5px/1 inherit;
+    letter-spacing: 0.01em;
+    padding: 0 12px;
+    cursor: pointer;
+    position: relative;
+    transition: color 120ms ease-out;
+}
+.bx-mode-tab svg { opacity: 0.7; }
+.bx-mode-tab:hover { color: var(--bx-ink-2); }
+.bx-mode-tab.active { color: var(--bx-ink); }
+.bx-mode-tab.active svg { opacity: 1; stroke: var(--bx-pink); }
+.bx-mode-tab.active::after {
+    content: '';
+    position: absolute;
+    left: 8px; right: 8px; bottom: -1px;
+    height: 2px;
+    background: var(--bx-pink);
+    border-radius: 2px 2px 0 0;
+}
+
+/* Push the absolutely positioned stage chrome down to clear the tab strip */
+.bx-stage > .bx-stage-head { top: 48px; }
+.bx-stage > .bx-mode-2d .bx-stage-tools { top: 48px; }
+.bx-stage > .bx-mode-2d .bx-toolbar { top: 114px; }
+.bx-stage > .bx-mode-2d .bx-canvas-wrap { padding-top: 100px; }
+
+/* ─── 3D mode container ──────────────────────────────────────── */
+.bx-mode-3d {
+    position: absolute;
+    top: 36px;     /* below tab strip */
+    left: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column;
+    z-index: 4;
+}
+.bx-mode-3d[hidden] { display: none; }
+.bx-mode-2d[hidden] { display: none; }
+
+.bx-mode-3d .bx-stage-tools {
+    position: static;
+    margin: 0;
+    padding: 60px 16px 8px 16px;  /* leave room for bx-stage-head above */
+}
+.bx-mode-3d .bx-canvas-wrap {
+    flex: 1; min-height: 0;
+    position: relative;
+    padding: 0;
+    height: auto;
+    overflow: hidden;
+}
+
+.bx-3d-tools {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.bx-3d-info {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--bx-ink-3);
+    font: 500 11px/1.3 inherit;
+}
+.bx-3d-info svg { opacity: 0.5; }
+.bx-3d-actions {
+    display: inline-flex; align-items: center; gap: 5px;
+}
+
+/* Pill toggle button — for Auto-rotate, Wireframe */
+.bx-pill {
+    background: transparent;
+    border: 1px solid var(--bx-rail-soft);
+    color: var(--bx-ink-3);
+    font: 500 11px/1 inherit;
+    letter-spacing: 0.01em;
+    padding: 5px 10px;
+    border-radius: 99px;
+    cursor: pointer;
+    transition: all 120ms ease-out;
+}
+.bx-pill:hover {
+    color: var(--bx-ink-2);
+    border-color: var(--bx-rail);
+}
+.bx-pill[aria-pressed="true"] {
+    color: var(--bx-pink);
+    border-color: var(--bx-pink);
+    background: oklch(from var(--bx-pink) l c h / 0.08);
+}
+
+/* 3D canvas slot — fills the canvas-wrap */
+#breast3dCanvas {
+    width: 100%; height: 100%;
+    display: block;
+    background: radial-gradient(ellipse at center,
+        oklch(0.20 0.02 340) 0%,
+        oklch(0.10 0.015 340) 60%,
+        var(--bx-bg-canvas) 100%);
+}
+
+/* Empty state — shown before first mask is available */
+.bx-3d-empty {
+    position: absolute;
+    inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 8px;
+    color: var(--bx-ink-3);
+    font: 500 12px/1.4 inherit;
+    text-align: center;
+    pointer-events: none;
+    background: var(--bx-bg-canvas);
+    padding: 24px;
+}
+.bx-3d-empty svg { opacity: 0.4; }
+.bx-3d-empty span { max-width: 280px; }
+
+/* Stats overlay — top-right of 3D canvas */
+.bx-3d-stats {
+    position: absolute;
+    top: 10px; right: 10px;
+    display: flex; gap: 12px;
+    background: oklch(0.10 0.015 340 / 0.75);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--bx-rail-soft);
+    border-radius: 4px;
+    padding: 5px 9px;
+    font: 500 10.5px/1 inherit;
+    color: var(--bx-ink-3);
+    pointer-events: none;
+}
+.bx-3d-stats b {
+    color: var(--bx-ink-2);
+    font-weight: 600;
+    margin-left: 3px;
+    font-feature-settings: 'tnum';
+}
+
+/* XYZ axis gizmo — bottom-left */
+.bx-3d-axis-gizmo {
+    position: absolute;
+    bottom: 12px; left: 12px;
+    display: grid;
+    grid-template-columns: auto auto auto;
+    gap: 4px;
+    pointer-events: none;
+}
+.bx-axis {
+    font: 700 9.5px/1 ui-monospace, monospace;
+    letter-spacing: 0.05em;
+    padding: 3px 6px;
+    border-radius: 3px;
+    background: oklch(0.10 0.015 340 / 0.8);
+    border: 1px solid var(--bx-rail-soft);
+}
+.bx-axis-x { color: oklch(0.72 0.15 25); }   /* red-ish */
+.bx-axis-y { color: oklch(0.78 0.16 140); }  /* green-ish */
+.bx-axis-z { color: oklch(0.72 0.14 235); }  /* blue-ish */
