@@ -7049,6 +7049,20 @@ function renderProgressionChart(canvasId, data, unit, color) {
     }
 
     // ── Build mesh from mask image ─────────────────────────────────
+    function showEmpty(message) {
+        clearMesh();
+        if (statsEl) statsEl.hidden = true;
+        if (gizmoEl) gizmoEl.hidden = true;
+        if (vertsEl) vertsEl.textContent = '—';
+        if (volEl) volEl.textContent = '—';
+        if (diamEl) diamEl.textContent = '—';
+        if (emptyEl) {
+            emptyEl.style.display = 'flex';
+            const span = emptyEl.querySelector('span');
+            if (span && message) span.textContent = message;
+        }
+    }
+
     function rebuildMeshFromMask(maskSrc, features) {
         if (!initialized || !scene) {
             pendingMaskSrc = maskSrc;
@@ -7067,21 +7081,37 @@ function renderProgressionChart(canvasId, data, unit, color) {
             const data = octx.getImageData(0, 0, sample, sample).data;
             const binary = new Uint8Array(sample * sample);
             // White = lesion. Use brightness > 0.5 as the cut.
+            let whiteCount = 0;
             for (let i = 0, p = 0; i < data.length; i += 4, p++) {
                 const lum = (data[i] + data[i + 1] + data[i + 2]) / 3;
                 binary[p] = lum > 127 ? 1 : 0;
+                if (binary[p]) whiteCount++;
             }
-            const contour = extractContour(binary, sample, sample);
-            if (contour.length < 8) {
-                clearMesh();
-                if (emptyEl) emptyEl.style.display = 'flex';
+            const totalPx = sample * sample;
+            // No lesion at all — model said this is normal tissue.
+            if (whiteCount < totalPx * 0.0008) {
+                showEmpty('No lesion detected — nothing to reconstruct');
                 return;
             }
-            const simplified = simplify(contour, 1.2);
+            // Lesion fills the whole frame — useless contour.
+            if (whiteCount > totalPx * 0.95) {
+                showEmpty('Mask covers entire frame — segmentation may have failed');
+                return;
+            }
+            const contour = extractContour(binary, sample, sample);
+            // Need at least 4 unique points to form a valid 2D cross-section.
+            // Below that the marching-squares output is just noise.
+            if (contour.length < 4) {
+                showEmpty('Lesion too small to reconstruct as a volume');
+                return;
+            }
+            // Simplify only if the contour is dense — preserve detail on small lesions.
+            const simplified = contour.length > 30 ? simplify(contour, 1.0) : contour;
             buildMeshFromContour(simplified, sample, features);
         };
         img.onerror = () => {
             console.warn('[breast3d] mask image failed to load');
+            showEmpty('Failed to load mask image');
         };
         img.src = maskSrc;
     }
@@ -7116,9 +7146,8 @@ function renderProgressionChart(canvasId, data, unit, color) {
         const scale = 1.5 / span;
         const norm = contour.map(p => [(p[0] - cx) * scale, -(p[1] - cy) * scale]);
         const contourLen = norm.length;
-        if (contourLen < 6) {
-            clearMesh();
-            if (emptyEl) emptyEl.style.display = 'flex';
+        if (contourLen < 4) {
+            showEmpty('Contour too small to triangulate');
             return;
         }
 
