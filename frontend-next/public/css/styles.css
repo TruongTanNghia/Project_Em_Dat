@@ -6322,8 +6322,10 @@ button.is-busy {
     cursor: pointer;
     position: relative;
     background: var(--bx-bg-canvas);
+    transition: border-color 120ms ease-out;
 }
 .bx-thumb.active { border-color: var(--bx-pink); }
+.bx-thumb:not(.active):hover { border-color: var(--bx-border-strong); }
 .bx-thumb-img {
     width: 100%; aspect-ratio: 1;
     background: var(--bx-bg-canvas);

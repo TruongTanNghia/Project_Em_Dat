@@ -6092,8 +6092,9 @@ function renderProgressionChart(canvasId, data, unit, color) {
     let currentFile = null;
     let currentImgUrl = null;
 
-    function drawToMainCanvas(url, file) {
+    function drawToMainCanvas(url, opts) {
         if (!mainCanvas) return;
+        opts = opts || {};
         const img = new Image();
         img.onload = () => {
             const ctx = mainCanvas.getContext('2d');
@@ -6107,14 +6108,59 @@ function renderProgressionChart(canvasId, data, unit, color) {
             const dx = (mainCanvas.width - dw) / 2;
             const dy = (mainCanvas.height - dh) / 2;
             ctx.drawImage(img, dx, dy, dw, dh);
-            if (viewTitle && file) viewTitle.textContent = 'US Breast';
-            if (viewSub && file) viewSub.textContent = file.name + ' · ' + img.width + ' × ' + img.height;
+            if (viewTitle) viewTitle.textContent = opts.title || 'US Breast';
+            if (viewSub) {
+                if (opts.subText) viewSub.textContent = opts.subText;
+                else if (opts.file) viewSub.textContent = opts.file.name + ' · ' + img.width + ' × ' + img.height;
+            }
             if (dropHint) {
                 dropHint.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5-5 5 5M12 5v12"/></svg> Drop new image to replace · or click Upload';
             }
         };
         img.src = url;
     }
+
+    // Read the rendered image inside a thumbnail container. Returns null if
+    // the thumb has no content yet (e.g. analysis hasn't run).
+    function getThumbImage(thumbDiv) {
+        if (!thumbDiv) return null;
+        const inner = thumbDiv.querySelector('.bx-thumb-img');
+        if (!inner) return null;
+        const img = inner.querySelector('img');
+        if (img && img.src) return img.src;
+        const cnv = inner.querySelector('canvas');
+        if (cnv) { try { return cnv.toDataURL('image/png'); } catch (e) { return null; } }
+        return null;
+    }
+
+    // Click a thumbnail → swap its image into the main viewer canvas.
+    // Highlights the active thumb via .active class (CSS gives it a pink border).
+    const THUMB_META = {
+        input:   { title: 'US Breast · Input',   sub: 'Input scan · click another thumb to switch view' },
+        mask:    { title: 'US Breast · Mask',    sub: 'Predicted segmentation mask · binary' },
+        overlay: { title: 'US Breast · Overlay', sub: 'Heatmap overlay (jet colormap) on input' },
+        gt:      { title: 'US Breast · GT mask', sub: 'Uploaded ground-truth annotation' },
+    };
+    document.querySelectorAll('.bx-thumb[data-bx-thumb]').forEach((thumb) => {
+        thumb.addEventListener('click', () => {
+            const key = thumb.dataset.bxThumb;
+            const url = getThumbImage(thumb);
+            if (!url) {
+                if (statusEl) {
+                    statusEl.hidden = false;
+                    statusEl.style.color = 'var(--bx-text-mute)';
+                    statusEl.textContent = key === 'input'
+                        ? 'No image uploaded yet'
+                        : 'Run analysis first to generate ' + key;
+                }
+                return;
+            }
+            const meta = THUMB_META[key] || { title: 'US Breast', sub: '' };
+            drawToMainCanvas(url, { title: meta.title, subText: meta.sub });
+            document.querySelectorAll('.bx-thumb[data-bx-thumb]').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+        });
+    });
 
     if (uploadBtn) {
         uploadBtn.addEventListener('click', () => fileInput.click());
@@ -6137,7 +6183,11 @@ function renderProgressionChart(canvasId, data, unit, color) {
         runBtn.disabled = false;
         if (currentImgUrl) URL.revokeObjectURL(currentImgUrl);
         currentImgUrl = URL.createObjectURL(f);
-        drawToMainCanvas(currentImgUrl, f);
+        drawToMainCanvas(currentImgUrl, { file: f });
+        // Reset thumb selection back to "input" on new upload.
+        document.querySelectorAll('.bx-thumb[data-bx-thumb]').forEach(t => t.classList.remove('active'));
+        const inputThumb = document.querySelector('.bx-thumb[data-bx-thumb="input"]');
+        if (inputThumb) inputThumb.classList.add('active');
     });
 
     if (stage) {
