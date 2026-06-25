@@ -7115,35 +7115,66 @@ function renderProgressionChart(canvasId, data, unit, color) {
         const span = Math.max(maxX - minX, maxY - minY) || 1;
         const scale = 1.5 / span;
         const norm = contour.map(p => [(p[0] - cx) * scale, -(p[1] - cy) * scale]);
+        const contourLen = norm.length;
+        if (contourLen < 6) {
+            clearMesh();
+            if (emptyEl) emptyEl.style.display = 'flex';
+            return;
+        }
 
-        const shape = new THREE.Shape();
-        shape.moveTo(norm[0][0], norm[0][1]);
-        for (let i = 1; i < norm.length; i++) shape.lineTo(norm[i][0], norm[i][1]);
-        shape.closePath();
-
-        // Depth is informed by features.aspect_ratio + solidity — irregular
-        // lesions (low solidity) get less Z to read as flatter; round dense
-        // ones get a fuller volume.
+        // ── Build closed blob by stacking rings along Z ─────────────────
+        // At each z slice, the cross-section equals the 2D contour scaled
+        // by an ellipsoidal taper √(1 − (z/halfDepth)²). At z=0 the slice
+        // matches the mask outline; at z=±halfDepth it collapses to a
+        // point. This produces an organic tumor-like volume — NOT the flat
+        // extruded slab that ExtrudeGeometry was making.
         const solidity = (features && features.solidity) ? features.solidity : 0.9;
-        const depth = 0.25 + 0.4 * solidity;
-        const bevel = depth * 0.5;
-        const geom = new THREE.ExtrudeGeometry(shape, {
-            depth: depth,
-            bevelEnabled: true,
-            bevelThickness: bevel,
-            bevelSize: bevel * 0.75,
-            bevelSegments: 12,
-            curveSegments: 24,
-            steps: 1,
-        });
-        geom.translate(0, 0, -depth / 2);
+        // span*scale = 1.5 from normalization. Width of blob ≈ 1.5. We want
+        // depth ≈ 0.9-1.2 (close to width) so the blob reads as a 3D mass,
+        // not a coin. solidity ∈ [0,1] tunes thickness within that range.
+        const halfDepth = (0.4 + 0.4 * solidity) * span * scale * 0.5;
+        const Z_SEGMENTS = 36;
+
+        const positions = [];
+        const indices = [];
+
+        for (let iz = 0; iz <= Z_SEGMENTS; iz++) {
+            const t = iz / Z_SEGMENTS;            // 0..1
+            const z = (t * 2 - 1) * halfDepth;    // -halfDepth..+halfDepth
+            const r = z / halfDepth;
+            const scaleZ = Math.sqrt(Math.max(0, 1 - r * r));
+            for (let i = 0; i < contourLen; i++) {
+                positions.push(norm[i][0] * scaleZ, norm[i][1] * scaleZ, z);
+            }
+        }
+        // Triangulate the side surface between consecutive rings.
+        // Pole rings (z=±halfDepth) are degenerate (all points at z), so the
+        // triangles there collapse safely — they form a fan into the apex.
+        for (let iz = 0; iz < Z_SEGMENTS; iz++) {
+            for (let i = 0; i < contourLen; i++) {
+                const ni = (i + 1) % contourLen;
+                const a = iz * contourLen + i;
+                const b = iz * contourLen + ni;
+                const c = (iz + 1) * contourLen + i;
+                const d = (iz + 1) * contourLen + ni;
+                indices.push(a, c, b);
+                indices.push(b, c, d);
+            }
+        }
+
+        const geom = new THREE.BufferGeometry();
+        geom.setIndex(indices);
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
         geom.computeVertexNormals();
 
+        // MeshStandardMaterial flesh tone with double-side just in case
+        // back-face culling exposes degenerate poles.
         const material = new THREE.MeshStandardMaterial({
             color: 0xff8aaa,
-            roughness: 0.55,
-            metalness: 0.08,
+            roughness: 0.5,
+            metalness: 0.06,
             flatShading: false,
+            side: THREE.FrontSide,
         });
         mesh = new THREE.Mesh(geom, material);
         scene.add(mesh);
@@ -7162,9 +7193,10 @@ function renderProgressionChart(canvasId, data, unit, color) {
         if (statsEl) statsEl.hidden = false;
         if (gizmoEl) gizmoEl.hidden = false;
         if (vertsEl) vertsEl.textContent = geom.attributes.position.count.toString();
-        // Crude volume estimate — area of contour (px²) × depth × scale³ → arbitrary units shown as "vox"
-        const area = polygonArea(norm);
-        const volume = Math.abs(area) * depth;
+        // Volume: 2D contour area × ellipsoidal depth integral (4/3 of mean).
+        // ∫₋₁¹ (1-r²) dr = 4/3, so V ≈ A_2D × (4/3) × halfDepth.
+        const area = Math.abs(polygonArea(norm));
+        const volume = area * (4 / 3) * halfDepth;
         if (volEl) volEl.textContent = volume.toFixed(2) + ' u³';
         const maxDiam = Math.max(maxX - minX, maxY - minY) * (256 / sampleSize);
         if (diamEl) diamEl.textContent = maxDiam.toFixed(0) + ' px';
