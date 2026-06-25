@@ -6120,6 +6120,16 @@ function renderProgressionChart(canvasId, data, unit, color) {
         uploadBtn.addEventListener('click', () => fileInput.click());
     }
 
+    // Run analysis button — was onclick inline in the old markup;
+    // PACS redesign removed inline handlers so we wire it here.
+    if (runBtn) {
+        runBtn.addEventListener('click', () => {
+            if (typeof window.runBreastAnalysis === 'function') {
+                window.runBreastAnalysis();
+            }
+        });
+    }
+
     fileInput.addEventListener('change', (e) => {
         const f = e.target.files[0];
         if (!f) return;
