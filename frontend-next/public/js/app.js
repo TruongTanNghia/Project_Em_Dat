@@ -6075,7 +6075,7 @@ function renderProgressionChart(canvasId, data, unit, color) {
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   BREAST module — MedSAM integration
+   BREAST module — BreastCancerSegmentor U-Net + BiomedCLIP
    ═══════════════════════════════════════════════════════════════ */
 (function () {
     const fileInput = document.getElementById('breastFileInput');
@@ -6158,7 +6158,7 @@ function renderProgressionChart(canvasId, data, unit, color) {
         if (!currentFile) return;
         const apiBase = (window.CONFIG && window.CONFIG.PYTHON_API) || 'http://localhost:5000';
         statusEl.hidden = false;
-        statusEl.textContent = '⏳ Đang gọi MedSAM...';
+        statusEl.textContent = '⏳ Running BreastCancerSegmentor...';
         statusEl.style.color = '';
         runBtn.disabled = true;
 
