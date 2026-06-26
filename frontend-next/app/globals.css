@@ -70,6 +70,8 @@
     --case-02: oklch(0.64 0.22 25);     /* Brain — surgical red */
     --case-03: oklch(0.70 0.14 130);    /* Lung — biopsy green-yellow (sage) */
     --case-04: oklch(0.66 0.18 5);      /* Blood — arterial deep red */
+    --case-05: oklch(0.72 0.13 220);    /* Spine — X-ray cool cyan */
+    --case-06: oklch(0.72 0.18 5);      /* Breast — PACS warm pink */
 
     /* Typography */
     --font-sans: var(--font-sans, ui-sans-serif), 'Mona Sans', system-ui, sans-serif;
@@ -656,6 +658,8 @@
   .case[data-case='02'] { --accent: var(--case-02); }
   .case[data-case='03'] { --accent: var(--case-03); }
   .case[data-case='04'] { --accent: var(--case-04); }
+  .case[data-case='05'] { --accent: var(--case-05); }
+  .case[data-case='06'] { --accent: var(--case-06); }
   .case .case-link {
     color: var(--accent);
     border-color: var(--accent);
