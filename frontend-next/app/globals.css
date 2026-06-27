@@ -92,6 +92,64 @@
     /* Asymmetric breathing */
     --pad-left:  clamp(20px, 6vw, 96px);
     --pad-right: clamp(20px, 4vw, 64px);
+
+    /* Theme-aware filters / shadows. On light surface the brand drop-
+       shadow has color value; on dark we swap to a soft white-ish lift
+       so the logo doesn't sit on the surface like a sticker. */
+    --logo-shadow:
+      drop-shadow(0 8px 18px oklch(0.62 0.22 32 / 0.22))
+      drop-shadow(0 1px 2px oklch(0.18 0.038 268 / 0.10));
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     DARK THEME — radiologist's reading room at 2am. Surface drenches
+     into deep warm-black; inks lift to cream; canvases stay drenched
+     (they were already dark). Same brand hues but slightly boosted
+     chroma so the orange + cobalt read at high contrast on dark.
+  ════════════════════════════════════════════════════════════════════ */
+  [data-theme='dark'] {
+    --surface:    oklch(0.13 0.008 30);   /* deep warm-black paper */
+    --surface-2:  oklch(0.17 0.010 30);   /* lifted card layer */
+    --hairline:   oklch(0.26 0.012 30);
+    --hairline-2: oklch(0.36 0.014 30);
+
+    /* Canvases stay dark — they're already used for inner monitor
+       frames, so behaviour is identical across themes. Slight lift on
+       canvas-2 to keep contrast inside drenched sections like Arch. */
+    --canvas:     oklch(0.08 0.005 25);
+    --canvas-2:   oklch(0.13 0.006 25);
+
+    /* Inks invert: text now bright cream-white, sub-inks step down. */
+    --ink-95: oklch(0.96 0.008 70);
+    --ink-80: oklch(0.82 0.008 70);
+    --ink-60: oklch(0.62 0.008 70);
+    --ink-40: oklch(0.46 0.008 70);
+    --ink-25: oklch(0.30 0.008 70);
+
+    /* Brand boost — same hue, slightly more luminance + chroma so the
+       orange marker and cobalt logo read confidently on the dark
+       surface (otherwise they desaturate to mud). */
+    --brand-orange: oklch(0.72 0.22 32);
+    --brand-blue:   oklch(0.66 0.22 268);
+    --brand-blue-2: oklch(0.56 0.20 268);
+    --marker:      var(--brand-orange);
+    --marker-2:    oklch(0.64 0.21 30);
+    --marker-glow: oklch(0.72 0.22 32 / 0.32);
+
+    /* Logo no longer needs the cobalt drop-shadow because the surface
+       is dark; replace with a soft warm rim so the PNG reads as a
+       printed plate, not pasted on. */
+    --logo-shadow:
+      drop-shadow(0 6px 16px oklch(0.62 0.22 32 / 0.28))
+      drop-shadow(0 0 1px oklch(0.96 0.01 70 / 0.18));
+  }
+
+  /* Smooth swap so the theme flip doesn't snap (matches the rest of
+     the easing system — 240ms cubic-ease-out). */
+  body, .registry, .stats-reel, .credits, .footer {
+    transition: background-color 240ms var(--ease-out-quart),
+                color 240ms var(--ease-out-quart),
+                border-color 240ms var(--ease-out-quart);
   }
 }
 
@@ -110,6 +168,12 @@
   body, html { background: var(--surface); }
 
   ::selection { background: var(--marker); color: var(--ink-95); }
+  /* On dark, marker (orange) against light ink-95 reads as poor
+     contrast; flip the selection text to deep ink so it's legible. */
+  [data-theme='dark'] ::selection {
+    background: oklch(0.78 0.21 28);
+    color: oklch(0.10 0.008 25);
+  }
 }
 
 @layer components {
@@ -148,8 +212,7 @@
     height: clamp(96px, 8vw, 144px);     /* anchor of the header */
     width: auto;
     flex-shrink: 0;
-    filter: drop-shadow(0 8px 18px oklch(0.62 0.22 32 / 0.22))
-            drop-shadow(0 1px 2px oklch(0.18 0.038 268 / 0.10));
+    filter: var(--logo-shadow);
   }
   .brand-sub {
     position: relative;
@@ -742,11 +805,7 @@
   padding-block: clamp(56px, 6vw, 96px);
   border-block: 1px solid var(--hairline);
   position: relative;
-  background:
-    radial-gradient(ellipse 90% 100% at 20% 0%,
-      oklch(0.94 0.018 65) 0%,
-      transparent 60%),
-    var(--surface);
+  background: var(--surface-2);
 }
 .stats-eyebrow {
   display: flex;
@@ -1143,6 +1202,95 @@
   max-width: 540px;
   line-height: 1.5;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   THEME TOGGLE — sits in the registry meta row. Track + knob
+   design, knob slides L↔R, sun/moon icons crossfade. Tiny mono
+   'Light' / 'Dark' label next to it.
+═══════════════════════════════════════════════════════════ */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: transparent;
+  border: 1px solid var(--hairline-2);
+  border-radius: 99px;
+  padding: 4px 10px 4px 4px;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease-out-quart),
+              background-color 0.2s var(--ease-out-quart);
+  font-family: var(--font-mono);
+  color: var(--ink-80);
+  margin-left: 4px;
+}
+.theme-toggle:hover {
+  border-color: var(--ink-40);
+  background: var(--surface-2);
+}
+.theme-toggle-track {
+  position: relative;
+  width: 38px;
+  height: 20px;
+  border-radius: 99px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+[data-theme='dark'] .theme-toggle-track {
+  background: var(--canvas-2);
+}
+.theme-toggle-knob {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--marker);
+  display: grid;
+  place-items: center;
+  color: var(--surface);
+  transition: transform 320ms var(--ease-out-expo),
+              background-color 240ms var(--ease-out-quart);
+  box-shadow: 0 1px 3px oklch(0 0 0 / 0.18);
+}
+[data-theme='dark'] .theme-toggle-knob {
+  transform: translateX(18px);
+  background: var(--brand-blue);
+  color: var(--ink-95);
+}
+.theme-icon {
+  position: absolute;
+  transition: opacity 200ms var(--ease-out-quart),
+              transform 200ms var(--ease-out-quart);
+}
+.theme-icon-sun  {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+.theme-icon-moon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.6);
+}
+[data-theme='dark'] .theme-icon-sun {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.6);
+}
+[data-theme='dark'] .theme-icon-moon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+.theme-toggle-label {
+  font-size: var(--t-mono-label);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-60);
+  font-weight: 600;
+  min-width: 32px;
+  text-align: left;
+}
+[data-theme='dark'] .theme-toggle-label { color: var(--ink-40); }
 
 /* ─────── RESPONSIVE ────────────────────────────────────── */
 @media (max-width: 900px) {

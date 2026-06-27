@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { ThemeToggle } from './ThemeToggle';
 
 /* ─── BraTS lesion overlay: irregular organic mass shapes, not
        targeting reticles. NCR core (solid red-orange blob), ET
@@ -1216,6 +1217,7 @@ export default function Home() {
           <div className="registry-meta">
             <span className="pulse" />
             <span>6 pipelines online · v1.1</span>
+            <ThemeToggle />
           </div>
         </div>
       </header>

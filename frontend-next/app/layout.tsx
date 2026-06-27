@@ -47,6 +47,15 @@ export default function RootLayout({
   return (
     <html lang="vi" className={`${monaSans.variable} ${jetBrains.variable}`} suppressHydrationWarning>
       <head>
+        {/* No-flash theme bootstrap. Runs BEFORE React hydrates so the
+            html[data-theme] attribute is set on first paint — no white
+            flash for dark-mode users. Reads localStorage first, falls
+            back to OS preference. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('ada-theme');if(s!=='dark'&&s!=='light'){s=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',s);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`,
+          }}
+        />
         {/* Warm up the CDN connection so the <model-viewer> ES module
             below loads as fast as possible — without this, the hero
             renders as empty boxes during the first second while DNS
