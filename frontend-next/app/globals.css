@@ -680,21 +680,10 @@
   .case-visual .scan-corner b { color: var(--ink-95); }
 
   /* ─────── FOOTER ──────────────────────────────────────── */
+  /* The base .footer shell — the expanded studio-footer styles live in
+     the next layer down. Only the outer chrome lives here. */
   .footer {
     border-top: 1px solid var(--hairline);
-    padding-block: 32px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    gap: 16px;
-    font-family: var(--font-mono);
-    font-size: var(--t-mono-label);
-    color: var(--ink-60);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .footer-warn {
-    color: var(--ink-40);
   }
 }
 
@@ -1054,9 +1043,10 @@
 }
 .footer-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: clamp(28px, 4vw, 80px);
+  grid-template-columns: minmax(280px, 1.6fr) 1fr 1fr 1fr;
+  gap: clamp(28px, 4vw, 64px);
   margin-bottom: clamp(40px, 4vw, 64px);
+  align-items: start;
 }
 .footer-brand {
   display: flex;
@@ -1066,22 +1056,24 @@
 .footer-logo {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 .footer-logo .brand-logo {
-  height: clamp(72px, 6vw, 96px);
+  height: clamp(64px, 5vw, 88px);
   width: auto;
 }
 .footer-tag {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 .footer-mission {
   font-size: 14px;
   color: var(--ink-60);
   line-height: 1.65;
-  max-width: 360px;
+  max-width: 420px;
 }
 .footer-col-h {
   font-family: var(--font-mono);
