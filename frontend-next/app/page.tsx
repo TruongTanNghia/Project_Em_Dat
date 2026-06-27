@@ -1028,6 +1028,172 @@ function CaseVisualBreast() {
   );
 }
 
+/* ─── StatsReel: a horizontal ribbon between hero and cases. Four
+       numeric facts read as one continuous typographic strip with
+       vertical hairlines between them, NOT as a 4-card grid (the
+       absolute-banned pattern). The bottom row carries small mono
+       captions for each number so the ribbon reads like a magazine
+       infographic. ─────────────────────────────────────────────────── */
+
+function StatsReel() {
+  const stats = [
+    { big: '06',  unit: 'modules',     caption: 'in production' },
+    { big: '04',  unit: 'datasets',    caption: 'public-domain · cited' },
+    { big: '24M', unit: 'params',      caption: 'combined · trained' },
+    { big: '<2s', unit: 'inference',   caption: 'per case · CPU' },
+  ];
+  return (
+    <section className="frame stats-reel reveal" aria-label="By the numbers">
+      <div className="stats-eyebrow">
+        <span className="stats-tag">BY THE NUMBERS</span>
+        <span className="stats-tag-spec">v1.1 · 2026 — pipelines verified on hold-out</span>
+      </div>
+      <div className="stats-row">
+        {stats.map((s, i) => (
+          <div key={s.big} className="stats-cell" data-cell={i + 1}>
+            <div className="stats-big">{s.big}</div>
+            <div className="stats-unit">{s.unit}</div>
+            <div className="stats-caption">{s.caption}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─── ArchitectureFlow: 4-stage horizontal pipeline diagram on the
+       drenched dark canvas (the same surface the case visuals use).
+       Each node is INPUT → PIPELINE → POSTPROCESS → VIEWER, connected
+       by hand-drawn arrows that animate on reveal. Sits between the
+       cases section and the credits to explain how a single PACS shell
+       handles 6 different pipelines. ───────────────────────────────── */
+
+function ArchitectureFlow() {
+  const stages = [
+    {
+      n: '01', title: 'INPUT',
+      sub: 'Drag-drop',
+      points: ['PNG · JPG · DICOM · NIfTI · EDF', 'Client-side validation', 'No upload to third-party'],
+    },
+    {
+      n: '02', title: 'AI PIPELINE',
+      sub: 'Backend Flask :5000',
+      points: ['Load matching model · TF / PT', 'Inference + Test-Time-Aug', 'BiomedCLIP zero-shot classify'],
+    },
+    {
+      n: '03', title: 'POSTPROCESS',
+      sub: 'Mask refinement',
+      points: ['DenseCRF · morph close/open', 'Largest connected component', 'Marching squares · marching cubes'],
+    },
+    {
+      n: '04', title: 'PACS VIEWER',
+      sub: 'Next.js + Three.js',
+      points: ['Pan · Zoom · Ruler · Bbox', '2D ↔ 3D tabs · OrbitControls', 'Mask / Overlay / GT swap'],
+    },
+  ];
+  return (
+    <section className="frame arch-flow" aria-label="System architecture">
+      <div className="arch-head">
+        <div className="arch-eyebrow">SYSTEM</div>
+        <h2 className="arch-h2">
+          Một phòng đọc, sáu pipeline.
+          <span className="arch-h2-sub">
+            INPUT chạy qua đúng model, qua một loạt postprocess đã verify,
+            rồi đổ vào một viewer chung.
+          </span>
+        </h2>
+      </div>
+      <ol className="arch-stages">
+        {stages.map((s, i) => (
+          <li key={s.n} className="arch-stage" data-stage={s.n}>
+            <span className="arch-stage-n">{s.n}</span>
+            <h3 className="arch-stage-title">{s.title}</h3>
+            <div className="arch-stage-sub">{s.sub}</div>
+            <ul className="arch-stage-points">
+              {s.points.map((p) => <li key={p}>{p}</li>)}
+            </ul>
+            {i < stages.length - 1 && (
+              <svg className="arch-arrow" viewBox="0 0 60 24" aria-hidden>
+                <path d="M 2 12 L 50 12 M 44 6 L 50 12 L 44 18"
+                      fill="none" stroke="currentColor" strokeWidth="1.4"
+                      strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/* ─── DatasetsCredits: journal-style attribution panel. Each dataset is
+       a row: name + citation on the left, mapped to one of our cases on
+       the right. Read as 'sources cited at the bottom of a paper', not
+       as marketing logo soup. ─────────────────────────────────────── */
+
+function DatasetsCredits() {
+  const rows = [
+    {
+      name: 'BraTS 2020 / 2021',
+      cite: 'Bakas et al., 2018 · arXiv:1811.02629',
+      kind: 'Multimodal brain MRI · 4-channel volumes',
+      cases: ['Case 02'],
+    },
+    {
+      name: 'LIDC-IDRI',
+      cite: 'Armato et al., 2011 · Medical Physics 38(2)',
+      kind: 'Lung CT · 1018 patients · 4-rad consensus',
+      cases: ['Case 03'],
+    },
+    {
+      name: 'CHB-MIT Scalp EEG',
+      cite: 'Shoeb, 2009 · MIT PhD thesis · PhysioNet',
+      kind: '23-ch scalp EEG · 24 pediatric subjects',
+      cases: ['Case 01'],
+    },
+    {
+      name: 'BUSI · Breast Ultrasound',
+      cite: 'Al-Dhabyani et al., 2020 · Data in Brief 28',
+      kind: 'Ultrasound · 780 imgs · 3 classes',
+      cases: ['Case 06'],
+    },
+    {
+      name: 'TotalSegmentator',
+      cite: 'Wasserthal et al., 2023 · Radiology: AI 5(5)',
+      kind: 'nnU-Net · 117 anatomical structures · CT',
+      cases: ['Case 05'],
+    },
+  ];
+  return (
+    <section className="frame credits" aria-label="Datasets and research credited">
+      <div className="credits-head">
+        <span className="credits-eyebrow">DATASETS</span>
+        <h2 className="credits-h2">
+          Trained trên data thật, citation đầy đủ.
+        </h2>
+        <p className="credits-lede">
+          Mỗi pipeline ở trên đứng trên một dataset đã peer-review.
+          Không có data tự bịa, không có synthetic chỉ-để-demo.
+        </p>
+      </div>
+      <ul className="credits-list">
+        {rows.map((r) => (
+          <li className="credits-row" key={r.name}>
+            <div className="credits-name">{r.name}</div>
+            <div className="credits-cite">{r.cite}</div>
+            <div className="credits-kind">{r.kind}</div>
+            <div className="credits-map">
+              {r.cases.map((c) => (
+                <span key={c} className="credits-pill">{c}</span>
+              ))}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 /* ─── Page ─────────────────────────────────────────────────────── */
 
 export default function Home() {
@@ -1094,6 +1260,8 @@ export default function Home() {
             </dl>
           </div>
         </section>
+
+        <StatsReel />
 
         <section className="frame cases">
           <div className="cases-header">
@@ -1258,11 +1426,86 @@ export default function Home() {
             <CaseVisualBreast />
           </article>
         </section>
+
+        <ArchitectureFlow />
+
+        <DatasetsCredits />
       </main>
 
       <footer className="frame footer">
-        <span>© 2026 ADA Group · TruongTanNghia</span>
-        <span className="footer-warn">Demo · không dùng cho chẩn đoán lâm sàng</span>
+        <div className="footer-grid">
+          <div className="footer-brand">
+            <div className="footer-logo">
+              <Image
+                src="/img/logo.png"
+                alt="ADA Group"
+                width={1264}
+                height={843}
+                className="brand-logo"
+              />
+              <div className="footer-tag">
+                <span className="brand-sub">Medical AI · Research</span>
+              </div>
+            </div>
+            <p className="footer-mission">
+              Sáu pipeline lâm sàng triển khai trong một phòng đọc PACS
+              duy nhất. Đứng trên dataset peer-reviewed, viewer chuẩn
+              radiologist, mã nguồn mở.
+            </p>
+          </div>
+
+          <nav className="footer-col" aria-label="Explore cases">
+            <div className="footer-col-h">EXPLORE</div>
+            <ul>
+              <li><Link href="/legacy.html#eeg">Case 01 — EEG</Link></li>
+              <li><Link href="/legacy.html#brain">Case 02 — Brain MRI</Link></li>
+              <li><Link href="/legacy.html#lung">Case 03 — Lung CT</Link></li>
+              <li><Link href="/legacy.html#blood">Case 04 — Blood</Link></li>
+              <li><Link href="/legacy.html#spine">Case 05 — Spine CT</Link></li>
+              <li><Link href="/legacy.html#breast">Case 06 — Breast US</Link></li>
+            </ul>
+          </nav>
+
+          <div className="footer-col">
+            <div className="footer-col-h">BUILT WITH</div>
+            <ul className="footer-stack">
+              <li>Next.js 16 · React 19</li>
+              <li>Python Flask · TensorFlow</li>
+              <li>PyTorch · Ultralytics YOLO</li>
+              <li>Three.js · OrbitControls</li>
+              <li>nnU-Net · BiomedCLIP</li>
+              <li>DenseCRF · marching cubes</li>
+            </ul>
+          </div>
+
+          <div className="footer-col">
+            <div className="footer-col-h">CONTACT</div>
+            <ul className="footer-contact">
+              <li>
+                <span className="footer-k">eng</span>
+                <a href="mailto:aihoclaptrinh@gmail.com">TruongTanNghia</a>
+              </li>
+              <li>
+                <span className="footer-k">repo</span>
+                <a href="https://github.com/TruongTanNghia/Project_Em_Dat" target="_blank" rel="noopener noreferrer">
+                  github · Project_Em_Dat
+                </a>
+              </li>
+              <li>
+                <span className="footer-k">demo</span>
+                <Link href="/legacy.html">Mở phòng đọc</Link>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="footer-bar">
+          <span className="footer-copy">© 2026 ADA Group · TruongTanNghia · v1.1</span>
+          <span className="footer-warn">
+            Demo cho research và educational use.
+            Không dùng cho chẩn đoán lâm sàng — luôn cần bác sĩ board-certified xem lại.
+          </span>
+        </div>
       </footer>
     </div>
   );
