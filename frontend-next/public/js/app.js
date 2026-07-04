@@ -655,10 +655,10 @@ function renderChartsFromEdf(data) {
     setTimeout(start3D, 1000);
 }
 
-// === ANALYZE IMAGE (GPT-4 Vision) ===
+// === ANALYZE IMAGE (Qwen2.5-VL local via Ollama, GPT-4o fallback) ===
 async function analyzeImage() {
     const overlay = document.getElementById('loadingOverlay');
-    document.getElementById('loadingText').textContent = '🧠 Đang phân tích ảnh EEG bằng GPT-4...';
+    document.getElementById('loadingText').textContent = '🧠 Đang phân tích ảnh EEG bằng Qwen2.5-VL...';
     overlay.classList.add('active');
 
     try {
