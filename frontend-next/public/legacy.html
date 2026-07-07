@@ -1540,6 +1540,31 @@
                 </div>
             </div>
 
+            <!-- Specialty selector for AI agent — the rule-based pass runs
+                 regardless; this dropdown decides which chuyên khoa the
+                 Ollama qwen3 agent interprets the numbers from. -->
+            <div class="blood-specialty-picker" style="margin-top:14px; padding:12px 14px; background:rgba(139,92,246,0.06); border:1px solid rgba(139,92,246,0.25); border-radius:8px;">
+                <label style="display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text-primary); font-weight:500;">
+                    <span style="display:inline-flex; align-items:center; gap:5px;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="color:#8b5cf6;"><path d="M12 2a5 5 0 015 5v3a5 5 0 01-10 0V7a5 5 0 015-5z"/><path d="M19 10a7 7 0 01-14 0M12 17v5M8 22h8"/></svg>
+                        Chuyên khoa AI phân tích
+                    </span>
+                    <select id="bloodSpecialty" style="flex:1; padding:6px 10px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-primary); font-size:13px; cursor:pointer;">
+                        <option value="general">🩺 Tổng quát (Đa khoa)</option>
+                        <option value="dermatology">🧴 Da liễu</option>
+                        <option value="cardiology">❤️ Tim mạch</option>
+                        <option value="endocrinology">🍬 Nội tiết / Tiểu đường</option>
+                        <option value="hematology">🩸 Huyết học</option>
+                        <option value="hepatology">🍺 Gan mật</option>
+                        <option value="nephrology">💧 Thận</option>
+                        <option value="obgyn">🤰 Sản phụ khoa</option>
+                    </select>
+                </label>
+                <div id="bloodAgentStatus" style="margin-top:6px; font-size:11px; color:var(--text-muted); font-family:var(--font-mono, monospace); letter-spacing:0.04em;">
+                    <span style="opacity:0.7;">⏳ Đang kiểm tra Ollama qwen3:8b...</span>
+                </div>
+            </div>
+
             <div style="display:flex; gap:8px; margin-top:12px;">
                 <button class="btn btn-secondary btn-full" onclick="fillDemoBlood()">🎲 Dữ liệu mẫu</button>
                 <button class="btn btn-primary btn-full" onclick="runBloodAnalysis()">🔍 Phân tích</button>
@@ -1598,6 +1623,74 @@
             </ul>
 
             <div class="disclaimer">⚠️ <b>Lưu ý:</b> Kết quả chỉ mang tính tham khảo, không thay thế chẩn đoán của bác sĩ.</div>
+        </section>
+
+        <!-- ═══ AI SPECIALTY AGENT ═══ Populated after runBloodAnalysis()
+             calls /api/analyze-blood-agent with the current values +
+             selected specialty. Rule-based sections above stay live and
+             deterministic; this card holds the LLM's interpretation. -->
+        <section class="card blood-agent-card" id="bloodAgentCard" style="grid-column: 1 / -1; display:none; background:linear-gradient(135deg, rgba(139,92,246,0.08), rgba(59,130,246,0.05)); border:1px solid rgba(139,92,246,0.30);">
+            <div class="section-title" style="display:flex; align-items:center; justify-content:space-between;">
+                <div>
+                    <span class="section-num" style="background:linear-gradient(135deg,#8b5cf6,#3b82f6);">🤖</span>
+                    <span>PHÂN TÍCH CHUYÊN KHOA · AI AGENT</span>
+                </div>
+                <div style="font-family:var(--font-mono, monospace); font-size:11px; color:var(--text-muted); letter-spacing:0.08em;">
+                    <span id="bloodAgentSpecialtyBadge" style="padding:3px 10px; border-radius:99px; background:rgba(139,92,246,0.18); color:#a78bfa;">—</span>
+                    <span id="bloodAgentModelBadge" style="margin-left:6px; opacity:0.6;">qwen3:8b</span>
+                    <span id="bloodAgentTimeBadge" style="margin-left:6px; opacity:0.6;"></span>
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="bx-panel-section" style="padding:14px 16px; margin:12px 0; background:rgba(139,92,246,0.06); border-left:3px solid #8b5cf6; border-radius:0 6px 6px 0;">
+                <div style="font-family:var(--font-mono, monospace); font-size:10.5px; letter-spacing:0.18em; color:#a78bfa; font-weight:700; margin-bottom:6px;">TÓM TẮT CHUYÊN KHOA</div>
+                <div id="bloodAgentSummary" style="color:var(--text-primary); line-height:1.6; font-size:14.5px;">—</div>
+            </div>
+
+            <!-- Key findings + cross-specialty alerts split -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:8px;">
+                <div>
+                    <h4 style="font-size:12px; letter-spacing:0.18em; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border-subtle);">🔬 Chỉ số then chốt</h4>
+                    <div id="bloodAgentFindings" style="display:flex; flex-direction:column; gap:8px;">
+                        <div style="padding:10px; text-align:center; color:var(--text-muted); font-size:12.5px;">Chưa có dữ liệu</div>
+                    </div>
+                </div>
+                <div>
+                    <h4 style="font-size:12px; letter-spacing:0.18em; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border-subtle);">⚠️ Cảnh báo chéo chuyên khoa</h4>
+                    <div id="bloodAgentAlerts" style="display:flex; flex-direction:column; gap:8px;">
+                        <div style="padding:10px; text-align:center; color:var(--text-muted); font-size:12.5px;">Không có cảnh báo chéo</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations + lifestyle -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;">
+                <div>
+                    <h4 style="font-size:12px; letter-spacing:0.18em; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border-subtle);">💊 Khuyến nghị chuyên khoa</h4>
+                    <ul id="bloodAgentRecos" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px;">
+                        <li style="color:var(--text-muted); text-align:center; padding:10px; font-size:12.5px;">—</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="font-size:12px; letter-spacing:0.18em; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border-subtle);">🥗 Lời khuyên lối sống</h4>
+                    <ul id="bloodAgentLifestyle" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px;">
+                        <li style="color:var(--text-muted); text-align:center; padding:10px; font-size:12.5px;">—</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Follow-up + notes -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:12px; border-top:1px solid var(--border-subtle); font-size:12.5px;">
+                <div style="color:var(--text-muted); font-family:var(--font-mono, monospace); letter-spacing:0.04em;">
+                    📅 Đề nghị khám lại sau <b id="bloodAgentFollowup" style="color:var(--text-primary);">—</b> ngày
+                </div>
+                <div style="color:var(--text-muted); font-style:italic;">
+                    ⚠️ AI hỗ trợ · KHÔNG thay thế chỉ định bác sĩ
+                </div>
+            </div>
+
+            <div id="bloodAgentSpecialNotes" style="margin-top:12px; padding:10px 14px; background:rgba(59,130,246,0.06); border-radius:6px; font-size:13px; color:var(--text-primary); display:none;"></div>
         </section>
     </div>
 </div><!-- /module-blood -->
