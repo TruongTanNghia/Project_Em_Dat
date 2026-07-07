@@ -1511,33 +1511,89 @@
         <section class="card section-input">
             <div class="section-title"><span class="section-num">1</span> NHẬP CHỈ SỐ XÉT NGHIỆM</div>
 
-            <div class="blood-form">
-                <div class="blood-form-group">
-                    <h4>🩸 Huyết học (CBC)</h4>
-                    <label>WBC (K/µL)<input type="number" step="0.01" id="b_wbc" placeholder="4.0 – 10.0"></label>
-                    <label>RBC (M/µL)<input type="number" step="0.01" id="b_rbc" placeholder="4.5 – 5.9"></label>
-                    <label>Hemoglobin (g/dL)<input type="number" step="0.1" id="b_hgb" placeholder="13.5 – 17.5"></label>
-                    <label>Hematocrit (%)<input type="number" step="0.1" id="b_hct" placeholder="41 – 53"></label>
-                    <label>Platelets (K/µL)<input type="number" step="1" id="b_plt" placeholder="150 – 400"></label>
+            <!-- ═══ 42-INDICATOR MASTER FORM ═══
+                 Each <label> carries data-specs listing which specialties
+                 need it. When the specialty dropdown changes, JS toggles
+                 label.style.display and hides groups that become empty.
+                 Reference ranges follow Vietnamese lab standards (adult
+                 Nam range as default; Nữ variant noted in prompt).
+            -->
+            <div class="blood-form" id="bloodForm">
+
+                <div class="blood-form-group" data-group="cbc">
+                    <h4>🩸 Huyết học · CBC</h4>
+                    <label data-specs="general,dermatology,cardiology,endocrinology,hematology,hepatology,nephrology,obgyn">WBC (K/µL)<input type="number" step="0.01" id="b_wbc" placeholder="4.0 – 10.0"></label>
+                    <label data-specs="general,dermatology,hematology,obgyn">RBC (M/µL)<input type="number" step="0.01" id="b_rbc" placeholder="4.5 – 5.9"></label>
+                    <label data-specs="general,dermatology,cardiology,endocrinology,hematology,nephrology,obgyn">Hemoglobin (g/dL)<input type="number" step="0.1" id="b_hgb" placeholder="13.5 – 17.5"></label>
+                    <label data-specs="general,dermatology,hematology,nephrology,obgyn">Hematocrit (%)<input type="number" step="0.1" id="b_hct" placeholder="41 – 53"></label>
+                    <label data-specs="general,hematology,hepatology,obgyn">Platelets (K/µL)<input type="number" step="1" id="b_plt" placeholder="150 – 400"></label>
+                    <label data-specs="general,hematology">MCV (fL)<input type="number" step="0.1" id="b_mcv" placeholder="80 – 100"></label>
+                    <label data-specs="general,hematology">MCH (pg)<input type="number" step="0.1" id="b_mch" placeholder="27 – 33"></label>
+                    <label data-specs="hematology">MCHC (g/dL)<input type="number" step="0.1" id="b_mchc" placeholder="32 – 36"></label>
+                    <label data-specs="hematology">RDW (%)<input type="number" step="0.1" id="b_rdw" placeholder="11.5 – 14.5"></label>
                 </div>
 
-                <div class="blood-form-group">
-                    <h4>🍬 Sinh hoá máu</h4>
-                    <label>Glucose (mmol/L)<input type="number" step="0.01" id="b_glu" placeholder="3.9 – 6.1"></label>
-                    <label>HbA1c (%)<input type="number" step="0.1" id="b_hba1c" placeholder="< 5.7"></label>
-                    <label>Cholesterol (mmol/L)<input type="number" step="0.01" id="b_chol" placeholder="< 5.2"></label>
-                    <label>LDL (mmol/L)<input type="number" step="0.01" id="b_ldl" placeholder="< 3.4"></label>
-                    <label>HDL (mmol/L)<input type="number" step="0.01" id="b_hdl" placeholder="> 1.0"></label>
-                    <label>Triglycerides (mmol/L)<input type="number" step="0.01" id="b_trig" placeholder="< 1.7"></label>
+                <div class="blood-form-group" data-group="wbc-diff">
+                    <h4>🧬 Bạch cầu · Định lượng</h4>
+                    <label data-specs="dermatology,hematology">Neutrophils (%)<input type="number" step="0.1" id="b_neut_pct" placeholder="40 – 70"></label>
+                    <label data-specs="dermatology,hematology">Lymphocytes (%)<input type="number" step="0.1" id="b_lymph_pct" placeholder="20 – 45"></label>
+                    <label data-specs="hematology">Monocytes (%)<input type="number" step="0.1" id="b_mono_pct" placeholder="2 – 10"></label>
+                    <label data-specs="dermatology,hematology">Eosinophils (%)<input type="number" step="0.1" id="b_eos_pct" placeholder="1 – 6"></label>
+                    <label data-specs="hematology">Basophils (%)<input type="number" step="0.1" id="b_baso_pct" placeholder="0 – 2"></label>
                 </div>
 
-                <div class="blood-form-group">
-                    <h4>🧪 Gan &amp; Thận</h4>
-                    <label>ALT (U/L)<input type="number" step="1" id="b_alt" placeholder="7 – 55"></label>
-                    <label>AST (U/L)<input type="number" step="1" id="b_ast" placeholder="8 – 48"></label>
-                    <label>Creatinine (µmol/L)<input type="number" step="1" id="b_crea" placeholder="62 – 106"></label>
-                    <label>Ure / BUN (mmol/L)<input type="number" step="0.1" id="b_ure" placeholder="2.5 – 7.1"></label>
+                <div class="blood-form-group" data-group="glucose">
+                    <h4>🍬 Đường huyết · Insulin</h4>
+                    <label data-specs="general,dermatology,cardiology,endocrinology,hepatology,nephrology,obgyn">Glucose đói (mmol/L)<input type="number" step="0.01" id="b_glu" placeholder="3.9 – 6.1"></label>
+                    <label data-specs="general,dermatology,cardiology,endocrinology,hepatology,nephrology,obgyn">HbA1c (%)<input type="number" step="0.1" id="b_hba1c" placeholder="< 5.7"></label>
+                    <label data-specs="endocrinology">Insulin (µU/mL)<input type="number" step="0.1" id="b_insulin" placeholder="2.6 – 24.9"></label>
                 </div>
+
+                <div class="blood-form-group" data-group="lipid">
+                    <h4>🥑 Mỡ máu · Viêm mạch</h4>
+                    <label data-specs="general,cardiology,endocrinology,hepatology,nephrology">Cholesterol TP (mmol/L)<input type="number" step="0.01" id="b_chol" placeholder="< 5.2"></label>
+                    <label data-specs="general,cardiology,endocrinology,nephrology">LDL (mmol/L)<input type="number" step="0.01" id="b_ldl" placeholder="< 3.4"></label>
+                    <label data-specs="general,cardiology,endocrinology,nephrology">HDL (mmol/L)<input type="number" step="0.01" id="b_hdl" placeholder="> 1.0"></label>
+                    <label data-specs="general,cardiology,endocrinology,hepatology,nephrology">Triglycerides (mmol/L)<input type="number" step="0.01" id="b_trig" placeholder="< 1.7"></label>
+                    <label data-specs="cardiology">hs-CRP (mg/L)<input type="number" step="0.01" id="b_hs_crp" placeholder="< 1.0"></label>
+                </div>
+
+                <div class="blood-form-group" data-group="liver">
+                    <h4>🍺 Gan mật</h4>
+                    <label data-specs="general,dermatology,hepatology,obgyn">ALT / SGPT (U/L)<input type="number" step="1" id="b_alt" placeholder="7 – 55"></label>
+                    <label data-specs="general,dermatology,hepatology,obgyn">AST / SGOT (U/L)<input type="number" step="1" id="b_ast" placeholder="8 – 48"></label>
+                    <label data-specs="general,dermatology,hepatology">GGT (U/L)<input type="number" step="1" id="b_ggt" placeholder="8 – 61"></label>
+                    <label data-specs="hepatology">ALP (U/L)<input type="number" step="1" id="b_alp" placeholder="40 – 130"></label>
+                    <label data-specs="hepatology">Bilirubin TP (µmol/L)<input type="number" step="0.1" id="b_bili_total" placeholder="3.4 – 20.5"></label>
+                    <label data-specs="hepatology,nephrology">Albumin (g/L)<input type="number" step="0.1" id="b_albumin" placeholder="35 – 52"></label>
+                    <label data-specs="hepatology,nephrology">Protein TP (g/L)<input type="number" step="0.1" id="b_total_protein" placeholder="60 – 83"></label>
+                </div>
+
+                <div class="blood-form-group" data-group="kidney">
+                    <h4>💧 Thận · Điện giải</h4>
+                    <label data-specs="general,cardiology,endocrinology,nephrology,obgyn">Creatinine (µmol/L)<input type="number" step="1" id="b_crea" placeholder="62 – 106"></label>
+                    <label data-specs="general,cardiology,endocrinology,nephrology,obgyn">Ure / BUN (mmol/L)<input type="number" step="0.1" id="b_ure" placeholder="2.5 – 7.1"></label>
+                    <label data-specs="general,cardiology,nephrology">Uric acid (µmol/L)<input type="number" step="1" id="b_uric" placeholder="214 – 488"></label>
+                    <label data-specs="cardiology,endocrinology,nephrology">eGFR (mL/min/1.73m²)<input type="number" step="0.1" id="b_egfr" placeholder="> 90"></label>
+                    <label data-specs="cardiology,nephrology">Sodium · Na⁺ (mmol/L)<input type="number" step="0.1" id="b_na" placeholder="135 – 145"></label>
+                    <label data-specs="cardiology,nephrology">Potassium · K⁺ (mmol/L)<input type="number" step="0.01" id="b_k" placeholder="3.5 – 5.0"></label>
+                    <label data-specs="nephrology,obgyn">Calcium · Ca²⁺ (mmol/L)<input type="number" step="0.01" id="b_ca" placeholder="2.15 – 2.55"></label>
+                </div>
+
+                <div class="blood-form-group" data-group="vitamin">
+                    <h4>💊 Vitamin · Vi chất</h4>
+                    <label data-specs="dermatology,endocrinology,obgyn">Vitamin D 25-OH (ng/mL)<input type="number" step="0.1" id="b_vit_d" placeholder="30 – 100"></label>
+                    <label data-specs="dermatology,hematology,obgyn">Vitamin B12 (pmol/L)<input type="number" step="1" id="b_vit_b12" placeholder="156 – 672"></label>
+                    <label data-specs="dermatology,hematology,obgyn">Ferritin (ng/mL)<input type="number" step="0.1" id="b_ferritin" placeholder="30 – 400"></label>
+                </div>
+
+                <div class="blood-form-group" data-group="thyroid">
+                    <h4>🦋 Tuyến giáp · Miễn dịch</h4>
+                    <label data-specs="general,endocrinology,obgyn">TSH (µIU/mL)<input type="number" step="0.01" id="b_tsh" placeholder="0.35 – 4.94"></label>
+                    <label data-specs="endocrinology,obgyn">FT4 (pmol/L)<input type="number" step="0.01" id="b_ft4" placeholder="9.0 – 19.05"></label>
+                    <label data-specs="dermatology">IgE toàn phần (IU/mL)<input type="number" step="0.1" id="b_ige" placeholder="< 100"></label>
+                </div>
+
             </div>
 
             <!-- Specialty selector for AI agent — the rule-based pass runs

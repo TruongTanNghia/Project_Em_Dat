@@ -5733,42 +5733,148 @@ function setupLung3DControls() {
     }
 }
 
-// ============ BLOOD TEST — client-side analysis (rules-based) ============
+// ═══════════════════════════════════════════════════════════════
+// BLOOD TEST · 42-indicator master reference
+// ───────────────────────────────────────────────────────────────
+// Adult Nam range as default (Nữ variants noted in prompt/backend).
+// Rules-based analysis runs client-side against these; AI agent
+// receives the same values via /api/analyze-blood-agent.
+// ═══════════════════════════════════════════════════════════════
 const BLOOD_RANGES = {
-    wbc:   { name: 'WBC',         unit: 'K/µL',    min: 4.0,  max: 10.0 },
-    rbc:   { name: 'RBC',         unit: 'M/µL',    min: 4.5,  max: 5.9  },
-    hgb:   { name: 'Hemoglobin',  unit: 'g/dL',    min: 13.5, max: 17.5 },
-    hct:   { name: 'Hematocrit',  unit: '%',       min: 41,   max: 53   },
-    plt:   { name: 'Platelets',   unit: 'K/µL',    min: 150,  max: 400  },
-    glu:   { name: 'Glucose',     unit: 'mmol/L',  min: 3.9,  max: 6.1  },
-    hba1c: { name: 'HbA1c',       unit: '%',       min: 0,    max: 5.7  },
-    chol:  { name: 'Cholesterol', unit: 'mmol/L',  min: 0,    max: 5.2  },
-    ldl:   { name: 'LDL',         unit: 'mmol/L',  min: 0,    max: 3.4  },
-    hdl:   { name: 'HDL',         unit: 'mmol/L',  min: 1.0,  max: 99   },
-    trig:  { name: 'Triglycerides', unit: 'mmol/L', min: 0,    max: 1.7  },
-    alt:   { name: 'ALT',         unit: 'U/L',     min: 7,    max: 55   },
-    ast:   { name: 'AST',         unit: 'U/L',     min: 8,    max: 48   },
-    crea:  { name: 'Creatinine',  unit: 'µmol/L',  min: 62,   max: 106  },
-    ure:   { name: 'Ure / BUN',   unit: 'mmol/L',  min: 2.5,  max: 7.1  },
+    // CBC
+    wbc:            { name: 'WBC',                   unit: 'K/µL',           min: 4.0,   max: 10.0 },
+    rbc:            { name: 'RBC',                   unit: 'M/µL',           min: 4.5,   max: 5.9  },
+    hgb:            { name: 'Hemoglobin',            unit: 'g/dL',           min: 13.5,  max: 17.5 },
+    hct:            { name: 'Hematocrit',            unit: '%',              min: 41,    max: 53   },
+    plt:            { name: 'Platelets',             unit: 'K/µL',           min: 150,   max: 400  },
+    mcv:            { name: 'MCV',                   unit: 'fL',             min: 80,    max: 100  },
+    mch:            { name: 'MCH',                   unit: 'pg',             min: 27,    max: 33   },
+    mchc:           { name: 'MCHC',                  unit: 'g/dL',           min: 32,    max: 36   },
+    rdw:            { name: 'RDW',                   unit: '%',              min: 11.5,  max: 14.5 },
+    // WBC Differential
+    neut_pct:       { name: 'Neutrophils',           unit: '%',              min: 40,    max: 70   },
+    lymph_pct:      { name: 'Lymphocytes',           unit: '%',              min: 20,    max: 45   },
+    mono_pct:       { name: 'Monocytes',             unit: '%',              min: 2,     max: 10   },
+    eos_pct:        { name: 'Eosinophils',           unit: '%',              min: 1,     max: 6    },
+    baso_pct:       { name: 'Basophils',             unit: '%',              min: 0,     max: 2    },
+    // Glucose + Insulin
+    glu:            { name: 'Glucose đói',           unit: 'mmol/L',         min: 3.9,   max: 6.1  },
+    hba1c:          { name: 'HbA1c',                 unit: '%',              min: 0,     max: 5.7  },
+    insulin:        { name: 'Insulin',               unit: 'µU/mL',          min: 2.6,   max: 24.9 },
+    // Lipid + Inflammation
+    chol:           { name: 'Cholesterol TP',        unit: 'mmol/L',         min: 0,     max: 5.2  },
+    ldl:            { name: 'LDL',                   unit: 'mmol/L',         min: 0,     max: 3.4  },
+    hdl:            { name: 'HDL',                   unit: 'mmol/L',         min: 1.0,   max: 99   },
+    trig:           { name: 'Triglycerides',         unit: 'mmol/L',         min: 0,     max: 1.7  },
+    hs_crp:         { name: 'hs-CRP',                unit: 'mg/L',           min: 0,     max: 1.0  },
+    // Liver
+    alt:            { name: 'ALT / SGPT',            unit: 'U/L',            min: 7,     max: 55   },
+    ast:            { name: 'AST / SGOT',            unit: 'U/L',            min: 8,     max: 48   },
+    ggt:            { name: 'GGT',                   unit: 'U/L',            min: 8,     max: 61   },
+    alp:            { name: 'ALP',                   unit: 'U/L',            min: 40,    max: 130  },
+    bili_total:     { name: 'Bilirubin TP',          unit: 'µmol/L',         min: 3.4,   max: 20.5 },
+    albumin:        { name: 'Albumin',               unit: 'g/L',            min: 35,    max: 52   },
+    total_protein:  { name: 'Protein TP',            unit: 'g/L',            min: 60,    max: 83   },
+    // Kidney + Electrolytes
+    crea:           { name: 'Creatinine',            unit: 'µmol/L',         min: 62,    max: 106  },
+    ure:            { name: 'Ure / BUN',             unit: 'mmol/L',         min: 2.5,   max: 7.1  },
+    uric:           { name: 'Uric acid',             unit: 'µmol/L',         min: 214,   max: 488  },
+    egfr:           { name: 'eGFR',                  unit: 'mL/min/1.73m²',  min: 90,    max: 200  },
+    na:             { name: 'Sodium · Na⁺',          unit: 'mmol/L',         min: 135,   max: 145  },
+    k:              { name: 'Potassium · K⁺',        unit: 'mmol/L',         min: 3.5,   max: 5.0  },
+    ca:             { name: 'Calcium · Ca²⁺',        unit: 'mmol/L',         min: 2.15,  max: 2.55 },
+    // Vitamin + Micronutrients
+    vit_d:          { name: 'Vitamin D 25-OH',       unit: 'ng/mL',          min: 30,    max: 100  },
+    vit_b12:        { name: 'Vitamin B12',           unit: 'pmol/L',         min: 156,   max: 672  },
+    ferritin:       { name: 'Ferritin',              unit: 'ng/mL',          min: 30,    max: 400  },
+    // Thyroid + Immunology
+    tsh:            { name: 'TSH',                   unit: 'µIU/mL',         min: 0.35,  max: 4.94 },
+    ft4:            { name: 'FT4',                   unit: 'pmol/L',         min: 9.0,   max: 19.05},
+    ige:            { name: 'IgE toàn phần',         unit: 'IU/mL',          min: 0,     max: 100  },
 };
 
+// Group buckets — used by the client-side rule pass to summarise
+// "N ok, M warn, K abnormal per group" in the results header. Keys
+// match the group ordering in the HTML form.
 const BLOOD_GROUPS = {
-    'Huyết học':  ['wbc', 'rbc', 'hgb', 'hct', 'plt'],
-    'Sinh hoá':   ['glu', 'hba1c', 'chol', 'ldl', 'hdl', 'trig'],
-    'Gan / Thận': ['alt', 'ast', 'crea', 'ure'],
+    'CBC':                ['wbc', 'rbc', 'hgb', 'hct', 'plt', 'mcv', 'mch', 'mchc', 'rdw'],
+    'Bạch cầu':           ['neut_pct', 'lymph_pct', 'mono_pct', 'eos_pct', 'baso_pct'],
+    'Đường / Insulin':    ['glu', 'hba1c', 'insulin'],
+    'Mỡ máu / Viêm':      ['chol', 'ldl', 'hdl', 'trig', 'hs_crp'],
+    'Gan mật':            ['alt', 'ast', 'ggt', 'alp', 'bili_total', 'albumin', 'total_protein'],
+    'Thận / Điện giải':   ['crea', 'ure', 'uric', 'egfr', 'na', 'k', 'ca'],
+    'Vitamin / Vi chất':  ['vit_d', 'vit_b12', 'ferritin'],
+    'Tuyến giáp / Miễn dịch': ['tsh', 'ft4', 'ige'],
 };
 
+// Which specialty needs which fields. Kept in sync with HTML data-specs.
+const BLOOD_SPECIALTY_FIELDS = {
+    general:       ['wbc','rbc','hgb','hct','plt','mcv','mch','glu','hba1c','chol','ldl','hdl','trig','alt','ast','ggt','crea','ure','uric','tsh'],
+    dermatology:   ['wbc','rbc','hgb','hct','neut_pct','lymph_pct','eos_pct','glu','hba1c','alt','ast','ggt','vit_d','vit_b12','ferritin','ige'],
+    cardiology:    ['wbc','hgb','glu','hba1c','chol','ldl','hdl','trig','hs_crp','crea','ure','uric','egfr','na','k'],
+    endocrinology: ['wbc','hgb','glu','hba1c','insulin','chol','ldl','hdl','trig','crea','ure','egfr','tsh','ft4','vit_d'],
+    hematology:    ['wbc','rbc','hgb','hct','plt','mcv','mch','mchc','rdw','neut_pct','lymph_pct','mono_pct','eos_pct','baso_pct','ferritin','vit_b12'],
+    hepatology:    ['wbc','plt','glu','hba1c','chol','trig','alt','ast','ggt','alp','bili_total','albumin','total_protein'],
+    nephrology:    ['wbc','hgb','hct','glu','hba1c','chol','ldl','hdl','trig','crea','ure','uric','egfr','na','k','ca','albumin','total_protein'],
+    obgyn:         ['wbc','rbc','hgb','hct','plt','ferritin','glu','hba1c','alt','ast','crea','ure','ca','tsh','ft4','vit_d','vit_b12'],
+};
+
+// Show only fields for the selected specialty; hide empty groups.
+function applyBloodSpecialty(specialty) {
+    const spec = specialty || 'general';
+    document.querySelectorAll('#bloodForm label[data-specs]').forEach(el => {
+        const specs = (el.dataset.specs || '').split(',').map(s => s.trim());
+        el.style.display = specs.includes(spec) ? '' : 'none';
+    });
+    // Hide any group whose visible-label count dropped to 0.
+    document.querySelectorAll('#bloodForm .blood-form-group').forEach(g => {
+        const visible = Array.from(g.querySelectorAll('label')).some(l => l.style.display !== 'none');
+        g.style.display = visible ? '' : 'none';
+    });
+}
+
+// Wire the dropdown once the DOM is ready + apply initial specialty.
+(function wireBloodSpecialtyToggle() {
+    const attach = () => {
+        const sel = document.getElementById('bloodSpecialty');
+        if (!sel) { setTimeout(attach, 500); return; }
+        sel.addEventListener('change', e => applyBloodSpecialty(e.target.value));
+        applyBloodSpecialty(sel.value || 'general');
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(attach, 100));
+    } else {
+        setTimeout(attach, 100);
+    }
+})();
+
+// Demo data — spans a plausible outpatient case with a couple of
+// borderline flags so the rule pass + AI agent both produce visible
+// output. Only fills fields that exist in the current DOM.
 function fillDemoBlood() {
     const demo = {
         wbc: 11.2, rbc: 4.8, hgb: 12.8, hct: 39, plt: 220,
-        glu: 7.8, hba1c: 6.4, chol: 5.6, ldl: 3.8, hdl: 0.9, trig: 2.3,
-        alt: 62, ast: 51, crea: 98, ure: 5.5
+        mcv: 82, mch: 27, mchc: 33, rdw: 14.2,
+        neut_pct: 68, lymph_pct: 24, mono_pct: 5, eos_pct: 2.5, baso_pct: 0.5,
+        glu: 7.8, hba1c: 6.4, insulin: 18.2,
+        chol: 5.6, ldl: 3.8, hdl: 0.9, trig: 2.3, hs_crp: 2.4,
+        alt: 62, ast: 51, ggt: 78, alp: 95, bili_total: 15,
+        albumin: 41, total_protein: 72,
+        crea: 98, ure: 5.5, uric: 460, egfr: 78,
+        na: 141, k: 4.1, ca: 2.30,
+        vit_d: 22, vit_b12: 320, ferritin: 45,
+        tsh: 3.8, ft4: 14.5, ige: 145,
     };
+    let filled = 0;
     Object.keys(demo).forEach(k => {
         const el = document.getElementById('b_' + k);
-        if (el) el.value = demo[k];
+        if (el && el.offsetParent !== null) {
+            // Only fill visible fields (skip hidden by specialty filter).
+            el.value = demo[k];
+            filled++;
+        }
     });
-    showToast('📋 Đã điền dữ liệu mẫu', 'info');
+    showToast(`📋 Đã điền dữ liệu mẫu (${filled} chỉ số)`, 'info');
 }
 
 function runBloodAnalysis() {
@@ -5911,16 +6017,16 @@ function runBloodAnalysis() {
 
     // Fire the specialty AI agent AFTER the rule-based pass.
     // Rule-based already populates cards 1-4; agent enriches card 5.
+    // Collect all 42 indicators — send whatever the user filled in.
     const specialty = (document.getElementById('bloodSpecialty') || {}).value || 'general';
     const collectedValues = {};
-    ['wbc','rbc','hgb','hct','plt','glu','hba1c','chol','ldl','hdl','trig','alt','ast','crea','ure']
-        .forEach(k => {
-            const el = document.getElementById('b_' + k);
-            if (el && el.value !== '' && el.value != null) {
-                const n = parseFloat(el.value);
-                if (!isNaN(n)) collectedValues[k] = n;
-            }
-        });
+    Object.keys(BLOOD_RANGES).forEach(k => {
+        const el = document.getElementById('b_' + k);
+        if (el && el.value !== '' && el.value != null) {
+            const n = parseFloat(el.value);
+            if (!isNaN(n)) collectedValues[k] = n;
+        }
+    });
     runBloodAgent(specialty, collectedValues).catch(err => {
         console.warn('[blood-agent] failed:', err);
     });
