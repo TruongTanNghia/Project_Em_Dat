@@ -1549,15 +1549,19 @@
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="color:#8b5cf6;"><path d="M12 2a5 5 0 015 5v3a5 5 0 01-10 0V7a5 5 0 015-5z"/><path d="M19 10a7 7 0 01-14 0M12 17v5M8 22h8"/></svg>
                         Chuyên khoa AI phân tích
                     </span>
-                    <select id="bloodSpecialty" style="flex:1; padding:6px 10px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-primary); font-size:13px; cursor:pointer;">
-                        <option value="general">🩺 Tổng quát (Đa khoa)</option>
-                        <option value="dermatology">🧴 Da liễu</option>
-                        <option value="cardiology">❤️ Tim mạch</option>
-                        <option value="endocrinology">🍬 Nội tiết / Tiểu đường</option>
-                        <option value="hematology">🩸 Huyết học</option>
-                        <option value="hepatology">🍺 Gan mật</option>
-                        <option value="nephrology">💧 Thận</option>
-                        <option value="obgyn">🤰 Sản phụ khoa</option>
+                    <!-- color-scheme: dark forces browser's native option popup
+                         to use dark palette (Chrome/Edge/Firefox 2024+). Option
+                         elements also get explicit dark bg + light fg so the
+                         popup is readable on every OS. -->
+                    <select id="bloodSpecialty" style="flex:1; padding:6px 10px; background:#151520; border:1px solid rgba(139,92,246,0.35); border-radius:6px; color:#e8e8f5; font-size:13px; cursor:pointer; color-scheme: dark;">
+                        <option value="general" style="background:#1a1a28; color:#e8e8f5;">🩺 Tổng quát (Đa khoa)</option>
+                        <option value="dermatology" style="background:#1a1a28; color:#e8e8f5;">🧴 Da liễu</option>
+                        <option value="cardiology" style="background:#1a1a28; color:#e8e8f5;">❤️ Tim mạch</option>
+                        <option value="endocrinology" style="background:#1a1a28; color:#e8e8f5;">🍬 Nội tiết / Tiểu đường</option>
+                        <option value="hematology" style="background:#1a1a28; color:#e8e8f5;">🩸 Huyết học</option>
+                        <option value="hepatology" style="background:#1a1a28; color:#e8e8f5;">🍺 Gan mật</option>
+                        <option value="nephrology" style="background:#1a1a28; color:#e8e8f5;">💧 Thận</option>
+                        <option value="obgyn" style="background:#1a1a28; color:#e8e8f5;">🤰 Sản phụ khoa</option>
                     </select>
                 </label>
                 <div id="bloodAgentStatus" style="margin-top:6px; font-size:11px; color:var(--text-muted); font-family:var(--font-mono, monospace); letter-spacing:0.04em;">
