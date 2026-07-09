@@ -6173,14 +6173,41 @@ async function runBloodAgent(specialty, values, patient) {
                 pregnant: patient.pregnant || undefined,
             };
         }
+        // qwen3:8b takes 15-60s on CPU. AbortController for 90s hard timeout
+        // so we don't hang forever.
+        const ctrl = new AbortController();
+        const timeoutId = setTimeout(() => ctrl.abort(), 90_000);
         const res = await fetch(apiUrl('/api/analyze-blood-agent'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
+            signal: ctrl.signal,
         });
-        const data = await res.json();
+        clearTimeout(timeoutId);
+
+        // Read as text first so we can show the raw body if JSON parse fails
+        // (Vercel timeout returns HTML, ngrok error returns text, Python
+        //  crash returns Flask HTML error page — none of them are JSON).
+        const rawText = await res.text();
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (_parseErr) {
+            const preview = rawText.slice(0, 200).replace(/</g, '&lt;');
+            const hint = res.status === 504 || rawText.toLowerCase().includes('gateway')
+                ? 'Vercel timeout — qwen3 chạy quá lâu. Test trực tiếp qua ngrok URL, hoặc dùng model nhỏ hơn (qwen3:4b).'
+                : res.status === 502 || rawText.toLowerCase().includes('tunnel')
+                    ? 'Ngrok tunnel không phản hồi. Check ngrok đang chạy + Python backend đang chạy.'
+                    : `Backend trả ${res.status} nhưng không phải JSON. Kiểm tra terminal Python có log lỗi không.`;
+            renderBloodAgentError(
+                `HTTP ${res.status} — body không phải JSON: "${preview}${rawText.length > 200 ? '...' : ''}"`,
+                hint
+            );
+            return;
+        }
+
         if (!res.ok) {
-            renderBloodAgentError(data.error || 'Không phản hồi từ AI agent', data.hint);
+            renderBloodAgentError(data.error || `HTTP ${res.status}`, data.hint || data.details);
             return;
         }
         // Backend urgent_flags OVERRIDES client detection if present —
@@ -6190,7 +6217,14 @@ async function runBloodAgent(specialty, values, patient) {
         }
         renderBloodAgent(data);
     } catch (err) {
-        renderBloodAgentError(err.message || String(err), 'Kiểm tra Python backend + Ollama đang chạy.');
+        if (err.name === 'AbortError') {
+            renderBloodAgentError(
+                'Timeout sau 90 giây',
+                'qwen3:8b chạy quá lâu. Thử dùng qwen3:4b (nhanh 2x) — set env OLLAMA_TEXT_MODEL=qwen3:4b'
+            );
+        } else {
+            renderBloodAgentError(err.message || String(err), 'Kiểm tra Python backend + Ollama đang chạy.');
+        }
     }
 }
 
