@@ -6216,10 +6216,12 @@ async function runBloodAgent(specialty, values, patient) {
             const preview = rawText.slice(0, 240).replace(/</g, '&lt;');
             const low = rawText.toLowerCase();
             let hint;
-            if (res.status === 504 || low.includes('gateway timeout') || low.includes('an error occurred')) {
-                hint = 'Vercel proxy timeout (~30s). qwen3:8b quá chậm. Chuyển qwen3:4b: dừng Python, chạy `$env:OLLAMA_TEXT_MODEL="qwen3:4b"` rồi khởi động lại.';
-            } else if (res.status === 502 || low.includes('tunnel') || low.includes('ngrok')) {
-                hint = 'Ngrok tunnel chết. Restart ngrok + update BACKEND_URL trên Vercel.';
+            if (res.status === 502) {
+                hint = 'HTTP 502 = Vercel không reach được backend. Nguyên nhân: BACKEND_URL trên Vercel trỏ vào ngrok URL đã CHẾT (ngrok free đổi URL mỗi lần restart). Fix: (1) Lấy URL ngrok hiện tại từ terminal `ngrok http 5000`, (2) Vercel dashboard → Settings → Env Variables → sửa BACKEND_URL, (3) Redeploy.';
+            } else if (res.status === 504 || low.includes('gateway timeout')) {
+                hint = 'HTTP 504 = Vercel proxy timeout (~30s). qwen3:8b quá chậm. Chuyển qwen3:4b: dừng Python, chạy `$env:OLLAMA_TEXT_MODEL="qwen3:4b"` rồi khởi động lại.';
+            } else if (low.includes('an error occurred') || low.includes('tunnel not found')) {
+                hint = 'Ngrok tunnel không phản hồi. Restart ngrok + update BACKEND_URL trên Vercel.';
             } else if (res.status === 500) {
                 hint = 'Python 500. Xem terminal Python để copy traceback.';
             } else if (res.status === 404) {
