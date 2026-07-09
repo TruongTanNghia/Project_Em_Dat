@@ -5874,7 +5874,15 @@ function fillDemoBlood() {
             filled++;
         }
     });
-    showToast(`📋 Đã điền dữ liệu mẫu (${filled} chỉ số)`, 'info');
+    // Auto-fill patient context so agent has adjusted ranges to reason with.
+    // Only overwrite if empty — respect user's typed input.
+    const sexEl = document.getElementById('bloodPtSex');
+    if (sexEl && !sexEl.value) sexEl.value = 'Nữ';
+    const ageEl = document.getElementById('bloodPtAge');
+    if (ageEl && !ageEl.value) ageEl.value = '32';
+    const pregEl = document.getElementById('bloodPtPregnant');
+    if (pregEl && !pregEl.value) pregEl.value = '';
+    showToast(`📋 Đã điền dữ liệu mẫu (${filled} chỉ số + BN Nữ 32t)`, 'info');
 }
 
 function runBloodAnalysis() {
@@ -6027,9 +6035,101 @@ function runBloodAnalysis() {
             if (!isNaN(n)) collectedValues[k] = n;
         }
     });
-    runBloodAgent(specialty, collectedValues).catch(err => {
+    // Patient context — sex + age + pregnancy status. Backend uses this
+    // to override reference ranges + adjust interpretation.
+    const patient = {
+        sex:      (document.getElementById('bloodPtSex') || {}).value || '',
+        age:      (document.getElementById('bloodPtAge') || {}).value || '',
+        pregnant: (document.getElementById('bloodPtPregnant') || {}).value || '',
+    };
+    // Client-side URGENT detection runs INSTANTLY (no wait for AI). Banner
+    // shows even if the Ollama call is slow or fails. Backend also detects
+    // the same thresholds and returns urgent_flags — the response wins if
+    // present, otherwise client fallback.
+    const clientUrgent = detectBloodUrgentValues(collectedValues);
+    renderBloodUrgentBanner(clientUrgent);
+    runBloodAgent(specialty, collectedValues, patient).catch(err => {
         console.warn('[blood-agent] failed:', err);
     });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BLOOD URGENT-VALUE detection — mirror of _URGENT_RULES in Python.
+// Client-side pass gives INSTANT feedback so the red banner shows
+// even if Ollama is slow or offline. Backend also runs the same
+// checks server-side for redundancy.
+// ═══════════════════════════════════════════════════════════════
+const BLOOD_URGENT_RULES = [
+    { k: 'k',          test: v => v > 6.0,   label: 'Tăng Kali máu nặng',        action: 'Nguy cơ loạn nhịp tim — cấp cứu ngay' },
+    { k: 'k',          test: v => v < 2.5,   label: 'Hạ Kali máu nặng',          action: 'Nguy cơ liệt, loạn nhịp — cấp cứu' },
+    { k: 'glu',        test: v => v > 22,    label: 'Tăng đường máu cực nặng',   action: 'Nghi ngờ DKA/HHS — cấp cứu ngay' },
+    { k: 'glu',        test: v => v < 2.8,   label: 'Hạ đường máu nặng',         action: 'Nguy cơ mất ý thức — cấp cứu, glucose IV' },
+    { k: 'hgb',        test: v => v < 7,     label: 'Thiếu máu rất nặng',        action: 'Ngưỡng truyền máu — nhập viện' },
+    { k: 'plt',        test: v => v < 20,    label: 'Giảm tiểu cầu cực nặng',    action: 'Nguy cơ xuất huyết tự phát — cấp cứu' },
+    { k: 'egfr',       test: v => v < 15,    label: 'Suy thận giai đoạn cuối',   action: 'Chỉ định chạy thận/lọc máu' },
+    { k: 'crea',       test: v => v > 300,   label: 'Suy thận cấp',              action: 'AKI nặng — nhập viện' },
+    { k: 'na',         test: v => v > 160,   label: 'Tăng Natri máu nặng',       action: 'Nguy cơ tổn thương thần kinh' },
+    { k: 'na',         test: v => v < 120,   label: 'Hạ Natri máu nặng',         action: 'Nguy cơ phù não, co giật' },
+    { k: 'ca',         test: v => v > 3.5,   label: 'Tăng Ca máu nặng',          action: 'Nguy cơ cơn Ca (hypercalcemic crisis)' },
+    { k: 'ca',         test: v => v < 1.8,   label: 'Hạ Ca máu nặng',            action: 'Nguy cơ Tetany, co giật' },
+    { k: 'wbc',        test: v => v > 30,    label: 'Bạch cầu tăng rất cao',     action: 'Hội chẩn Huyết học — nghi leukemia' },
+    { k: 'wbc',        test: v => v < 1,     label: 'Giảm BC nặng',              action: 'Nguy cơ nhiễm trùng — cách ly' },
+    { k: 'hs_crp',     test: v => v > 100,   label: 'Viêm hệ thống rất nặng',    action: 'Nghi nhiễm trùng huyết — cấy máu' },
+    { k: 'hba1c',      test: v => v > 10,    label: 'HbA1c cực cao',             action: 'ĐTĐ mất kiểm soát nghiêm trọng' },
+    { k: 'bili_total', test: v => v > 100,   label: 'Vàng da rất nặng',          action: 'Suy gan cấp / tắc mật — nhập viện' },
+    { k: 'alt',        test: v => v > 500,   label: 'ALT tăng cực cao',          action: 'Viêm gan cấp / hoại tử gan' },
+    { k: 'ast',        test: v => v > 500,   label: 'AST tăng cực cao',          action: 'Viêm gan cấp / hoại tử gan' },
+    { k: 'uric',       test: v => v > 700,   label: 'Acid uric rất cao',         action: 'Nguy cơ Gout cấp / bệnh thận urate' },
+    { k: 'tsh',        test: v => v > 30,    label: 'Suy giáp nặng',             action: 'Nghi myxedema coma nếu có triệu chứng' },
+    { k: 'tsh',        test: v => v < 0.01,  label: 'Cường giáp nặng',           action: 'Nguy cơ bão giáp — nhập viện' },
+];
+
+function detectBloodUrgentValues(values) {
+    const urgent = [];
+    for (const rule of BLOOD_URGENT_RULES) {
+        const v = values[rule.k];
+        if (v == null || v === '') continue;
+        if (rule.test(v)) {
+            urgent.push({
+                indicator: rule.k,
+                value:     v,
+                label:     rule.label,
+                action:    rule.action,
+            });
+        }
+    }
+    return urgent;
+}
+
+function renderBloodUrgentBanner(urgentFlags) {
+    const banner = document.getElementById('bloodUrgentBanner');
+    const list = document.getElementById('bloodUrgentList');
+    const card = document.getElementById('bloodAgentCard');
+    if (!banner || !list) return;
+
+    if (!urgentFlags || urgentFlags.length === 0) {
+        banner.style.display = 'none';
+        list.innerHTML = '';
+        return;
+    }
+
+    // Make sure the AI card is visible so the banner can appear.
+    if (card) card.style.display = 'block';
+    banner.style.display = 'block';
+    list.innerHTML = urgentFlags.map(u => {
+        const label = _esc(u.label || '');
+        const ind = _esc((u.indicator || '').toUpperCase());
+        const val = _esc(String(u.value != null ? u.value : ''));
+        const act = _esc(u.action || '');
+        return `<li class="blood-urgent-item">
+            <span style="font-size:15px; line-height:1;">▶</span>
+            <div style="flex:1;">
+                <div><b>${label}</b> · <span style="font-family:ui-monospace,monospace; opacity:0.9;">${ind} = ${val}</span></div>
+                <div style="font-size:12px; opacity:0.85; margin-top:2px;">→ ${act}</div>
+            </div>
+        </li>`;
+    }).join('');
+    showToast(`🚨 Phát hiện ${urgentFlags.length} giá trị CẤP CỨU — kiểm tra banner đỏ`, 'error');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -6049,7 +6149,7 @@ const _BLOOD_SPECIALTY_LABEL = {
     obgyn:         '🤰 Sản phụ khoa',
 };
 
-async function runBloodAgent(specialty, values) {
+async function runBloodAgent(specialty, values, patient) {
     const card = document.getElementById('bloodAgentCard');
     if (!card) return;
     if (!values || Object.keys(values).length === 0) return;
@@ -6064,15 +6164,29 @@ async function runBloodAgent(specialty, values) {
     if (summaryEl) summaryEl.innerHTML = '<span style="opacity:0.6;">⏳ AI chuyên khoa đang phân tích... (10–40 giây tuỳ máy)</span>';
 
     try {
+        const body = { specialty, values };
+        // Only include patient context if user filled at least one field.
+        if (patient && (patient.sex || patient.age || patient.pregnant)) {
+            body.patient = {
+                sex:      patient.sex || undefined,
+                age:      patient.age || undefined,
+                pregnant: patient.pregnant || undefined,
+            };
+        }
         const res = await fetch(apiUrl('/api/analyze-blood-agent'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ specialty, values }),
+            body: JSON.stringify(body),
         });
         const data = await res.json();
         if (!res.ok) {
             renderBloodAgentError(data.error || 'Không phản hồi từ AI agent', data.hint);
             return;
+        }
+        // Backend urgent_flags OVERRIDES client detection if present —
+        // backend has the authoritative rule set + already logged them.
+        if (Array.isArray(data.urgent_flags)) {
+            renderBloodUrgentBanner(data.urgent_flags);
         }
         renderBloodAgent(data);
     } catch (err) {

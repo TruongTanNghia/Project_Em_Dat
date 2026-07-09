@@ -1596,10 +1596,41 @@
 
             </div>
 
+            <!-- Patient context — sex + age + pregnancy. Backend uses this
+                 to override reference ranges (Nam/Nữ, thai kỳ, người cao tuổi)
+                 so qwen3 doesn't assume adult male when it isn't. -->
+            <div class="blood-patient-ctx" style="margin-top:14px; padding:12px 14px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.22); border-radius:8px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; color:var(--text-primary); font-size:12.5px; font-weight:600;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="color:#60a5fa;"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+                    <span>Thông tin bệnh nhân (để AI dùng đúng ngưỡng chuẩn)</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1.4fr; gap:8px;">
+                    <label style="display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--text-muted); letter-spacing:0.04em;">
+                        <span>Giới tính</span>
+                        <select id="bloodPtSex" style="padding:6px 8px; background:#151520; border:1px solid rgba(59,130,246,0.28); border-radius:5px; color:#e8e8f5; font-size:13px; color-scheme:dark;">
+                            <option value="" style="background:#1a1a28; color:#e8e8f5;">— Chọn —</option>
+                            <option value="Nam" style="background:#1a1a28; color:#e8e8f5;">Nam</option>
+                            <option value="Nữ" style="background:#1a1a28; color:#e8e8f5;">Nữ</option>
+                        </select>
+                    </label>
+                    <label style="display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--text-muted); letter-spacing:0.04em;">
+                        <span>Tuổi</span>
+                        <input type="number" min="0" max="120" step="1" id="bloodPtAge" placeholder="VD: 32" style="padding:6px 8px; background:#151520; border:1px solid rgba(59,130,246,0.28); border-radius:5px; color:#e8e8f5; font-size:13px;">
+                    </label>
+                    <label style="display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--text-muted); letter-spacing:0.04em;">
+                        <span>Thai kỳ (nếu Nữ)</span>
+                        <select id="bloodPtPregnant" style="padding:6px 8px; background:#151520; border:1px solid rgba(59,130,246,0.28); border-radius:5px; color:#e8e8f5; font-size:13px; color-scheme:dark;">
+                            <option value="" style="background:#1a1a28; color:#e8e8f5;">Không / N/A</option>
+                            <option value="Có" style="background:#1a1a28; color:#e8e8f5;">Đang mang thai</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+
             <!-- Specialty selector for AI agent — the rule-based pass runs
                  regardless; this dropdown decides which chuyên khoa the
                  Ollama qwen3 agent interprets the numbers from. -->
-            <div class="blood-specialty-picker" style="margin-top:14px; padding:12px 14px; background:rgba(139,92,246,0.06); border:1px solid rgba(139,92,246,0.25); border-radius:8px;">
+            <div class="blood-specialty-picker" style="margin-top:10px; padding:12px 14px; background:rgba(139,92,246,0.06); border:1px solid rgba(139,92,246,0.25); border-radius:8px;">
                 <label style="display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text-primary); font-weight:500;">
                     <span style="display:inline-flex; align-items:center; gap:5px;">
                         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="color:#8b5cf6;"><path d="M12 2a5 5 0 015 5v3a5 5 0 01-10 0V7a5 5 0 015-5z"/><path d="M19 10a7 7 0 01-14 0M12 17v5M8 22h8"/></svg>
@@ -1690,6 +1721,22 @@
              selected specialty. Rule-based sections above stay live and
              deterministic; this card holds the LLM's interpretation. -->
         <section class="card blood-agent-card" id="bloodAgentCard" style="grid-column: 1 / -1; display:none; background:linear-gradient(135deg, rgba(139,92,246,0.08), rgba(59,130,246,0.05)); border:1px solid rgba(139,92,246,0.30);">
+
+            <!-- URGENT / CRITICAL VALUE BANNER — client-side detected +
+                 backend-confirmed. Hidden by default; JS shows when
+                 urgent_flags.length > 0. Sit ABOVE section title so it
+                 grabs attention first. -->
+            <div id="bloodUrgentBanner" style="display:none; margin:-14px -14px 14px -14px; padding:14px 18px; background:linear-gradient(90deg, #ef4444, #dc2626); border-radius:8px 8px 0 0; color:white;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                    <span style="font-size:22px; animation:pulse-urgent 1.2s ease-in-out infinite;">🚨</span>
+                    <b style="font-size:15px; letter-spacing:0.04em;">GIÁ TRỊ CẤP CỨU — CẦN XỬ TRÍ NGAY</b>
+                </div>
+                <ul id="bloodUrgentList" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px;"></ul>
+                <div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.25); font-size:11.5px; letter-spacing:0.04em; opacity:0.9;">
+                    ⚠️ AI hỗ trợ · Xử trí cấp cứu phải do bác sĩ trực tiếp thăm khám quyết định
+                </div>
+            </div>
+
             <div class="section-title" style="display:flex; align-items:center; justify-content:space-between;">
                 <div>
                     <span class="section-num" style="background:linear-gradient(135deg,#8b5cf6,#3b82f6);">🤖</span>

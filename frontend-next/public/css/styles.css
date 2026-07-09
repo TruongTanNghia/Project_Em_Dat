@@ -6818,3 +6818,24 @@ button.is-busy {
 .bx-axis-x { color: oklch(0.72 0.15 25); }   /* red-ish */
 .bx-axis-y { color: oklch(0.78 0.16 140); }  /* green-ish */
 .bx-axis-z { color: oklch(0.72 0.14 235); }  /* blue-ish */
+
+/* ─── Blood urgent-value banner pulse — a subtle heart-beat on the
+       🚨 emoji so the user's eye immediately catches an emergency
+       finding. Keep the interval slow (~1.2s) so it isn't distressing. */
+@keyframes pulse-urgent {
+    0%, 100% { transform: scale(1);    opacity: 1; }
+    50%      { transform: scale(1.15); opacity: 0.85; }
+}
+.blood-urgent-item {
+    display: flex; align-items: baseline; gap: 8px;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 5px;
+    font-size: 13.5px;
+    line-height: 1.4;
+}
+.blood-urgent-item b {
+    font-family: ui-monospace, monospace;
+    color: white;
+    letter-spacing: 0.02em;
+}
