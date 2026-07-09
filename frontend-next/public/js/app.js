@@ -6184,7 +6184,14 @@ async function runBloodAgent(specialty, values, patient) {
     try {
         const res = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                // Ngrok free tier chèn HTML warning page cho browser
+                // request. Header này bảo ngrok skip → forward thẳng đến
+                // Python. KHÔNG có header này → HTML "You are about to
+                // visit..." → JSON parse fail bên FE.
+                'ngrok-skip-browser-warning': 'true',
+            },
             body: JSON.stringify(reqBody),
             cache: 'no-store',
         });
@@ -6394,7 +6401,9 @@ async function checkBloodAgentStatus() {
     const el = document.getElementById('bloodAgentStatus');
     if (!el) return;
     try {
-        const res = await fetch(apiUrl('/api/blood-agent-status'));
+        const res = await fetch(apiUrl('/api/blood-agent-status'), {
+            headers: { 'ngrok-skip-browser-warning': 'true' },
+        });
         const data = await res.json();
         if (data.ready) {
             el.innerHTML = `<span style="color:#4ade80;">● AI Agent sẵn sàng</span> · <span style="opacity:0.6;">${data.ollama.model}</span>`;
