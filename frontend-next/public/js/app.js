@@ -6149,7 +6149,9 @@ const _BLOOD_SPECIALTY_LABEL = {
     obgyn:         '🤰 Sản phụ khoa',
 };
 
+// v3.0 — defensive error handling, cache-buster, deep logging
 async function runBloodAgent(specialty, values, patient) {
+    console.log('[blood-agent v3.0] ▶ start', { specialty, valuesCount: Object.keys(values || {}).length, patient });
     const card = document.getElementById('bloodAgentCard');
     if (!card) return;
     if (!values || Object.keys(values).length === 0) return;
@@ -6163,6 +6165,8 @@ async function runBloodAgent(specialty, values, patient) {
     const summaryEl = document.getElementById('bloodAgentSummary');
     if (summaryEl) summaryEl.innerHTML = '<span style="opacity:0.6;">⏳ AI chuyên khoa đang phân tích... (10–40 giây tuỳ máy)</span>';
 
+    let res = null;
+    let rawText = null;
     try {
         const body = { specialty, values };
         // Only include patient context if user filled at least one field.
@@ -6173,34 +6177,61 @@ async function runBloodAgent(specialty, values, patient) {
                 pregnant: patient.pregnant || undefined,
             };
         }
+        // Cache-buster query so Vercel edge + browser don't serve stale.
+        const url = apiUrl('/api/analyze-blood-agent') + '?_=' + Date.now();
+        console.log('[blood-agent v3.0] fetching', url);
+
         // qwen3:8b takes 15-60s on CPU. AbortController for 90s hard timeout
         // so we don't hang forever.
         const ctrl = new AbortController();
         const timeoutId = setTimeout(() => ctrl.abort(), 90_000);
-        const res = await fetch(apiUrl('/api/analyze-blood-agent'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-            signal: ctrl.signal,
-        });
-        clearTimeout(timeoutId);
+        try {
+            res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+                signal: ctrl.signal,
+                cache: 'no-store',
+            });
+        } finally {
+            clearTimeout(timeoutId);
+        }
+
+        console.log('[blood-agent v3.0] response received', { status: res && res.status, ok: res && res.ok });
+
+        if (!res) {
+            renderBloodAgentError('fetch() returned no Response', 'Kiểm tra network + BACKEND_URL trên Vercel');
+            return;
+        }
 
         // Read as text first so we can show the raw body if JSON parse fails
         // (Vercel timeout returns HTML, ngrok error returns text, Python
         //  crash returns Flask HTML error page — none of them are JSON).
-        const rawText = await res.text();
+        try {
+            rawText = await res.text();
+        } catch (readErr) {
+            renderBloodAgentError('Không đọc được response body: ' + (readErr.message || readErr), 'Có thể response bị cắt ngang');
+            return;
+        }
+        console.log('[blood-agent v3.0] body length', rawText ? rawText.length : 0, 'preview:', (rawText || '').slice(0, 100));
+
+        if (rawText == null) rawText = '';
+
         let data;
         try {
             data = JSON.parse(rawText);
         } catch (_parseErr) {
             const preview = rawText.slice(0, 200).replace(/</g, '&lt;');
-            const hint = res.status === 504 || rawText.toLowerCase().includes('gateway')
-                ? 'Vercel timeout — qwen3 chạy quá lâu. Test trực tiếp qua ngrok URL, hoặc dùng model nhỏ hơn (qwen3:4b).'
-                : res.status === 502 || rawText.toLowerCase().includes('tunnel')
-                    ? 'Ngrok tunnel không phản hồi. Check ngrok đang chạy + Python backend đang chạy.'
-                    : `Backend trả ${res.status} nhưng không phải JSON. Kiểm tra terminal Python có log lỗi không.`;
+            const bodyLow = rawText.toLowerCase();
+            const hint = res.status === 504 || bodyLow.includes('gateway') || bodyLow.includes('timeout')
+                ? 'Vercel timeout — qwen3 chạy quá lâu. Đổi sang qwen3:4b (env OLLAMA_TEXT_MODEL=qwen3:4b) hoặc test qua ngrok URL trực tiếp.'
+                : res.status === 502 || bodyLow.includes('tunnel') || bodyLow.includes('ngrok')
+                    ? 'Ngrok tunnel không phản hồi. Restart ngrok + update BACKEND_URL trên Vercel.'
+                    : res.status === 500
+                        ? 'Python 500 error — check terminal Python để xem traceback.'
+                        : `HTTP ${res.status} không phải JSON. Xem terminal Python có lỗi gì.`;
             renderBloodAgentError(
-                `HTTP ${res.status} — body không phải JSON: "${preview}${rawText.length > 200 ? '...' : ''}"`,
+                `HTTP ${res.status} · Body: "${preview}${rawText.length > 200 ? '...' : ''}"`,
                 hint
             );
             return;
@@ -6210,20 +6241,23 @@ async function runBloodAgent(specialty, values, patient) {
             renderBloodAgentError(data.error || `HTTP ${res.status}`, data.hint || data.details);
             return;
         }
-        // Backend urgent_flags OVERRIDES client detection if present —
-        // backend has the authoritative rule set + already logged them.
         if (Array.isArray(data.urgent_flags)) {
             renderBloodUrgentBanner(data.urgent_flags);
         }
         renderBloodAgent(data);
     } catch (err) {
-        if (err.name === 'AbortError') {
+        console.error('[blood-agent v3.0] caught error', err);
+        if (err && err.name === 'AbortError') {
             renderBloodAgentError(
-                'Timeout sau 90 giây',
-                'qwen3:8b chạy quá lâu. Thử dùng qwen3:4b (nhanh 2x) — set env OLLAMA_TEXT_MODEL=qwen3:4b'
+                'Timeout sau 90 giây (client abort)',
+                'qwen3:8b chạy quá lâu. Đổi sang qwen3:4b: $env:OLLAMA_TEXT_MODEL="qwen3:4b" rồi restart Python.'
             );
         } else {
-            renderBloodAgentError(err.message || String(err), 'Kiểm tra Python backend + Ollama đang chạy.');
+            const msg = (err && (err.message || String(err))) || 'Unknown error';
+            const hint = /failed to fetch|networkerror|typeerror/i.test(msg)
+                ? 'Network error — check BACKEND_URL trên Vercel đúng ngrok URL hiện tại + ngrok tunnel còn chạy.'
+                : 'Kiểm tra terminal Python + Ollama đang chạy.';
+            renderBloodAgentError(msg, hint);
         }
     }
 }
