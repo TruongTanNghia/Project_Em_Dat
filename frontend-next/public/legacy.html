@@ -1689,9 +1689,16 @@
             </div>
         </section>
 
-        <!-- Section 3: Risk assessment -->
+        <!-- Section 3: Quick risk screening (rule-based) -->
         <section class="card section-analysis blood-risk-card">
-            <div class="section-title"><span class="section-num">3</span> NGUY CƠ BỆNH (AI)</div>
+            <div class="section-title" style="display:flex; align-items:baseline; gap:8px;">
+                <span class="section-num">3</span>
+                <span>TỔNG QUAN NGUY CƠ</span>
+                <span style="font-family:ui-monospace,monospace; font-size:10px; letter-spacing:0.14em; color:var(--text-muted); font-weight:500; margin-left:auto;">Rule-based · Đánh giá nhanh</span>
+            </div>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:12px; line-height:1.5;">
+                Đánh giá <b>tự động</b> theo ngưỡng chuẩn — hiện tức thì khi bấm Phân tích. Bổ trợ cho <b style="color:#a78bfa;">AI Chuyên khoa</b> ở dưới (sâu hơn, theo từng chuyên khoa).
+            </div>
 
             <div class="prob-bars" id="bloodRiskBars">
                 <div class="prob-row empty">Chưa có dữ liệu</div>
@@ -1705,15 +1712,19 @@
             </div>
         </section>
 
-        <!-- Section 4: Recommendations -->
+        <!-- Section 4: Quick recommendations (rule-based) -->
         <section class="card section-recommend blood-reco-card">
-            <div class="section-title"><span class="section-num">4</span> KHUYẾN NGHỊ (AI)</div>
+            <div class="section-title" style="display:flex; align-items:baseline; gap:8px;">
+                <span class="section-num">4</span>
+                <span>KHUYẾN NGHỊ NHANH</span>
+                <span style="font-family:ui-monospace,monospace; font-size:10px; letter-spacing:0.14em; color:var(--text-muted); font-weight:500; margin-left:auto;">Rule-based</span>
+            </div>
 
             <ul class="reco-list" id="bloodRecoList">
-                <li class="reco-item empty">Nhập các chỉ số và bấm Phân tích để nhận khuyến nghị AI</li>
+                <li class="reco-item empty">Nhập các chỉ số và bấm Phân tích để nhận khuyến nghị nhanh</li>
             </ul>
 
-            <div class="disclaimer">⚠️ <b>Lưu ý:</b> Kết quả chỉ mang tính tham khảo, không thay thế chẩn đoán của bác sĩ.</div>
+            <div class="disclaimer">⚠️ <b>Lưu ý:</b> Đây là gợi ý nhanh theo ngưỡng. Xem <b style="color:#a78bfa;">AI Chuyên khoa</b> bên dưới cho phân tích sâu hơn.</div>
         </section>
 
         <!-- ═══ AI SPECIALTY AGENT ═══ Populated after runBloodAnalysis()
@@ -1744,9 +1755,14 @@
                 </div>
                 <div style="font-family:var(--font-mono, monospace); font-size:11px; color:var(--text-muted); letter-spacing:0.08em;">
                     <span id="bloodAgentSpecialtyBadge" style="padding:3px 10px; border-radius:99px; background:rgba(139,92,246,0.18); color:#a78bfa;">—</span>
-                    <span id="bloodAgentModelBadge" style="margin-left:6px; opacity:0.6;">qwen3:8b</span>
+                    <span id="bloodAgentModelBadge" style="margin-left:6px; opacity:0.6;">—</span>
                     <span id="bloodAgentTimeBadge" style="margin-left:6px; opacity:0.6;"></span>
                 </div>
+            </div>
+
+            <!-- Explainer chip -->
+            <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:12px; line-height:1.5;">
+                Phân tích <b style="color:#a78bfa;">chuyên sâu</b> bằng OpenAI/Gemini theo chuyên khoa đã chọn. Kết quả này <b>bao trùm</b> Card 3 rule-based ở trên (không mâu thuẫn) — AI sẽ đề cập MỌI chỉ số bất thường + focus phân tích theo chuyên khoa.
             </div>
 
             <!-- Summary — text + count strip populated by JS -->
