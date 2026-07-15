@@ -6407,15 +6407,13 @@ async function checkBloodAgentStatus() {
             headers: { 'ngrok-skip-browser-warning': 'true' },
         });
         const data = await res.json();
-        // Primary backend: Gemini (cloud API, fast ~10s) OR Ollama local fallback
-        if (data.primary === 'gemini') {
-            el.innerHTML = `<span style="color:#4ade80;">● AI Agent sẵn sàng</span> · <span style="opacity:0.75; color:#a78bfa;">Gemini ${data.gemini.model}</span> <span style="opacity:0.5;">(cloud)</span>`;
-        } else if (data.primary === 'ollama') {
-            el.innerHTML = `<span style="color:#4ade80;">● AI Agent sẵn sàng</span> · <span style="opacity:0.75;">Ollama ${data.ollama.model}</span> <span style="opacity:0.5;">(local)</span>`;
-        } else if (data.ollama.online && !data.ollama.modelPulled) {
-            el.innerHTML = `<span style="color:#fbbf24;">⚠ Chưa có backend nào sẵn sàng</span> · <span style="opacity:0.7;">Set GEMINI_API_KEY trong .env hoặc chạy: ollama pull ${data.ollama.model}</span>`;
+        // Primary chain: OpenAI (fastest) → Gemini (fallback)
+        if (data.primary === 'openai') {
+            el.innerHTML = `<span style="color:#4ade80;">● AI Agent sẵn sàng</span> · <span style="opacity:0.85; color:#10a37f;">OpenAI ${data.openai.model}</span> <span style="opacity:0.5;">(~3-5s)</span>`;
+        } else if (data.primary === 'gemini') {
+            el.innerHTML = `<span style="color:#4ade80;">● AI Agent sẵn sàng</span> · <span style="opacity:0.85; color:#a78bfa;">Gemini ${data.gemini.model}</span> <span style="opacity:0.5;">(~10-15s)</span>`;
         } else {
-            el.innerHTML = `<span style="color:#f87171;">✗ Không có backend</span> · <span style="opacity:0.7;">Set GEMINI_API_KEY trong .env hoặc chạy Ollama</span>`;
+            el.innerHTML = `<span style="color:#f87171;">✗ Không có API key</span> · <span style="opacity:0.7;">Set OPENAI_API_KEY hoặc GEMINI_API_KEY trong .env</span>`;
         }
     } catch (err) {
         el.innerHTML = `<span style="color:#f87171;">✗ BE không phản hồi</span>`;
