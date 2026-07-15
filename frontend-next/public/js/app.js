@@ -6407,12 +6407,15 @@ async function checkBloodAgentStatus() {
             headers: { 'ngrok-skip-browser-warning': 'true' },
         });
         const data = await res.json();
-        if (data.ready) {
-            el.innerHTML = `<span style="color:#4ade80;">● AI Agent sẵn sàng</span> · <span style="opacity:0.6;">${data.ollama.model}</span>`;
+        // Primary backend: Gemini (cloud API, fast ~10s) OR Ollama local fallback
+        if (data.primary === 'gemini') {
+            el.innerHTML = `<span style="color:#4ade80;">● AI Agent sẵn sàng</span> · <span style="opacity:0.75; color:#a78bfa;">Gemini ${data.gemini.model}</span> <span style="opacity:0.5;">(cloud)</span>`;
+        } else if (data.primary === 'ollama') {
+            el.innerHTML = `<span style="color:#4ade80;">● AI Agent sẵn sàng</span> · <span style="opacity:0.75;">Ollama ${data.ollama.model}</span> <span style="opacity:0.5;">(local)</span>`;
         } else if (data.ollama.online && !data.ollama.modelPulled) {
-            el.innerHTML = `<span style="color:#fbbf24;">⚠ Model chưa pull</span> · <span style="opacity:0.7;">chạy: ollama pull ${data.ollama.model}</span>`;
+            el.innerHTML = `<span style="color:#fbbf24;">⚠ Chưa có backend nào sẵn sàng</span> · <span style="opacity:0.7;">Set GEMINI_API_KEY trong .env hoặc chạy: ollama pull ${data.ollama.model}</span>`;
         } else {
-            el.innerHTML = `<span style="color:#f87171;">✗ Ollama offline</span> · <span style="opacity:0.7;">chạy: ollama serve</span>`;
+            el.innerHTML = `<span style="color:#f87171;">✗ Không có backend</span> · <span style="opacity:0.7;">Set GEMINI_API_KEY trong .env hoặc chạy Ollama</span>`;
         }
     } catch (err) {
         el.innerHTML = `<span style="color:#f87171;">✗ BE không phản hồi</span>`;
