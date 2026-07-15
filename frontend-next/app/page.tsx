@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { ThemeToggle } from './ThemeToggle';
+import { ScrollFX } from './ScrollFX';
 
 /* ─── BraTS lesion overlay: irregular organic mass shapes, not
        targeting reticles. NCR core (solid red-orange blob), ET
@@ -1044,15 +1045,15 @@ function StatsReel() {
     { big: '<2s', unit: 'inference',   caption: 'per case · CPU' },
   ];
   return (
-    <section className="frame stats-reel reveal" aria-label="By the numbers">
+    <section className="frame stats-reel fx-reveal" aria-label="By the numbers">
       <div className="stats-eyebrow">
         <span className="stats-tag">BY THE NUMBERS</span>
         <span className="stats-tag-spec">v1.1 · 2026 — pipelines verified on hold-out</span>
       </div>
       <div className="stats-row">
         {stats.map((s, i) => (
-          <div key={s.big} className="stats-cell" data-cell={i + 1}>
-            <div className="stats-big">{s.big}</div>
+          <div key={s.big} className="stats-cell fx-reveal" data-cell={i + 1} style={{ ['--fx-delay' as string]: `${i * 90}ms` }}>
+            <div className="stats-big fx-count">{s.big}</div>
             <div className="stats-unit">{s.unit}</div>
             <div className="stats-caption">{s.caption}</div>
           </div>
@@ -1093,7 +1094,7 @@ function ArchitectureFlow() {
     },
   ];
   return (
-    <section className="frame arch-flow" aria-label="System architecture">
+    <section className="frame arch-flow fx-reveal" aria-label="System architecture">
       <div className="arch-head">
         <div className="arch-eyebrow">SYSTEM</div>
         <h2 className="arch-h2">
@@ -1166,7 +1167,7 @@ function DatasetsCredits() {
     },
   ];
   return (
-    <section className="frame credits" aria-label="Datasets and research credited">
+    <section className="frame credits fx-reveal" aria-label="Datasets and research credited">
       <div className="credits-head">
         <span className="credits-eyebrow">DATASETS</span>
         <h2 className="credits-h2">
@@ -1200,6 +1201,7 @@ function DatasetsCredits() {
 export default function Home() {
   return (
     <div className="page">
+      <ScrollFX />
       <header className="frame">
         <div className="registry">
           <Link href="/" className="brand" aria-label="ADA Group — Medical AI Research">
@@ -1274,7 +1276,7 @@ export default function Home() {
             </p>
           </div>
 
-          <article className="case" data-case="01">
+          <article className="case fx-reveal" data-case="01">
             <div className="case-meta">
               <div className="case-num">CASE 01 · NEURO</div>
               <h3 className="case-title">Phát hiện cơn động kinh từ EEG nhiều kênh</h3>
@@ -1298,7 +1300,7 @@ export default function Home() {
             <CaseVisualEEG />
           </article>
 
-          <article className="case" data-case="02">
+          <article className="case fx-reveal" data-case="02">
             <div className="case-meta">
               <div className="case-num">CASE 02 · ONCOLOGY</div>
               <h3 className="case-title">Phân đoạn u não đa-mô-thức trên MRI 4 channel</h3>
@@ -1323,7 +1325,7 @@ export default function Home() {
             <CaseVisualBrain />
           </article>
 
-          <article className="case" data-case="03">
+          <article className="case fx-reveal" data-case="03">
             <div className="case-meta">
               <div className="case-num">CASE 03 · PULMONOLOGY</div>
               <h3 className="case-title">Định vị nốt phổi & ước lượng malignancy trên CT</h3>
@@ -1348,7 +1350,7 @@ export default function Home() {
             <CaseVisualLung />
           </article>
 
-          <article className="case" data-case="04">
+          <article className="case fx-reveal" data-case="04">
             <div className="case-meta">
               <div className="case-num">CASE 04 · HEMATOLOGY</div>
               <h3 className="case-title">Đọc bảng xét nghiệm máu, gắn cờ chỉ số bất thường</h3>
@@ -1373,7 +1375,7 @@ export default function Home() {
             <CaseVisualBlood />
           </article>
 
-          <article className="case" data-case="05">
+          <article className="case fx-reveal" data-case="05">
             <div className="case-meta">
               <div className="case-num">CASE 05 · ORTHOPEDICS</div>
               <h3 className="case-title">Tách 24 đốt sống & chỉ ra bệnh lý trên CT cột sống</h3>
@@ -1399,7 +1401,7 @@ export default function Home() {
             <CaseVisualSpine />
           </article>
 
-          <article className="case" data-case="06">
+          <article className="case fx-reveal" data-case="06">
             <div className="case-meta">
               <div className="case-num">CASE 06 · ONCOLOGY · US</div>
               <h3 className="case-title">Khoanh khối u vú trên siêu âm, dựng thể tích 3D từ mask</h3>

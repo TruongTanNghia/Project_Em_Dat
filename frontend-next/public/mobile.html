@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0c0c14">
+<title>ADA Medical AI · Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        oklch(0.10 0.008 260);
+  --bg-2:      oklch(0.14 0.010 260);
+  --bg-3:      oklch(0.18 0.012 260);
+  --ink:       oklch(0.96 0.006 260);
+  --ink-2:     oklch(0.78 0.008 260);
+  --ink-3:     oklch(0.58 0.010 260);
+  --line:      oklch(0.26 0.014 260);
+  --line-2:    oklch(0.34 0.016 260);
+  --pink:      oklch(0.72 0.22 5);
+  --pink-2:    oklch(0.82 0.18 5);
+  --pink-soft: oklch(0.72 0.22 5 / 0.12);
+  --cobalt:    oklch(0.65 0.22 268);
+  --emerald:   oklch(0.72 0.15 155);
+  --amber:     oklch(0.75 0.16 75);
+  --font-sans: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --tab-h: 68px;
+  --safe-bottom: env(safe-area-inset-bottom, 0);
+  --safe-top: env(safe-area-inset-top, 0);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  height: 100%;
+  overflow: hidden;
+}
+body { padding-top: var(--safe-top); }
+
+/* ─── Header ─── */
+.app-header {
+  height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+}
+.brand-dot {
+  width: 26px; height: 26px; border-radius: 6px;
+  background: linear-gradient(135deg, var(--pink), var(--cobalt));
+  display: grid; place-items: center;
+  font-size: 15px;
+}
+.brand-sub {
+  font-family: var(--font-mono);
+  font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-3);
+  padding-left: 10px; margin-left: 6px;
+  border-left: 1px solid var(--line);
+}
+.header-actions { display: flex; gap: 6px; }
+.icon-btn {
+  min-width: 44px; min-height: 44px;
+  display: grid; place-items: center;
+  background: transparent; border: 0;
+  color: var(--ink-2);
+  border-radius: 8px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.icon-btn:active { background: var(--bg-2); }
+
+/* ─── Main content area (scrollable) ─── */
+.app-main {
+  height: calc(100dvh - 52px - var(--tab-h) - var(--safe-top) - var(--safe-bottom));
+  overflow-y: auto;
+  padding-bottom: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ─── Page container ─── */
+.page { display: none; padding: 12px 14px 24px; animation: fadeIn 240ms cubic-bezier(0.16, 1, 0.3, 1); }
+.page.active { display: block; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Page header ─── */
+.page-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px;
+  padding: 8px 4px 16px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+.page-head-title {
+  font-size: 22px; font-weight: 700; letter-spacing: -0.014em;
+  line-height: 1.2;
+}
+.page-head-sub {
+  font-family: var(--font-mono);
+  font-size: 10.5px; letter-spacing: 0.08em;
+  color: var(--ink-3); text-transform: uppercase;
+  margin-top: 3px;
+}
+.page-badge {
+  padding: 4px 10px; border-radius: 99px;
+  background: var(--pink-soft); color: var(--pink);
+  font-family: var(--font-mono);
+  font-size: 9.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ─── Card ─── */
+.card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card-title {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 10.5px; letter-spacing: 0.14em;
+  color: var(--ink-3); text-transform: uppercase; font-weight: 700;
+  margin-bottom: 12px;
+}
+.card-title-icon {
+  display: grid; place-items: center;
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  background: var(--pink-soft);
+  color: var(--pink);
+}
+
+/* ─── Upload zone ─── */
+.upload-zone {
+  border: 2px dashed var(--line-2);
+  border-radius: 10px;
+  padding: 32px 20px;
+  text-align: center;
+  background: var(--bg-3);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.upload-zone:active { border-color: var(--pink); background: var(--pink-soft); }
+.upload-emoji { font-size: 42px; margin-bottom: 8px; }
+.upload-title { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+.upload-sub { font-size: 12px; color: var(--ink-3); font-family: var(--font-mono); }
+
+/* ─── Buttons ─── */
+.btn {
+  min-height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 10px;
+  font-family: var(--font-sans);
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: transform 100ms ease, opacity 200ms ease;
+  width: 100%;
+}
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.5; }
+.btn-primary { background: var(--pink); color: white; }
+.btn-primary:active { background: oklch(0.62 0.22 5); }
+.btn-secondary { background: var(--bg-3); color: var(--ink); border: 1px solid var(--line); }
+
+/* ─── KPI grid ─── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.kpi-tile {
+  padding: 14px 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.kpi-tile-value {
+  font-size: 28px; font-weight: 700; letter-spacing: -0.024em;
+  color: var(--pink);
+  font-feature-settings: 'tnum';
+}
+.kpi-tile-label {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 0.14em;
+  color: var(--ink-3); text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* ─── Module tile (grid on Home) ─── */
+.mod-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.mod-tile {
+  padding: 16px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+  transition: transform 100ms ease, border-color 160ms ease;
+  display: flex; flex-direction: column; gap: 6px;
+  min-height: 120px;
+}
+.mod-tile:active { transform: scale(0.97); border-color: var(--pink); }
+.mod-tile-icon {
+  font-size: 26px; line-height: 1;
+}
+.mod-tile-title {
+  font-size: 14.5px; font-weight: 700; line-height: 1.2;
+  color: var(--ink);
+}
+.mod-tile-sub {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 0.06em;
+  color: var(--ink-3);
+  margin-top: auto;
+}
+.mod-tile-status {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-mono); font-size: 9.5px;
+  color: var(--emerald); letter-spacing: 0.1em;
+  text-transform: uppercase; font-weight: 700;
+}
+.mod-tile-status::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--emerald);
+  box-shadow: 0 0 8px var(--emerald);
+}
+
+/* ─── List rows ─── */
+.list-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--line);
+  min-height: 52px;
+}
+.list-row:last-child { border-bottom: 0; }
+.list-row-label { color: var(--ink-2); font-size: 14px; }
+.list-row-value { color: var(--ink); font-weight: 600; font-size: 14px; }
+
+/* ─── Bottom tab nav ─── */
+.tab-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: calc(var(--tab-h) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  z-index: 20;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: oklch(0.10 0.008 260 / 0.92);
+}
+.tab-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: transparent; border: 0;
+  color: var(--ink-3);
+  font-family: var(--font-sans);
+  font-size: 10px; letter-spacing: 0.02em;
+  cursor: pointer;
+  padding: 8px 4px;
+  gap: 4px;
+  transition: color 160ms ease;
+  position: relative;
+}
+.tab-btn:active { color: var(--pink); }
+.tab-btn.active { color: var(--pink); }
+.tab-btn.active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%; transform: translateX(-50%);
+  width: 32px; height: 2.5px;
+  background: var(--pink);
+  border-radius: 0 0 3px 3px;
+}
+.tab-icon { font-size: 20px; line-height: 1; }
+.tab-label { font-size: 10px; font-weight: 500; letter-spacing: 0.02em; }
+
+/* ─── Bottom sheet ─── */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: oklch(0 0 0 / 0.55);
+  z-index: 30;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.sheet-backdrop.open {
+  opacity: 1; pointer-events: auto;
+}
+.sheet {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--bg-2);
+  border-radius: 20px 20px 0 0;
+  z-index: 40;
+  max-height: 88vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  padding-bottom: calc(24px + var(--safe-bottom));
+  border-top: 1px solid var(--line-2);
+  -webkit-overflow-scrolling: touch;
+}
+.sheet.open { transform: translateY(0); }
+.sheet-handle {
+  margin: 8px auto;
+  width: 40px; height: 4px;
+  background: var(--line-2);
+  border-radius: 2px;
+}
+.sheet-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.sheet-title {
+  font-size: 17px; font-weight: 700;
+  letter-spacing: -0.008em;
+}
+.sheet-close {
+  min-width: 44px; min-height: 44px;
+  display: grid; place-items: center;
+  background: transparent; border: 0;
+  color: var(--ink-2);
+  font-size: 20px; cursor: pointer;
+  border-radius: 8px;
+}
+.sheet-body { padding: 16px 20px; }
+
+/* ─── Accordion (blood form groups) ─── */
+.accordion-item {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.accordion-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  min-height: 52px;
+}
+.accordion-head-label {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; font-weight: 600;
+}
+.accordion-icon {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--ink-3);
+}
+.accordion-item.open .accordion-icon { transform: rotate(90deg); color: var(--pink); }
+.accordion-body {
+  display: none;
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--line);
+}
+.accordion-item.open .accordion-body { display: block; }
+.field-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0;
+  gap: 12px;
+  border-bottom: 1px dotted var(--line);
+}
+.field-row:last-child { border-bottom: 0; }
+.field-label {
+  font-size: 13px; color: var(--ink-2);
+  min-width: 0; flex: 1;
+}
+.field-input {
+  min-height: 40px; width: 90px;
+  padding: 6px 10px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font-family: var(--font-mono); font-size: 13px;
+  text-align: right;
+  font-feature-settings: 'tnum';
+  -moz-appearance: textfield;
+  -webkit-appearance: none;
+}
+.field-input::-webkit-inner-spin-button,
+.field-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.field-input:focus {
+  outline: none;
+  border-color: var(--pink);
+  background: var(--bg-2);
+}
+
+/* ─── Specialty picker (segmented) ─── */
+.spec-picker {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-3);
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+.spec-btn {
+  display: flex; flex-direction: column; align-items: center;
+  background: transparent; border: 0;
+  color: var(--ink-3);
+  padding: 10px 6px;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 10px; font-weight: 600;
+  cursor: pointer;
+  gap: 3px;
+  min-height: 52px;
+  transition: background 160ms ease, color 160ms ease;
+}
+.spec-btn:active { background: var(--bg-2); }
+.spec-btn.active {
+  background: var(--pink);
+  color: white;
+}
+.spec-btn-emoji { font-size: 18px; }
+
+/* ─── Result cards ─── */
+.result-summary {
+  padding: 16px;
+  background: var(--pink-soft);
+  border-left: 3px solid var(--pink);
+  border-radius: 0 10px 10px 0;
+  font-size: 14px; line-height: 1.55;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+.finding-item {
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: var(--bg-3);
+  border-left: 3px solid var(--line-2);
+  border-radius: 0 8px 8px 0;
+}
+.finding-item[data-sev="mild"] { border-left-color: var(--amber); background: oklch(0.75 0.14 85 / 0.08); }
+.finding-item[data-sev="moderate"] { border-left-color: oklch(0.70 0.17 55); background: oklch(0.70 0.17 55 / 0.10); }
+.finding-item[data-sev="severe"] { border-left-color: oklch(0.65 0.22 25); background: oklch(0.65 0.22 25 / 0.12); }
+.finding-name {
+  font-size: 14px; font-weight: 700; margin-bottom: 4px;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+}
+.finding-values {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--ink-3); margin-bottom: 6px;
+}
+.finding-values b { color: var(--ink); }
+.finding-interp {
+  font-size: 13px; color: var(--ink-2); line-height: 1.5;
+}
+.finding-sev {
+  font-family: var(--font-mono);
+  font-size: 9px; letter-spacing: 0.14em;
+  padding: 2px 8px; border-radius: 99px;
+  text-transform: uppercase; font-weight: 700;
+  flex-shrink: 0;
+}
+
+.recos-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.recos-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  background: oklch(0.65 0.22 268 / 0.10);
+  border-radius: 8px;
+  font-size: 13px; line-height: 1.5;
+}
+.recos-marker {
+  display: grid; place-items: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--cobalt); color: white;
+  font-size: 11px; font-weight: 700;
+  flex-shrink: 0; margin-top: 1px;
+}
+.recos-item.life { background: oklch(0.72 0.15 155 / 0.10); }
+.recos-item.life .recos-marker { background: var(--emerald); }
+
+/* ─── Loading state ─── */
+.loading {
+  padding: 24px; text-align: center;
+  color: var(--ink-2); font-size: 14px;
+}
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--line);
+  border-top-color: var(--pink);
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Empty state ─── */
+.empty {
+  padding: 40px 20px; text-align: center;
+  color: var(--ink-3);
+}
+.empty-emoji { font-size: 42px; margin-bottom: 10px; opacity: 0.6; }
+.empty-msg { font-size: 14px; }
+
+/* ─── Divider ─── */
+.divider {
+  height: 1px; background: var(--line);
+  margin: 20px 0;
+}
+</style>
+</head>
+<body>
+
+<!-- ─── Header ─── -->
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-dot">🩺</div>
+    <span>ADA Medical<span class="brand-sub">Mobile</span></span>
+  </div>
+  <div class="header-actions">
+    <button class="icon-btn" id="btnFullDesktop" title="Full desktop view">↗</button>
+  </div>
+</header>
+
+<!-- ─── Main scrollable area ─── -->
+<main class="app-main" id="appMain">
+
+  <!-- ═══ PAGE 1: HOME ═══ -->
+  <section class="page active" id="pageHome">
+    <div class="page-head">
+      <div>
+        <div class="page-head-title">Sáu pipeline<br>AI lâm sàng</div>
+        <div class="page-head-sub">v1.1 · 2026</div>
+      </div>
+      <span class="page-badge">Live</span>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-tile">
+        <div class="kpi-tile-value">6</div>
+        <div class="kpi-tile-label">Modules</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-tile-value">60M+</div>
+        <div class="kpi-tile-label">Params</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-tile-value">4</div>
+        <div class="kpi-tile-label">Datasets</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-tile-value">&lt;2s</div>
+        <div class="kpi-tile-label">Inference</div>
+      </div>
+    </div>
+
+    <div class="mod-grid">
+      <a class="mod-tile" data-goto="eeg">
+        <div class="mod-tile-icon">🧠</div>
+        <div class="mod-tile-title">Điện não động kinh</div>
+        <div class="mod-tile-sub">CHB-MIT · CNN+BiGRU</div>
+        <span class="mod-tile-status">Live</span>
+      </a>
+      <a class="mod-tile" data-goto="brain">
+        <div class="mod-tile-icon">🧬</div>
+        <div class="mod-tile-title">U não MRI</div>
+        <div class="mod-tile-sub">BraTS · 3D U-Net</div>
+        <span class="mod-tile-status">Live</span>
+      </a>
+      <a class="mod-tile" data-goto="lung">
+        <div class="mod-tile-icon">🫁</div>
+        <div class="mod-tile-title">Nốt phổi CT</div>
+        <div class="mod-tile-sub">LIDC · DeepLabV3</div>
+        <span class="mod-tile-status">Live</span>
+      </a>
+      <a class="mod-tile" data-goto="blood">
+        <div class="mod-tile-icon">🩸</div>
+        <div class="mod-tile-title">Xét nghiệm máu</div>
+        <div class="mod-tile-sub">42 chỉ số · 8 spec</div>
+        <span class="mod-tile-status">Live</span>
+      </a>
+      <a class="mod-tile" data-goto="spine">
+        <div class="mod-tile-icon">🦴</div>
+        <div class="mod-tile-title">Cột sống CT</div>
+        <div class="mod-tile-sub">TotalSegmentator</div>
+        <span class="mod-tile-status">Live</span>
+      </a>
+      <a class="mod-tile" data-goto="breast">
+        <div class="mod-tile-icon">🎗️</div>
+        <div class="mod-tile-title">Ung thư vú US</div>
+        <div class="mod-tile-sub">BUSI · U-Net + CLIP</div>
+        <span class="mod-tile-status">Live</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ═══ PAGE 2: MODULES LIST ═══ -->
+  <section class="page" id="pageModules">
+    <div class="page-head">
+      <div>
+        <div class="page-head-title">Modules</div>
+        <div class="page-head-sub">6 pipeline chi tiết</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon">🩸</div>
+        Ung thư vú siêu âm
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Dataset</span>
+        <span class="list-row-value">BUSI · 780 imgs</span>
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Model</span>
+        <span class="list-row-value">U-Net 2.16M + BiomedCLIP</span>
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Metric</span>
+        <span class="list-row-value">Dice 0.77</span>
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Latency</span>
+        <span class="list-row-value" style="color:var(--emerald);">~1.8s</span>
+      </div>
+      <div style="margin-top: 12px;">
+        <button class="btn btn-primary" onclick="openModule('breast')">Mở module</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon">🧬</div>
+        U não MRI
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Dataset</span>
+        <span class="list-row-value">BraTS · 369 cases</span>
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Model</span>
+        <span class="list-row-value">3D U-Net TF</span>
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Metric</span>
+        <span class="list-row-value">Dice 0.83</span>
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Latency</span>
+        <span class="list-row-value" style="color:var(--emerald);">~4.5s</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon">🫁</div>
+        Nốt phổi CT
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Dataset</span>
+        <span class="list-row-value">LIDC-IDRI</span>
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Model</span>
+        <span class="list-row-value">DeepLabV3 · 42M</span>
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Sensitivity</span>
+        <span class="list-row-value">87%</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ PAGE 3: BLOOD TEST ═══ -->
+  <section class="page" id="pageBlood">
+    <div class="page-head">
+      <div>
+        <div class="page-head-title">Xét nghiệm máu</div>
+        <div class="page-head-sub">42 chỉ số · 8 chuyên khoa</div>
+      </div>
+    </div>
+
+    <!-- Specialty picker -->
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon">👨‍⚕️</div>
+        Chuyên khoa
+      </div>
+      <div class="spec-picker" id="specPicker">
+        <button class="spec-btn active" data-spec="general"><span class="spec-btn-emoji">🩺</span>Tổng quát</button>
+        <button class="spec-btn" data-spec="dermatology"><span class="spec-btn-emoji">🧴</span>Da liễu</button>
+        <button class="spec-btn" data-spec="cardiology"><span class="spec-btn-emoji">❤️</span>Tim mạch</button>
+        <button class="spec-btn" data-spec="endocrinology"><span class="spec-btn-emoji">🍬</span>Nội tiết</button>
+        <button class="spec-btn" data-spec="hematology"><span class="spec-btn-emoji">🩸</span>Huyết học</button>
+        <button class="spec-btn" data-spec="hepatology"><span class="spec-btn-emoji">🍺</span>Gan mật</button>
+        <button class="spec-btn" data-spec="nephrology"><span class="spec-btn-emoji">💧</span>Thận</button>
+        <button class="spec-btn" data-spec="obgyn"><span class="spec-btn-emoji">🤰</span>Sản khoa</button>
+      </div>
+    </div>
+
+    <!-- Accordion form groups -->
+    <div class="accordion-item open">
+      <div class="accordion-head" data-toggle="acc-cbc">
+        <div class="accordion-head-label"><span>🩸</span> CBC · Huyết học</div>
+        <span class="accordion-icon">▶</span>
+      </div>
+      <div class="accordion-body" id="acc-cbc">
+        <div class="field-row">
+          <span class="field-label">WBC (K/µL)</span>
+          <input class="field-input" type="number" step="0.01" id="mb_wbc" placeholder="4-10">
+        </div>
+        <div class="field-row">
+          <span class="field-label">Hemoglobin (g/dL)</span>
+          <input class="field-input" type="number" step="0.1" id="mb_hgb" placeholder="13.5-17.5">
+        </div>
+        <div class="field-row">
+          <span class="field-label">Platelets (K/µL)</span>
+          <input class="field-input" type="number" step="1" id="mb_plt" placeholder="150-400">
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <div class="accordion-head" data-toggle="acc-glu">
+        <div class="accordion-head-label"><span>🍬</span> Đường huyết</div>
+        <span class="accordion-icon">▶</span>
+      </div>
+      <div class="accordion-body" id="acc-glu">
+        <div class="field-row">
+          <span class="field-label">Glucose (mmol/L)</span>
+          <input class="field-input" type="number" step="0.01" id="mb_glu" placeholder="3.9-6.1">
+        </div>
+        <div class="field-row">
+          <span class="field-label">HbA1c (%)</span>
+          <input class="field-input" type="number" step="0.1" id="mb_hba1c" placeholder="< 5.7">
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <div class="accordion-head" data-toggle="acc-lipid">
+        <div class="accordion-head-label"><span>🥑</span> Mỡ máu</div>
+        <span class="accordion-icon">▶</span>
+      </div>
+      <div class="accordion-body" id="acc-lipid">
+        <div class="field-row">
+          <span class="field-label">Cholesterol (mmol/L)</span>
+          <input class="field-input" type="number" step="0.01" id="mb_chol" placeholder="< 5.2">
+        </div>
+        <div class="field-row">
+          <span class="field-label">LDL (mmol/L)</span>
+          <input class="field-input" type="number" step="0.01" id="mb_ldl" placeholder="< 3.4">
+        </div>
+        <div class="field-row">
+          <span class="field-label">HDL (mmol/L)</span>
+          <input class="field-input" type="number" step="0.01" id="mb_hdl" placeholder="> 1.0">
+        </div>
+      </div>
+    </div>
+
+    <div class="accordion-item">
+      <div class="accordion-head" data-toggle="acc-liver">
+        <div class="accordion-head-label"><span>🍺</span> Gan · Thận</div>
+        <span class="accordion-icon">▶</span>
+      </div>
+      <div class="accordion-body" id="acc-liver">
+        <div class="field-row">
+          <span class="field-label">ALT (U/L)</span>
+          <input class="field-input" type="number" step="1" id="mb_alt" placeholder="7-55">
+        </div>
+        <div class="field-row">
+          <span class="field-label">AST (U/L)</span>
+          <input class="field-input" type="number" step="1" id="mb_ast" placeholder="8-48">
+        </div>
+        <div class="field-row">
+          <span class="field-label">Creatinine (µmol/L)</span>
+          <input class="field-input" type="number" step="1" id="mb_crea" placeholder="62-106">
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 12px;">
+      <button class="btn btn-secondary" id="btnDemoBlood" style="flex: 1;">🎲 Demo</button>
+      <button class="btn btn-primary" id="btnAnalyzeBlood" style="flex: 2;">🔍 Phân tích</button>
+    </div>
+
+    <div id="bloodResults"></div>
+  </section>
+
+  <!-- ═══ PAGE 4: SETTINGS ═══ -->
+  <section class="page" id="pageSettings">
+    <div class="page-head">
+      <div>
+        <div class="page-head-title">Cài đặt</div>
+        <div class="page-head-sub">v1.1 · Mobile Lite</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon">🎨</div>
+        Giao diện
+      </div>
+      <div class="list-row" onclick="toggleTheme()">
+        <span class="list-row-label">Chế độ tối</span>
+        <span class="list-row-value" id="themeStatus">Đang bật</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon">🔗</div>
+        Kết nối
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Backend</span>
+        <span class="list-row-value" style="color:var(--emerald);">Online</span>
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">AI Agent</span>
+        <span class="list-row-value">OpenAI gpt-4o-mini</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon">ℹ️</div>
+        Thông tin
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Version</span>
+        <span class="list-row-value">v1.1 · Mobile Lite</span>
+      </div>
+      <div class="list-row">
+        <span class="list-row-label">Build</span>
+        <span class="list-row-value">2026.07.16</span>
+      </div>
+      <a class="list-row" href="/legacy.html" style="text-decoration:none;">
+        <span class="list-row-label">Desktop PACS đầy đủ</span>
+        <span class="list-row-value" style="color:var(--cobalt);">Mở →</span>
+      </a>
+      <a class="list-row" href="/" style="text-decoration:none;">
+        <span class="list-row-label">Landing page</span>
+        <span class="list-row-value" style="color:var(--cobalt);">Xem →</span>
+      </a>
+    </div>
+
+    <div class="card" style="background: var(--pink-soft); border-color: var(--pink);">
+      <div style="font-size: 13px; line-height: 1.55; color: var(--ink-2);">
+        <b style="color: var(--ink);">⚠️ Lưu ý</b><br>
+        Đây là bản Mobile Lite phục vụ demo + test nhanh. Cho tính năng đầy đủ (segmentation, 3D volume, PACS tools), mở <a href="/legacy.html" style="color:var(--pink);">Desktop PACS</a>.
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ─── Bottom tab nav ─── -->
+<nav class="tab-nav">
+  <button class="tab-btn active" data-page="pageHome">
+    <span class="tab-icon">🏠</span>
+    <span class="tab-label">Home</span>
+  </button>
+  <button class="tab-btn" data-page="pageModules">
+    <span class="tab-icon">📊</span>
+    <span class="tab-label">Modules</span>
+  </button>
+  <button class="tab-btn" data-page="pageBlood">
+    <span class="tab-icon">🩸</span>
+    <span class="tab-label">Máu</span>
+  </button>
+  <button class="tab-btn" data-page="pageSettings">
+    <span class="tab-icon">⚙️</span>
+    <span class="tab-label">Cài đặt</span>
+  </button>
+</nav>
+
+<!-- ─── Sheet + backdrop ─── -->
+<div class="sheet-backdrop" id="sheetBackdrop"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <div class="sheet-title" id="sheetTitle">Module</div>
+    <button class="sheet-close" id="sheetClose">✕</button>
+  </div>
+  <div class="sheet-body" id="sheetBody"></div>
+</div>
+
+<script>
+(function() {
+  var API_BASE = ''; // relative to current origin (Vercel proxy)
+  var currentSpecialty = 'general';
+
+  // ─── Tab navigation ───
+  var tabs = document.querySelectorAll('.tab-btn');
+  var pages = document.querySelectorAll('.page');
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var target = tab.dataset.page;
+      tabs.forEach(function(t) { t.classList.remove('active'); });
+      pages.forEach(function(p) { p.classList.remove('active'); });
+      tab.classList.add('active');
+      var page = document.getElementById(target);
+      if (page) page.classList.add('active');
+      document.getElementById('appMain').scrollTop = 0;
+      // Haptic feedback (mobile)
+      if (navigator.vibrate) navigator.vibrate(15);
+    });
+  });
+
+  // ─── Home mod-tile clicks ───
+  document.querySelectorAll('[data-goto]').forEach(function(el) {
+    el.addEventListener('click', function() {
+      var target = el.dataset.goto;
+      if (target === 'blood') {
+        document.querySelector('[data-page="pageBlood"]').click();
+      } else if (target === 'breast' || target === 'lung' || target === 'brain' || target === 'eeg' || target === 'spine') {
+        openModule(target);
+      }
+    });
+  });
+
+  // ─── Specialty picker ───
+  document.querySelectorAll('.spec-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.spec-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentSpecialty = btn.dataset.spec;
+      if (navigator.vibrate) navigator.vibrate(10);
+    });
+  });
+
+  // ─── Accordion ───
+  document.querySelectorAll('.accordion-head').forEach(function(head) {
+    head.addEventListener('click', function() {
+      var item = head.closest('.accordion-item');
+      item.classList.toggle('open');
+    });
+  });
+
+  // ─── Demo blood ───
+  document.getElementById('btnDemoBlood').addEventListener('click', function() {
+    var demo = { wbc: 11.2, hgb: 12.8, plt: 220, glu: 7.8, hba1c: 6.4, chol: 5.6, ldl: 3.8, hdl: 0.9, alt: 62, ast: 51, crea: 98 };
+    Object.keys(demo).forEach(function(k) {
+      var el = document.getElementById('mb_' + k);
+      if (el) el.value = demo[k];
+    });
+    // Open all accordions
+    document.querySelectorAll('.accordion-item').forEach(function(item) { item.classList.add('open'); });
+  });
+
+  // ─── Analyze blood ───
+  document.getElementById('btnAnalyzeBlood').addEventListener('click', function() {
+    var values = {};
+    ['wbc','hgb','plt','glu','hba1c','chol','ldl','hdl','alt','ast','crea'].forEach(function(k) {
+      var el = document.getElementById('mb_' + k);
+      if (el && el.value) values[k] = parseFloat(el.value);
+    });
+    if (Object.keys(values).length === 0) {
+      alert('Vui lòng nhập ít nhất 1 chỉ số');
+      return;
+    }
+    var resultsEl = document.getElementById('bloodResults');
+    resultsEl.innerHTML = '<div class="card"><div class="loading"><div class="spinner"></div>Đang phân tích... (~5-15s)</div></div>';
+    fetch(API_BASE + '/api/analyze-blood-agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+      body: JSON.stringify({ specialty: currentSpecialty, values: values })
+    })
+      .then(function(r) { return r.text().then(function(t) { return { status: r.status, text: t }; }); })
+      .then(function(res) {
+        try {
+          var data = JSON.parse(res.text);
+          if (!data.success) {
+            resultsEl.innerHTML = '<div class="card" style="border-color: oklch(0.65 0.22 25);">' +
+              '<div style="font-size:13px;color:oklch(0.65 0.22 25);">❌ ' + (data.error || 'Lỗi phân tích') + '</div>' +
+              (data.hint ? '<div style="font-size:12px;color:var(--ink-3);margin-top:6px;">' + data.hint + '</div>' : '') +
+              '</div>';
+            return;
+          }
+          renderResults(data);
+        } catch (e) {
+          resultsEl.innerHTML = '<div class="card" style="border-color: oklch(0.65 0.22 25);">' +
+            '<div style="font-size:13px;color:oklch(0.65 0.22 25);">❌ Response không parse được</div>' +
+            '<div style="font-size:11px;color:var(--ink-3);margin-top:6px;font-family:var(--font-mono);">HTTP ' + res.status + '</div>' +
+            '</div>';
+        }
+      })
+      .catch(function(err) {
+        resultsEl.innerHTML = '<div class="card" style="border-color: oklch(0.65 0.22 25);">' +
+          '<div style="font-size:13px;color:oklch(0.65 0.22 25);">❌ ' + err.message + '</div></div>';
+      });
+    if (navigator.vibrate) navigator.vibrate(20);
+  });
+
+  function renderResults(data) {
+    var a = data.analysis || {};
+    var html = '';
+    // Summary
+    html += '<div class="card">';
+    html += '<div class="card-title"><div class="card-title-icon">🤖</div>AI ' + (data.model || '') + ' · ' + data.elapsed_seconds + 's</div>';
+    html += '<div class="result-summary">' + escapeHtml(a.specialty_summary || 'N/A') + '</div>';
+    // Findings
+    if (a.key_findings && a.key_findings.length) {
+      html += '<div class="card-title" style="margin-top: 14px;"><div class="card-title-icon">🔬</div>Chỉ số then chốt · ' + a.key_findings.length + '</div>';
+      a.key_findings.forEach(function(f) {
+        var sev = (f.severity || 'normal').toLowerCase();
+        var sevLabel = { normal: 'BÌNH THƯỜNG', mild: 'NHẸ', moderate: 'TRUNG BÌNH', severe: 'NẶNG' }[sev] || sev;
+        var sevColor = { normal: 'var(--emerald)', mild: 'var(--amber)', moderate: 'oklch(0.70 0.17 55)', severe: 'oklch(0.65 0.22 25)' }[sev] || 'var(--ink-2)';
+        html += '<div class="finding-item" data-sev="' + sev + '">';
+        html += '<div class="finding-name">' + escapeHtml(f.indicator || '—') + '<span class="finding-sev" style="color:' + sevColor + ';">' + sevLabel + '</span></div>';
+        html += '<div class="finding-values"><b>' + escapeHtml(f.value || '') + '</b> · ref: ' + escapeHtml(f.reference || '—') + '</div>';
+        html += '<div class="finding-interp">' + escapeHtml(f.interpretation || '') + '</div>';
+        html += '</div>';
+      });
+    }
+    // Recommendations
+    if (a.recommendations && a.recommendations.length) {
+      html += '<div class="card-title" style="margin-top: 14px;"><div class="card-title-icon">💊</div>Khuyến nghị</div>';
+      html += '<ul class="recos-list">';
+      a.recommendations.forEach(function(r, i) {
+        html += '<li class="recos-item"><span class="recos-marker">' + (i+1) + '</span><span>' + escapeHtml(r) + '</span></li>';
+      });
+      html += '</ul>';
+    }
+    // Lifestyle
+    if (a.lifestyle_advice && a.lifestyle_advice.length) {
+      html += '<div class="card-title" style="margin-top: 14px;"><div class="card-title-icon">🥗</div>Lối sống</div>';
+      html += '<ul class="recos-list">';
+      a.lifestyle_advice.forEach(function(l) {
+        html += '<li class="recos-item life"><span class="recos-marker">✓</span><span>' + escapeHtml(l) + '</span></li>';
+      });
+      html += '</ul>';
+    }
+    // Follow-up
+    if (a.follow_up_days) {
+      html += '<div class="list-row" style="margin-top: 14px; border-top: 1px solid var(--line); padding-top: 14px;">';
+      html += '<span class="list-row-label">📅 Khám lại sau</span>';
+      html += '<span class="list-row-value">' + a.follow_up_days + ' ngày</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+    document.getElementById('bloodResults').innerHTML = html;
+  }
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ─── Sheet controls ───
+  var sheet = document.getElementById('sheet');
+  var backdrop = document.getElementById('sheetBackdrop');
+  function openSheet(title, body) {
+    document.getElementById('sheetTitle').textContent = title;
+    document.getElementById('sheetBody').innerHTML = body;
+    sheet.classList.add('open');
+    backdrop.classList.add('open');
+  }
+  function closeSheet() {
+    sheet.classList.remove('open');
+    backdrop.classList.remove('open');
+  }
+  backdrop.addEventListener('click', closeSheet);
+  document.getElementById('sheetClose').addEventListener('click', closeSheet);
+
+  window.openModule = function(moduleName) {
+    var info = {
+      breast: {
+        title: '🎗️ Ung thư vú siêu âm',
+        body: '<p style="margin-bottom:14px;">Module tích hợp <b>BreastCancerSegmentor U-Net</b> (2.16M params) + <b>BiomedCLIP</b> zero-shot classify + <b>DenseCRF</b> refinement.</p>' +
+          '<p style="margin-bottom:14px;">Bản Mobile Lite này CHƯA hỗ trợ upload + xem 3D volume. Vui lòng mở <a href="/legacy.html#breast" style="color:var(--pink);">Desktop PACS</a> để dùng đầy đủ.</p>' +
+          '<a href="/legacy.html#breast" class="btn btn-primary" style="text-decoration:none;">Mở trên Desktop</a>'
+      },
+      brain: {
+        title: '🧬 U não MRI',
+        body: '<p style="margin-bottom:14px;">3D U-Net trained BraTS 2020 · Dice 0.83 · Marching cubes 3D render.</p>' +
+          '<a href="/legacy.html#brain" class="btn btn-primary" style="text-decoration:none;">Mở trên Desktop</a>'
+      },
+      lung: {
+        title: '🫁 Nốt phổi CT',
+        body: '<p style="margin-bottom:14px;">DeepLabV3 42M params · LIDC-IDRI · Sensitivity 87%.</p>' +
+          '<a href="/legacy.html#lung" class="btn btn-primary" style="text-decoration:none;">Mở trên Desktop</a>'
+      },
+      eeg: {
+        title: '🧠 Điện não',
+        body: '<p style="margin-bottom:14px;">CNN+BiGRU+Attention · CHB-MIT · ROC-AUC 0.84 · Ollama VLM cho ảnh EEG.</p>' +
+          '<a href="/legacy.html#eeg" class="btn btn-primary" style="text-decoration:none;">Mở trên Desktop</a>'
+      },
+      spine: {
+        title: '🦴 Cột sống CT',
+        body: '<p style="margin-bottom:14px;">TotalSegmentator nnU-Net · 24 đốt sống C1-L5 · Dice 0.95.</p>' +
+          '<a href="/legacy.html#spine" class="btn btn-primary" style="text-decoration:none;">Mở trên Desktop</a>'
+      }
+    };
+    var m = info[moduleName];
+    if (m) openSheet(m.title, m.body);
+  };
+
+  // ─── Full desktop link ───
+  document.getElementById('btnFullDesktop').addEventListener('click', function() {
+    window.location.href = '/legacy.html';
+  });
+
+  // ─── Dark mode toggle ───
+  window.toggleTheme = function() {
+    document.body.classList.toggle('light-mode');
+    var status = document.body.classList.contains('light-mode') ? 'Đang tắt' : 'Đang bật';
+    document.getElementById('themeStatus').textContent = status;
+  };
+})();
+</script>
+</body>
+</html>

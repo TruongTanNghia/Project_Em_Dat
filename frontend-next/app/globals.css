@@ -642,7 +642,39 @@
     padding-block: clamp(40px, 5vw, 72px);
     border-top: 1px solid var(--hairline);
     position: relative;
+    transition:
+      background 400ms cubic-bezier(0.16, 1, 0.3, 1);
   }
+  /* Subtle background wash on hover — brings the accent color forward */
+  .case:hover {
+    background: linear-gradient(90deg,
+      oklch(from var(--accent) l c h / 0.02),
+      oklch(from var(--accent) l c h / 0.04) 45%,
+      transparent 100%);
+  }
+  .case .case-visual {
+    transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform-origin: center;
+  }
+  .case:hover .case-visual {
+    transform: scale(1.015);
+  }
+  .case .case-num {
+    transition: color 320ms ease;
+  }
+  .case:hover .case-num { color: var(--accent); }
+  /* Case link — cobalt underline expand on hover */
+  .case-link {
+    position: relative;
+    transition: gap 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .case:hover .case-link {
+    gap: 12px;
+  }
+  .case-link svg {
+    transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .case:hover .case-link svg { transform: translateX(3px); }
   .case:last-child { border-bottom: 1px solid var(--hairline); }
   .case:nth-child(even) {
     grid-template-columns: 1.15fr 0.85fr;
@@ -1204,6 +1236,62 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
+   ScrollFX — reveal on scroll, animated counters, reading
+   progress bar. Behavior wired by app/ScrollFX.tsx.
+═══════════════════════════════════════════════════════════ */
+/* Reveal-on-scroll: element fades in + slides up when it hits
+   viewport. Only opacity + transform animated (compositor-safe). */
+.fx-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 720ms cubic-bezier(0.16, 1, 0.3, 1) var(--fx-delay, 0ms),
+    transform 720ms cubic-bezier(0.16, 1, 0.3, 1) var(--fx-delay, 0ms);
+  will-change: opacity, transform;
+}
+.fx-reveal.fx-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* Nested reveal: children stagger via CSS var --fx-stagger */
+.fx-reveal-group .fx-reveal { --fx-delay: calc(var(--fx-stagger, 60ms) * var(--fx-i, 0)); }
+
+/* Animated counter: no visual style beyond a slight monospace tabular
+   figure alignment so digits don't jitter width. */
+.fx-count {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Reading progress bar: fixed at top of viewport */
+#fx-progress {
+  position: fixed;
+  top: 0; left: 0;
+  height: 3px;
+  width: 0;
+  background: var(--marker, oklch(0.62 0.22 32));
+  z-index: 999;
+  pointer-events: none;
+  transition: width 80ms linear;
+  border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 12px oklch(0.62 0.22 32 / 0.45);
+}
+[data-theme='dark'] #fx-progress {
+  background: oklch(0.72 0.22 32);
+  box-shadow: 0 0 14px oklch(0.72 0.22 32 / 0.6);
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  .fx-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  #fx-progress { transition: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════
    THEME TOGGLE — sits in the registry meta row. Track + knob
    design, knob slides L↔R, sun/moon icons crossfade. Tiny mono
    'Light' / 'Dark' label next to it.
@@ -1361,4 +1449,75 @@
                 border-top: 1px solid oklch(0.30 0.012 25); }
   .arch-stage:first-child { border-top: 0; padding-top: 0; }
   .footer-grid { grid-template-columns: 1fr; }
+}
+
+/* ─── MOBILE POLISH — 44px touch targets, fluid type, better nav ─── */
+@media (max-width: 900px) {
+  /* Bigger touch targets for accessibility (WCAG 2.5.5) */
+  .hero-cta,
+  .case-link,
+  .theme-toggle,
+  .mode-tab,
+  .toc-list a {
+    min-height: 44px;
+    padding-block: 12px;
+  }
+  /* Hero title/lede fluid down */
+  .hero-title { font-size: clamp(32px, 8vw, 56px); }
+  .hero-sub { font-size: 16px; }
+  .hero-eyebrow { font-size: 12px; }
+  .hero-cta { font-size: 15px; padding-inline: 20px; }
+  /* Cover-like sections on landing — Stats reel */
+  .stats-tag { font-size: 10.5px; padding: 5px 12px; }
+  .stats-big { font-size: clamp(56px, 15vw, 96px); }
+  .stats-cell[data-cell='1'] .stats-big { font-size: clamp(72px, 18vw, 128px); }
+  /* Cases header */
+  .cases-header h2 { font-size: clamp(24px, 6vw, 36px); }
+  .cases-header p { font-size: 14px; }
+  /* Case cards */
+  .case-title { font-size: clamp(20px, 5vw, 28px); }
+  .case-desc { font-size: 14.5px; line-height: 1.6; }
+  .case-num { font-size: 10px; }
+  .case-stats { font-size: 12px; }
+  /* Architecture flow */
+  .arch-h2 { font-size: clamp(22px, 5.5vw, 32px); }
+  .arch-h2-sub { font-size: 14px; }
+  .arch-stage-title { font-size: clamp(18px, 4.5vw, 22px); }
+  /* Credits */
+  .credits-h2 { font-size: clamp(22px, 5.5vw, 32px); }
+  .credits-name { font-size: 17px; }
+  .credits-cite { font-size: 11px; }
+  /* Footer */
+  .footer-brand { font-size: 13px; }
+  .footer-mission { font-size: 13.5px; line-height: 1.6; }
+  .footer-col a { padding-block: 8px; display: inline-block; min-height: 40px; }
+  .footer-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  /* Registry — put theme toggle on new line */
+  .registry-meta {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  /* Brand */
+  .brand { gap: 12px; }
+  .brand-logo { height: 60px !important; }
+  .brand-sub { padding-left: 14px; margin-left: 2px; }
+  .brand-sub::before { height: 28px; }
+}
+
+@media (max-width: 480px) {
+  .hero-title { font-size: 32px; letter-spacing: -0.02em; }
+  .hero-sub { font-size: 15px; }
+  .hero-spec { grid-template-columns: 1fr; }
+  .hero-spec dt { border-top: none; }
+  .cases-header { padding-block: 20px; }
+  .stats-big { font-size: 64px; }
+  .stats-cell[data-cell='1'] .stats-big { font-size: 88px; }
+  .arch-stage-title { font-size: 18px; }
+  .credits-row { padding-block: 16px; }
+  .brand-logo { height: 48px !important; }
+  .brand-sub { font-size: 9.5px; letter-spacing: 0.16em; }
 }
