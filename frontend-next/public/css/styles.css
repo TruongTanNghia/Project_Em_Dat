@@ -6839,3 +6839,248 @@ button.is-busy {
     color: white;
     letter-spacing: 0.02em;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   BLOOD AGENT · Result card polish
+   ─────────────────────────────────────────────────────────── */
+:root {
+  --ba-sev-normal:   oklch(0.72 0.14 155);
+  --ba-sev-normal-bg:oklch(0.72 0.14 155 / 0.10);
+  --ba-sev-mild:     oklch(0.75 0.14 85);
+  --ba-sev-mild-bg:  oklch(0.75 0.14 85 / 0.12);
+  --ba-sev-mod:      oklch(0.70 0.17 55);
+  --ba-sev-mod-bg:   oklch(0.70 0.17 55 / 0.14);
+  --ba-sev-severe:   oklch(0.65 0.22 25);
+  --ba-sev-severe-bg:oklch(0.65 0.22 25 / 0.14);
+  --ba-cobalt:       oklch(0.72 0.14 235);
+  --ba-emerald:      oklch(0.72 0.14 155);
+  --ba-violet:       oklch(0.72 0.16 300);
+  --ba-amber:        oklch(0.78 0.16 75);
+}
+
+.blood-agent-card .section-title {
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.18);
+}
+
+/* Summary row — "3 findings · 1 alert · 90 days" strip under title */
+.ba-summary {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    background: rgba(139, 92, 246, 0.08);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+}
+.ba-summary-stat { display: inline-flex; align-items: center; gap: 5px; }
+.ba-summary-stat b {
+    color: var(--text-primary); font-weight: 700;
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+}
+.ba-summary-sep {
+    opacity: 0.35;
+    padding-inline: 4px;
+}
+
+/* Section headers inside the AI card */
+.ba-section-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11.5px;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.ba-section-head .ba-icon {
+    display: inline-grid; place-items: center;
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    background: rgba(139, 92, 246, 0.12);
+    font-size: 12px;
+}
+.ba-section-head .ba-count {
+    margin-left: auto;
+    font-family: ui-monospace, monospace;
+    font-size: 10.5px;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.05);
+    padding: 2px 8px;
+    border-radius: 99px;
+    letter-spacing: 0.06em;
+}
+
+/* Finding item — indicator card */
+.ba-finding {
+    padding: 12px 14px;
+    background: var(--ba-sev-normal-bg);
+    border-left: 3px solid var(--ba-sev-normal);
+    border-radius: 0 6px 6px 0;
+    transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+                background 180ms ease-out;
+}
+.ba-finding:hover { transform: translateX(2px); }
+.ba-finding[data-severity="normal"]   { border-left-color: var(--ba-sev-normal);   background: var(--ba-sev-normal-bg); }
+.ba-finding[data-severity="mild"]     { border-left-color: var(--ba-sev-mild);     background: var(--ba-sev-mild-bg); }
+.ba-finding[data-severity="moderate"] { border-left-color: var(--ba-sev-mod);      background: var(--ba-sev-mod-bg); }
+.ba-finding[data-severity="severe"]   { border-left-color: var(--ba-sev-severe);   background: var(--ba-sev-severe-bg); }
+
+.ba-finding-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 12px; margin-bottom: 6px;
+}
+.ba-finding-name {
+    font-size: 14px; font-weight: 700; color: var(--text-primary);
+    letter-spacing: -0.005em;
+}
+.ba-finding-pill {
+    font-family: ui-monospace, monospace;
+    font-size: 9.5px; letter-spacing: 0.16em; font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 99px;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.08);
+    white-space: nowrap;
+}
+.ba-finding[data-severity="normal"]   .ba-finding-pill { color: var(--ba-sev-normal); }
+.ba-finding[data-severity="mild"]     .ba-finding-pill { color: var(--ba-sev-mild); }
+.ba-finding[data-severity="moderate"] .ba-finding-pill { color: var(--ba-sev-mod); }
+.ba-finding[data-severity="severe"]   .ba-finding-pill { color: var(--ba-sev-severe); }
+
+.ba-finding-values {
+    display: flex; align-items: baseline; gap: 10px;
+    font-family: ui-monospace, monospace;
+    font-size: 11px; color: var(--text-muted);
+    letter-spacing: 0.02em;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed rgba(255,255,255,0.06);
+}
+.ba-finding-values .ba-val {
+    color: var(--text-primary); font-weight: 700; font-size: 13px;
+    font-feature-settings: 'tnum';
+}
+.ba-finding-values .ba-ref { opacity: 0.7; }
+.ba-finding-interp {
+    font-size: 13px; line-height: 1.55; color: var(--text-primary);
+}
+
+/* Cross-specialty alert — amber pattern */
+.ba-alert {
+    padding: 12px 14px;
+    background: oklch(0.78 0.16 75 / 0.10);
+    border-left: 3px solid var(--ba-amber);
+    border-radius: 0 6px 6px 0;
+    display: grid; gap: 6px;
+}
+.ba-alert-title {
+    display: flex; align-items: baseline; gap: 8px;
+    font-size: 13.5px; font-weight: 700; color: var(--ba-amber);
+}
+.ba-alert-title::before { content: '⚠'; font-size: 15px; }
+.ba-alert-reason { font-size: 12.5px; color: var(--text-primary); line-height: 1.5; }
+.ba-alert-refer {
+    font-size: 11px; color: var(--text-muted);
+    padding-top: 5px;
+    border-top: 1px dashed rgba(255,255,255,0.06);
+}
+.ba-alert-refer b { color: var(--ba-violet); font-weight: 700; }
+
+/* Reco / lifestyle lists — chip style */
+.ba-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.ba-list-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 9px 12px;
+    background: rgba(59, 130, 246, 0.06);
+    border-radius: 6px;
+    font-size: 13px; line-height: 1.5;
+    color: var(--text-primary);
+    transition: background 160ms ease-out;
+}
+.ba-list-item:hover { background: rgba(59, 130, 246, 0.10); }
+.ba-list-item.lifestyle { background: rgba(34, 197, 94, 0.06); }
+.ba-list-item.lifestyle:hover { background: rgba(34, 197, 94, 0.10); }
+.ba-list-marker {
+    flex-shrink: 0;
+    display: inline-grid; place-items: center;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    font-size: 10px; font-weight: 700;
+    background: var(--ba-cobalt);
+    color: white;
+    margin-top: 1px;
+}
+.ba-list-item.lifestyle .ba-list-marker { background: var(--ba-emerald); }
+
+/* Empty state inside sections */
+.ba-empty {
+    padding: 20px 14px; text-align: center;
+    color: var(--text-muted); font-size: 12.5px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 6px;
+    border: 1px dashed rgba(255,255,255,0.06);
+}
+.ba-empty.ok { color: var(--ba-emerald); }
+.ba-empty.ok::before { content: '✓ '; font-weight: 700; }
+
+/* Footer bar */
+.ba-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 18px; padding-top: 14px;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 12px;
+    flex-wrap: wrap; gap: 10px;
+}
+.ba-followup {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--text-muted); font-family: ui-monospace, monospace;
+    letter-spacing: 0.04em;
+}
+.ba-followup b {
+    color: var(--ba-cobalt); font-weight: 700;
+    font-size: 14px; padding: 0 4px;
+}
+.ba-disclaimer {
+    color: var(--text-muted); font-style: italic;
+    display: inline-flex; align-items: center; gap: 6px;
+}
+
+/* Split responsive */
+.ba-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 4px;
+}
+@media (max-width: 900px) {
+    .ba-split { grid-template-columns: 1fr; }
+}
+
+/* Grouped badges in the card header (specialty + model + timing) */
+.ba-header-badges {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: ui-monospace, monospace;
+    font-size: 11px; letter-spacing: 0.06em;
+}
+.ba-badge {
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-muted);
+}
+.ba-badge-specialty {
+    background: rgba(139,92,246,0.18);
+    color: oklch(0.82 0.14 300);
+    font-weight: 600;
+}
+.ba-badge-timing { color: var(--ba-emerald); }

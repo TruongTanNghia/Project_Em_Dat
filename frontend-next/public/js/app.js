@@ -6262,45 +6262,71 @@ async function runBloodAgent(specialty, values, patient) {
     }
 }
 
+const _BA_SEVERITY_LABEL = {
+    normal:   'BÌNH THƯỜNG',
+    mild:     'NHẸ',
+    moderate: 'TRUNG BÌNH',
+    severe:   'NẶNG',
+};
+
 function renderBloodAgent(data) {
     const analysis = data.analysis || {};
     const modelBadge = document.getElementById('bloodAgentModelBadge');
-    if (modelBadge) modelBadge.textContent = data.model || 'qwen3:8b';
+    if (modelBadge) modelBadge.textContent = data.model || '—';
     const timeBadge = document.getElementById('bloodAgentTimeBadge');
-    if (timeBadge) timeBadge.textContent = data.elapsed_seconds ? `⏱️ ${data.elapsed_seconds}s` : '';
+    if (timeBadge) timeBadge.textContent = data.elapsed_seconds ? `${data.elapsed_seconds}s` : '';
 
-    // Summary
+    const findings = Array.isArray(analysis.key_findings) ? analysis.key_findings : [];
+    const alerts   = Array.isArray(analysis.cross_specialty_alerts) ? analysis.cross_specialty_alerts : [];
+    const recos    = Array.isArray(analysis.recommendations) ? analysis.recommendations : [];
+    const life     = Array.isArray(analysis.lifestyle_advice) ? analysis.lifestyle_advice : [];
+    const notes    = Array.isArray(analysis.specialty_specific_notes) ? analysis.specialty_specific_notes : [];
+
+    // Summary — top card text + count bar
     const summaryEl = document.getElementById('bloodAgentSummary');
     if (summaryEl) {
-        summaryEl.textContent = analysis.specialty_summary || 'AI không trả về tóm tắt.';
+        const summary = analysis.specialty_summary || 'AI không trả về tóm tắt.';
+        const abnormalCount = findings.filter(f => (f.severity || 'normal').toLowerCase() !== 'normal').length;
+        summaryEl.innerHTML = `
+            <div style="font-size:14.5px; line-height:1.55; color:var(--text-primary); margin-bottom:12px;">${_esc(summary)}</div>
+            <div class="ba-summary">
+                <span class="ba-summary-stat"><b>${findings.length}</b> chỉ số then chốt</span>
+                <span class="ba-summary-sep">·</span>
+                <span class="ba-summary-stat"><b style="color:${abnormalCount > 0 ? '#f59e0b' : '#22c55e'};">${abnormalCount}</b> bất thường</span>
+                <span class="ba-summary-sep">·</span>
+                <span class="ba-summary-stat"><b>${alerts.length}</b> cảnh báo chéo</span>
+                <span class="ba-summary-sep">·</span>
+                <span class="ba-summary-stat"><b>${recos.length + life.length}</b> khuyến nghị</span>
+            </div>
+        `;
     }
 
-    // Key findings
+    // Key findings — refactored with data-severity
     const findingsEl = document.getElementById('bloodAgentFindings');
     if (findingsEl) {
-        const findings = Array.isArray(analysis.key_findings) ? analysis.key_findings : [];
+        // Update section header count if a container exists
+        const findingsHead = findingsEl.previousElementSibling;
+        if (findingsHead && findingsHead.classList.contains('ba-section-head')) {
+            const countEl = findingsHead.querySelector('.ba-count');
+            if (countEl) countEl.textContent = findings.length;
+        }
         if (findings.length === 0) {
-            findingsEl.innerHTML = '<div style="padding:10px; text-align:center; color:var(--text-muted); font-size:12.5px;">Không có chỉ số then chốt được liệt kê</div>';
+            findingsEl.innerHTML = '<div class="ba-empty ok">Không có chỉ số then chốt</div>';
         } else {
             findingsEl.innerHTML = findings.map(f => {
                 const sev = (f.severity || 'normal').toLowerCase();
-                const colorMap = {
-                    normal:   { bg: 'rgba(34,197,94,0.10)',  border: '#22c55e', label: 'BÌNH THƯỜNG' },
-                    mild:     { bg: 'rgba(245,158,11,0.10)', border: '#f59e0b', label: 'NHẸ' },
-                    moderate: { bg: 'rgba(249,115,22,0.12)', border: '#f97316', label: 'TRUNG BÌNH' },
-                    severe:   { bg: 'rgba(239,68,68,0.12)',  border: '#ef4444', label: 'NẶNG' },
-                };
-                const c = colorMap[sev] || colorMap.normal;
+                const label = _BA_SEVERITY_LABEL[sev] || sev.toUpperCase();
                 return `
-                    <div style="padding:10px 12px; background:${c.bg}; border-left:3px solid ${c.border}; border-radius:0 6px 6px 0;">
-                        <div style="display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:4px;">
-                            <b style="font-size:13.5px; color:var(--text-primary);">${_esc(f.indicator || '—')}</b>
-                            <span style="font-family:var(--font-mono, monospace); font-size:10px; letter-spacing:0.14em; color:${c.border}; font-weight:700;">${c.label}</span>
+                    <div class="ba-finding" data-severity="${_esc(sev)}">
+                        <div class="ba-finding-head">
+                            <div class="ba-finding-name">${_esc(f.indicator || '—')}</div>
+                            <span class="ba-finding-pill">${_esc(label)}</span>
                         </div>
-                        <div style="font-family:var(--font-mono, monospace); font-size:11.5px; color:var(--text-muted); margin-bottom:6px;">
-                            ${_esc(f.value || '')} · ref: ${_esc(f.reference || '')}
+                        <div class="ba-finding-values">
+                            <span class="ba-val">${_esc(f.value || '')}</span>
+                            <span class="ba-ref">ref: ${_esc(f.reference || '—')}</span>
                         </div>
-                        <div style="font-size:12.5px; color:var(--text-primary); line-height:1.5;">${_esc(f.interpretation || '')}</div>
+                        <div class="ba-finding-interp">${_esc(f.interpretation || '')}</div>
                     </div>
                 `;
             }).join('');
@@ -6310,18 +6336,19 @@ function renderBloodAgent(data) {
     // Cross-specialty alerts
     const alertsEl = document.getElementById('bloodAgentAlerts');
     if (alertsEl) {
-        const alerts = Array.isArray(analysis.cross_specialty_alerts) ? analysis.cross_specialty_alerts : [];
+        const alertsHead = alertsEl.previousElementSibling;
+        if (alertsHead && alertsHead.classList.contains('ba-section-head')) {
+            const countEl = alertsHead.querySelector('.ba-count');
+            if (countEl) countEl.textContent = alerts.length;
+        }
         if (alerts.length === 0) {
-            alertsEl.innerHTML = '<div style="padding:10px; text-align:center; color:var(--text-muted); font-size:12.5px;">✅ Không có cảnh báo chéo</div>';
+            alertsEl.innerHTML = '<div class="ba-empty ok">Không có cảnh báo chéo</div>';
         } else {
             alertsEl.innerHTML = alerts.map(a => `
-                <div style="padding:10px 12px; background:rgba(245,158,11,0.10); border-left:3px solid #f59e0b; border-radius:0 6px 6px 0;">
-                    <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:4px;">
-                        <span style="font-size:14px;">⚠️</span>
-                        <b style="font-size:13px; color:#fbbf24;">${_esc(a.finding || 'Bất thường')}</b>
-                    </div>
-                    <div style="font-size:12px; color:var(--text-primary); line-height:1.5; margin-bottom:4px;">${_esc(a.reason || '')}</div>
-                    <div style="font-size:11.5px; color:var(--text-muted); font-style:italic;">→ Gợi ý khám thêm: <b style="color:#a78bfa;">${_esc(a.suggest_specialty || 'Chưa xác định')}</b></div>
+                <div class="ba-alert">
+                    <div class="ba-alert-title">${_esc(a.finding || 'Bất thường')}</div>
+                    ${a.reason ? `<div class="ba-alert-reason">${_esc(a.reason)}</div>` : ''}
+                    <div class="ba-alert-refer">Gợi ý khám thêm: <b>${_esc(a.suggest_specialty || 'Chưa xác định')}</b></div>
                 </div>
             `).join('');
         }
@@ -6330,12 +6357,17 @@ function renderBloodAgent(data) {
     // Recommendations
     const recosEl = document.getElementById('bloodAgentRecos');
     if (recosEl) {
-        const recos = Array.isArray(analysis.recommendations) ? analysis.recommendations : [];
+        const recosHead = recosEl.previousElementSibling;
+        if (recosHead && recosHead.classList.contains('ba-section-head')) {
+            const countEl = recosHead.querySelector('.ba-count');
+            if (countEl) countEl.textContent = recos.length;
+        }
         recosEl.innerHTML = recos.length === 0
-            ? '<li style="color:var(--text-muted); text-align:center; padding:10px; font-size:12.5px;">—</li>'
-            : recos.map(r => `
-                <li style="padding:8px 10px; background:rgba(59,130,246,0.06); border-radius:5px; font-size:13px; color:var(--text-primary); line-height:1.5;">
-                    <span style="color:#60a5fa; margin-right:6px;">→</span>${_esc(r)}
+            ? '<div class="ba-empty">Không có khuyến nghị chuyên khoa</div>'
+            : recos.map((r, i) => `
+                <li class="ba-list-item">
+                    <span class="ba-list-marker">${i + 1}</span>
+                    <span>${_esc(r)}</span>
                 </li>
             `).join('');
     }
@@ -6343,23 +6375,28 @@ function renderBloodAgent(data) {
     // Lifestyle
     const lifeEl = document.getElementById('bloodAgentLifestyle');
     if (lifeEl) {
-        const life = Array.isArray(analysis.lifestyle_advice) ? analysis.lifestyle_advice : [];
+        const lifeHead = lifeEl.previousElementSibling;
+        if (lifeHead && lifeHead.classList.contains('ba-section-head')) {
+            const countEl = lifeHead.querySelector('.ba-count');
+            if (countEl) countEl.textContent = life.length;
+        }
         lifeEl.innerHTML = life.length === 0
-            ? '<li style="color:var(--text-muted); text-align:center; padding:10px; font-size:12.5px;">—</li>'
+            ? '<div class="ba-empty">Không có lời khuyên lối sống</div>'
             : life.map(l => `
-                <li style="padding:8px 10px; background:rgba(34,197,94,0.06); border-radius:5px; font-size:13px; color:var(--text-primary); line-height:1.5;">
-                    <span style="color:#4ade80; margin-right:6px;">✓</span>${_esc(l)}
+                <li class="ba-list-item lifestyle">
+                    <span class="ba-list-marker">✓</span>
+                    <span>${_esc(l)}</span>
                 </li>
             `).join('');
     }
 
-    // Follow-up + special notes
+    // Follow-up
     const fuEl = document.getElementById('bloodAgentFollowup');
     if (fuEl) fuEl.textContent = analysis.follow_up_days || '—';
 
+    // Special notes (only shows if present)
     const notesEl = document.getElementById('bloodAgentSpecialNotes');
     if (notesEl) {
-        const notes = Array.isArray(analysis.specialty_specific_notes) ? analysis.specialty_specific_notes : [];
         if (notes.length > 0) {
             notesEl.style.display = 'block';
             notesEl.innerHTML = '<b style="color:#60a5fa;">📌 Ghi chú chuyên biệt:</b><br>' +
@@ -6369,7 +6406,7 @@ function renderBloodAgent(data) {
         }
     }
 
-    showToast(`🤖 AI chuyên khoa (${_BLOOD_SPECIALTY_LABEL[data.specialty] || data.specialty}) trả về kết quả`, 'success');
+    showToast(`🤖 ${_BLOOD_SPECIALTY_LABEL[data.specialty] || data.specialty} · ${data.model} · ${data.elapsed_seconds}s`, 'success');
 }
 
 function renderBloodAgentError(errorMsg, hint) {

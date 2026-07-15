@@ -1749,55 +1749,73 @@
                 </div>
             </div>
 
-            <!-- Summary -->
-            <div class="bx-panel-section" style="padding:14px 16px; margin:12px 0; background:rgba(139,92,246,0.06); border-left:3px solid #8b5cf6; border-radius:0 6px 6px 0;">
-                <div style="font-family:var(--font-mono, monospace); font-size:10.5px; letter-spacing:0.18em; color:#a78bfa; font-weight:700; margin-bottom:6px;">TÓM TẮT CHUYÊN KHOA</div>
-                <div id="bloodAgentSummary" style="color:var(--text-primary); line-height:1.6; font-size:14.5px;">—</div>
-            </div>
+            <!-- Summary — text + count strip populated by JS -->
+            <div id="bloodAgentSummary">—</div>
 
             <!-- Key findings + cross-specialty alerts split -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:8px;">
+            <div class="ba-split">
                 <div>
-                    <h4 style="font-size:12px; letter-spacing:0.18em; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border-subtle);">🔬 Chỉ số then chốt</h4>
+                    <div class="ba-section-head">
+                        <span class="ba-icon">🔬</span>
+                        <span>Chỉ số then chốt</span>
+                        <span class="ba-count">0</span>
+                    </div>
                     <div id="bloodAgentFindings" style="display:flex; flex-direction:column; gap:8px;">
-                        <div style="padding:10px; text-align:center; color:var(--text-muted); font-size:12.5px;">Chưa có dữ liệu</div>
+                        <div class="ba-empty">Chưa có dữ liệu</div>
                     </div>
                 </div>
                 <div>
-                    <h4 style="font-size:12px; letter-spacing:0.18em; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border-subtle);">⚠️ Cảnh báo chéo chuyên khoa</h4>
+                    <div class="ba-section-head">
+                        <span class="ba-icon" style="background:rgba(245,158,11,0.15);">⚠️</span>
+                        <span>Cảnh báo chéo chuyên khoa</span>
+                        <span class="ba-count">0</span>
+                    </div>
                     <div id="bloodAgentAlerts" style="display:flex; flex-direction:column; gap:8px;">
-                        <div style="padding:10px; text-align:center; color:var(--text-muted); font-size:12.5px;">Không có cảnh báo chéo</div>
+                        <div class="ba-empty">Không có cảnh báo chéo</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Recommendations + lifestyle -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;">
+            <!-- Recommendations + lifestyle split -->
+            <div class="ba-split" style="margin-top:16px;">
                 <div>
-                    <h4 style="font-size:12px; letter-spacing:0.18em; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border-subtle);">💊 Khuyến nghị chuyên khoa</h4>
-                    <ul id="bloodAgentRecos" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px;">
-                        <li style="color:var(--text-muted); text-align:center; padding:10px; font-size:12.5px;">—</li>
+                    <div class="ba-section-head">
+                        <span class="ba-icon" style="background:rgba(59,130,246,0.15);">💊</span>
+                        <span>Khuyến nghị chuyên khoa</span>
+                        <span class="ba-count">0</span>
+                    </div>
+                    <ul id="bloodAgentRecos" class="ba-list">
+                        <li class="ba-empty">—</li>
                     </ul>
                 </div>
                 <div>
-                    <h4 style="font-size:12px; letter-spacing:0.18em; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border-subtle);">🥗 Lời khuyên lối sống</h4>
-                    <ul id="bloodAgentLifestyle" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px;">
-                        <li style="color:var(--text-muted); text-align:center; padding:10px; font-size:12.5px;">—</li>
+                    <div class="ba-section-head">
+                        <span class="ba-icon" style="background:rgba(34,197,94,0.15);">🥗</span>
+                        <span>Lời khuyên lối sống</span>
+                        <span class="ba-count">0</span>
+                    </div>
+                    <ul id="bloodAgentLifestyle" class="ba-list">
+                        <li class="ba-empty">—</li>
                     </ul>
                 </div>
             </div>
 
-            <!-- Follow-up + notes -->
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:12px; border-top:1px solid var(--border-subtle); font-size:12.5px;">
-                <div style="color:var(--text-muted); font-family:var(--font-mono, monospace); letter-spacing:0.04em;">
-                    📅 Đề nghị khám lại sau <b id="bloodAgentFollowup" style="color:var(--text-primary);">—</b> ngày
+            <!-- Follow-up + disclaimer footer -->
+            <div class="ba-footer">
+                <div class="ba-followup">
+                    <span style="font-size:14px;">📅</span>
+                    <span>Đề nghị khám lại sau</span>
+                    <b id="bloodAgentFollowup">—</b>
+                    <span>ngày</span>
                 </div>
-                <div style="color:var(--text-muted); font-style:italic;">
-                    ⚠️ AI hỗ trợ · KHÔNG thay thế chỉ định bác sĩ
+                <div class="ba-disclaimer">
+                    <span style="font-size:12px;">⚠️</span>
+                    <span>AI hỗ trợ · KHÔNG thay thế chỉ định bác sĩ</span>
                 </div>
             </div>
 
-            <div id="bloodAgentSpecialNotes" style="margin-top:12px; padding:10px 14px; background:rgba(59,130,246,0.06); border-radius:6px; font-size:13px; color:var(--text-primary); display:none;"></div>
+            <!-- Special notes (only shows if present) -->
+            <div id="bloodAgentSpecialNotes" style="margin-top:12px; padding:12px 14px; background:rgba(59,130,246,0.06); border-radius:6px; font-size:13px; color:var(--text-primary); display:none; border-left:3px solid #60a5fa;"></div>
         </section>
     </div>
 </div><!-- /module-blood -->
