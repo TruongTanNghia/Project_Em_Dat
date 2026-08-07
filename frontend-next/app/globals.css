@@ -322,6 +322,7 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     padding: 10px 12px;
+    z-index: 5;
   }
   .scan-corner.tl { top: 0; left: 0; }
   .scan-corner.tr { top: 0; right: 0; text-align: right; }
@@ -524,6 +525,270 @@
     font-size: 14px;
     color: oklch(0.78 0.16 28);
     font-weight: 600;
+  }
+
+  /* Spine case — cool cyan CT-console tint instead of the warm tissue
+     gradient used by brain / lung. Reads as bone / radiology reading
+     screen. */
+  .case-visual-spine {
+    background:
+      radial-gradient(ellipse 80% 100% at 30% 40%,
+        oklch(0.22 0.025 225) 0%,
+        oklch(0.11 0.008 230) 70%) !important;
+  }
+
+  /* Vertebra rail — vertical worklist of 24 vertebrae. Sits on the right,
+     inset from the corner labels. Section-colored ticks + red flags on
+     pathology rows. Glass panel is purposeful here (radiology HUD read),
+     not decorative. */
+  .vert-rail {
+    position: absolute;
+    top: 44px;
+    right: 12px;
+    bottom: 44px;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 11px;
+    background: oklch(0.10 0.008 230 / 0.72);
+    border: 1px solid oklch(0.28 0.02 220);
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    font-family: var(--font-mono);
+    min-width: 96px;
+    max-width: 140px;
+  }
+  .vert-rail-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 9.5px;
+    color: var(--ink-60);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding-bottom: 6px;
+    border-bottom: 1px solid oklch(0.22 0.02 220);
+  }
+  .vert-rail-title {
+    font-weight: 600;
+    color: oklch(0.85 0.06 220);
+  }
+  .vert-rail-arrow {
+    padding: 0 4px;
+    opacity: 0.5;
+  }
+  .vert-rail-count { color: oklch(0.65 0.05 220); }
+  .vert-rail-list {
+    flex: 1;
+    overflow: hidden;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .vert-rail-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 1px 4px;
+    font-size: 8.5px;
+    color: var(--ink-60);
+    letter-spacing: 0.03em;
+    line-height: 1.25;
+  }
+  .vert-tick {
+    width: 9px;
+    height: 2px;
+    background: oklch(0.35 0.04 220);
+    flex-shrink: 0;
+  }
+  .vert-sec-C .vert-tick { background: oklch(0.60 0.12 220); }
+  .vert-sec-T .vert-tick { background: oklch(0.64 0.10 200); }
+  .vert-sec-L .vert-tick { background: oklch(0.68 0.08 180); }
+  .vert-label {
+    color: var(--ink-80);
+    font-weight: 500;
+    min-width: 22px;
+  }
+  .vert-rail-item.flagged {
+    color: oklch(0.85 0.18 25);
+    background: oklch(0.32 0.15 25 / 0.35);
+    border-radius: 2px;
+  }
+  .vert-rail-item.flagged .vert-tick {
+    background: oklch(0.72 0.22 25);
+  }
+  .vert-rail-item.flagged .vert-label {
+    color: oklch(0.92 0.15 25);
+    font-weight: 700;
+  }
+  .vert-tag {
+    margin-left: auto;
+    font-size: 7px;
+    padding: 1px 4px;
+    background: oklch(0.38 0.20 25);
+    color: oklch(0.96 0.10 25);
+    border-radius: 1px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .vert-rail-foot {
+    font-size: 9px;
+    color: var(--ink-60);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding-top: 6px;
+    border-top: 1px solid oklch(0.22 0.02 220);
+    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 3px;
+  }
+  .vert-rail-foot b {
+    color: oklch(0.85 0.22 25);
+    font-weight: 700;
+    font-size: 11px;
+  }
+
+  /* Spine numbered annotation buttons — vertical column on the left,
+     click to zoom camera into that region. Pathology numbers (5, 6)
+     get red accent. */
+  .spine-annots {
+    position: absolute;
+    top: 44px;
+    left: 12px;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-family: var(--font-mono);
+  }
+  .spine-annot-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: oklch(0.14 0.008 230 / 0.85);
+    border: 1px solid oklch(0.45 0.06 220);
+    color: oklch(0.90 0.03 220);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0;
+    padding: 0;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition:
+      transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 180ms ease-out,
+      border-color 180ms ease-out,
+      box-shadow 220ms ease-out;
+  }
+  .spine-annot-btn:hover {
+    background: oklch(0.22 0.02 220 / 0.92);
+    border-color: oklch(0.65 0.10 220);
+    transform: scale(1.08);
+  }
+  .spine-annot-btn.active {
+    background: oklch(0.35 0.10 220);
+    border-color: oklch(0.75 0.14 220);
+    color: oklch(0.98 0.02 220);
+    box-shadow: 0 0 0 3px oklch(0.35 0.10 220 / 0.35);
+  }
+  .spine-annot-btn.pathology {
+    border-color: oklch(0.55 0.22 25);
+    color: oklch(0.90 0.15 25);
+  }
+  .spine-annot-btn.pathology:hover {
+    background: oklch(0.28 0.15 25 / 0.85);
+    border-color: oklch(0.72 0.22 25);
+  }
+  .spine-annot-btn.pathology.active {
+    background: oklch(0.42 0.20 25);
+    border-color: oklch(0.80 0.22 25);
+    color: oklch(0.98 0.06 25);
+    box-shadow: 0 0 0 3px oklch(0.42 0.20 25 / 0.35);
+  }
+
+  /* Info panel — shows active region description at bottom center.
+     Slides up from below when a region is selected. */
+  .spine-info {
+    position: absolute;
+    left: 50%;
+    bottom: 44px;
+    transform: translate(-50%, 8px);
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: oklch(0.10 0.008 230 / 0.90);
+    border: 1px solid oklch(0.28 0.02 220);
+    border-radius: 4px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    font-family: var(--font-mono);
+    max-width: 62%;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 240ms ease-out,
+      transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .spine-info.visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+  }
+  .spine-info-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: oklch(0.65 0.12 220);
+    color: oklch(0.98 0.02 220);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .spine-info-num.pathology {
+    background: oklch(0.62 0.22 25);
+  }
+  .spine-info-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.3;
+  }
+  .spine-info-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: oklch(0.95 0.02 220);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .spine-info-desc {
+    font-size: 10px;
+    color: oklch(0.70 0.04 220);
+    letter-spacing: 0.03em;
+  }
+  .spine-info-hint {
+    font-size: 10px;
+    color: oklch(0.55 0.04 220);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   /* Right column — title block */
@@ -769,6 +1034,46 @@
     overflow: hidden;
   }
   .case-visual svg { width: 100%; height: 100%; display: block; }
+
+  /* Sketchfab iframe embed variant (used by Case 06 breast). Iframe
+     fills the case card; corner labels overlay on top with the same
+     z-index rules as other cases. */
+  .case-visual-embed {
+    background: oklch(0.07 0.005 25);
+  }
+  .case-embed-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+    z-index: 1;
+    /* Gentle zoom — 1.15x so the model reads bigger than default
+       Sketchfab framing but doesn't crop into the corner labels or
+       shift off-center. Parent case-visual has overflow:hidden so any
+       edge that leaks out is safely clipped. */
+    transform: scale(1.15);
+    transform-origin: center center;
+    /* Glass-anatomy fade — approximate the brain/lung translucent look
+       via CSS opacity. Can't touch the model's own materials (iframe is
+       cross-origin) so this is the cheapest visual match. Slight
+       brightness lift keeps hues from muddying. */
+    opacity: 0.72;
+    filter: brightness(1.08) saturate(0.92);
+  }
+  .case-embed-credit {
+    color: inherit;
+    text-decoration: none;
+    transition: color 180ms ease-out;
+  }
+  .case-embed-credit:hover {
+    color: oklch(0.85 0.14 8);
+  }
+  .case-embed-credit b {
+    color: var(--ink-95);
+    font-weight: 500;
+  }
   .case-visual .scan-corner {
     color: color-mix(in oklab, var(--accent) 70%, white 30%);
   }

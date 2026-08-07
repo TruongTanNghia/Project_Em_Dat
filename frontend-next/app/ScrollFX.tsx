@@ -9,9 +9,8 @@ import { useEffect } from 'react';
  *     to its data-target when visible. Supports int + suffix ("6",
  *     "24M", "<2s", "180"). Respects prefers-reduced-motion.
  * (3) Reading progress bar: fixed top strip showing scroll %.
- * (4) Section active TOC highlight: .toc-list a matching hash.
- * (5) Parallax hero: subtle mouse-driven tilt on .scan figure
- *     (mimics 3D depth without heavy WebGL cost).
+ * (4) Lung anatomy glass: flip lungs.glb materials to translucent
+ *     after the GLB loads — reads as x-ray / anatomical glass.
  *
  * Client-only. Boot on mount. Cleans up observers on unmount. */
 export function ScrollFX() {
@@ -113,33 +112,54 @@ export function ScrollFX() {
     window.addEventListener('scroll', updateProgress, { passive: true });
     window.addEventListener('resize', updateProgress, { passive: true });
 
-    // ── 4 · Parallax on hero scan figure ──────────────────
-    let scanEl: HTMLElement | null = null;
-    let scanBounds: DOMRect | null = null;
-    const handleMouse = (e: MouseEvent) => {
-      if (!scanEl || !scanBounds) return;
-      if (reduce) return;
-      const cx = scanBounds.left + scanBounds.width / 2;
-      const cy = scanBounds.top + scanBounds.height / 2;
-      const dx = (e.clientX - cx) / scanBounds.width;
-      const dy = (e.clientY - cy) / scanBounds.height;
-      // Tilt max 6deg — enough to feel 3D, not enough to distort readability
-      const rx = (dy * -6).toFixed(2);
-      const ry = (dx * 6).toFixed(2);
-      scanEl.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg)`;
+    // ── 4 · Lung anatomy glass — flip lungs.glb materials to translucent
+    // so the model reads like the brain (anatomical x-ray look) instead
+    // of opaque flesh. If the GLB has bronchi / vessel geometry inside,
+    // they'll show through; if not, it renders as ghosted glass — either
+    // way better than the opaque default.
+    const lungMv = document.querySelector<HTMLElement>(
+      '.case-visual-3d model-viewer[src*="lungs"]'
+    );
+    const applyLungGlass = () => {
+      const materials = (lungMv as unknown as { model?: { materials?: unknown[] } })?.model?.materials;
+      if (!materials?.length) return;
+      materials.forEach((mat) => {
+        try {
+          const m = mat as {
+            setAlphaMode: (mode: string) => void;
+            setDoubleSided?: (b: boolean) => void;
+            pbrMetallicRoughness: {
+              baseColorFactor: number[];
+              setBaseColorFactor: (f: number[]) => void;
+            };
+          };
+          m.setAlphaMode('BLEND');
+          m.setDoubleSided?.(true);
+          const [r, g, b] = m.pbrMetallicRoughness.baseColorFactor;
+          // Warmer tint + heavy transparency for glass-anatomy read
+          m.pbrMetallicRoughness.setBaseColorFactor([
+            Math.min(1, r * 0.85 + 0.15),
+            Math.min(1, g * 0.55 + 0.05),
+            Math.min(1, b * 0.55 + 0.05),
+            0.32,
+          ]);
+        } catch {
+          /* material shape varies by GLB — skip on API mismatch */
+        }
+      });
     };
-    const setupParallax = () => {
-      scanEl = document.querySelector<HTMLElement>('.scan');
-      if (!scanEl) return;
-      scanBounds = scanEl.getBoundingClientRect();
-      scanEl.style.willChange = 'transform';
-      scanEl.style.transition = 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)';
-    };
-    setupParallax();
-    window.addEventListener('mousemove', handleMouse);
-    window.addEventListener('resize', () => {
-      scanBounds = scanEl?.getBoundingClientRect() ?? null;
-    });
+    if (lungMv) {
+      lungMv.addEventListener('load', applyLungGlass);
+      // Re-try in case load already fired before this effect mounted
+      const retryTimer = window.setTimeout(applyLungGlass, 1500);
+      const retryTimer2 = window.setTimeout(applyLungGlass, 4000);
+      // Store timers on the element for cleanup
+      (lungMv as HTMLElement & { __lungTimers?: number[] }).__lungTimers = [retryTimer, retryTimer2];
+    }
+
+    // Spine tint intentionally OFF — the new spine.glb (skull + full
+    // column with baked annotations, colored markers) already has the
+    // right materials. User asked to preserve the original colors.
 
     // Cleanup on unmount
     return () => {
@@ -147,7 +167,11 @@ export function ScrollFX() {
       countObserver.disconnect();
       window.removeEventListener('scroll', updateProgress);
       window.removeEventListener('resize', updateProgress);
-      window.removeEventListener('mousemove', handleMouse);
+      if (lungMv) {
+        lungMv.removeEventListener('load', applyLungGlass);
+        const timers = (lungMv as HTMLElement & { __lungTimers?: number[] }).__lungTimers;
+        timers?.forEach((t) => window.clearTimeout(t));
+      }
     };
   }, []);
 

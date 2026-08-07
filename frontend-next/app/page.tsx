@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ThemeToggle } from './ThemeToggle';
 import { ScrollFX } from './ScrollFX';
+import { SpineViewer } from './SpineViewer';
 
 /* ─── BraTS lesion overlay: irregular organic mass shapes, not
        targeting reticles. NCR core (solid red-orange blob), ET
@@ -582,12 +583,15 @@ function CaseVisualLung() {
         shadow-intensity="0.4"
         tone-mapping="neutral"
         /* Frontal view so BOTH lung halves are visible; slight tilt
-           down so the upper lobes read clearly. The previous -20deg
-           azimuth was rotating into a profile that hid one half. */
-        camera-orbit="0deg 78deg 150%"
-        min-camera-orbit="-30deg 65deg 150%"
-        max-camera-orbit="30deg 95deg 150%"
-        loading="lazy"
+           down so the upper lobes read clearly. 105% distance so lungs
+           fill the viewport (was 150% — model ended up too small/off-
+           frame relative to Brain which uses 130%). */
+        camera-orbit="0deg 78deg 105%"
+        min-camera-orbit="-30deg 65deg 105%"
+        max-camera-orbit="30deg 95deg 105%"
+        /* eager so 25MB starts fetching on page load — lazy was
+           firing IO but model never appeared on screen */
+        loading="eager"
         reveal="auto"
         touch-action="pan-y"
         style={{ width: '100%', height: '100%', backgroundColor: 'transparent' } as React.CSSProperties}
@@ -691,311 +695,277 @@ function CaseVisualBlood() {
   );
 }
 
-/* ─── CaseVisualSpine: sagittal X-ray view of the spinal column with
-       vertebrae drawn as small trapezoidal masses along the natural
-       cervical-thoracic-lumbar curve. Two lumbar vertebrae are flagged
-       as detected pathology with caliper measurements alongside. The
-       palette stays in cool cyan to evoke an X-ray viewing console, NOT
-       the warm tissue tones used by the other 3D cases. ─────────────── */
+/* ─── CaseVisualBreast: Sketchfab iframe embed of "Mammary Gland Cross
+       Section" by arloopa. Uses the model's baked-in annotations so
+       viewers can click 1-7 pins to focus on lobes, ducts, fatty tissue
+       (matches the interactive spine card's UX). Corner labels are
+       overlaid on top of the iframe. Credit link at the bottom-right
+       satisfies Sketchfab attribution terms.
+       Kept the old SVG version below as CaseVisualBreastSvg for
+       reference. Currently unused. ─────────────────────────────────── */
 
-function CaseVisualSpine() {
-  /* Approximate sagittal curve from C1 (top) down to L5 (bottom).
-     X coordinate sways with the natural cervical lordosis (forward),
-     thoracic kyphosis (backward), and lumbar lordosis (forward again).
-     Each entry: { label, sectionColor, height, width, pathology? }. */
-  const vertebrae = [
-    // Cervical 7 — small wedges, anterior bow
-    { l: 'C1', s: 'C', h: 14, w: 38, dx: 8 },
-    { l: 'C2', s: 'C', h: 15, w: 40, dx: 7 },
-    { l: 'C3', s: 'C', h: 16, w: 41, dx: 5 },
-    { l: 'C4', s: 'C', h: 16, w: 42, dx: 3 },
-    { l: 'C5', s: 'C', h: 17, w: 43, dx: 1 },
-    { l: 'C6', s: 'C', h: 18, w: 44, dx: -1 },
-    { l: 'C7', s: 'C', h: 19, w: 46, dx: -3 },
-    // Thoracic 12 — medium, posterior bow (kyphosis peaks around T6-T8)
-    { l: 'T1', s: 'T', h: 21, w: 52, dx: -5 },
-    { l: 'T2', s: 'T', h: 22, w: 54, dx: -7 },
-    { l: 'T3', s: 'T', h: 23, w: 56, dx: -9 },
-    { l: 'T4', s: 'T', h: 24, w: 58, dx: -11 },
-    { l: 'T5', s: 'T', h: 25, w: 60, dx: -12 },
-    { l: 'T6', s: 'T', h: 26, w: 62, dx: -13 },
-    { l: 'T7', s: 'T', h: 27, w: 64, dx: -13 },
-    { l: 'T8', s: 'T', h: 28, w: 66, dx: -12 },
-    { l: 'T9', s: 'T', h: 29, w: 68, dx: -10 },
-    { l: 'T10', s: 'T', h: 30, w: 70, dx: -7 },
-    { l: 'T11', s: 'T', h: 31, w: 72, dx: -4 },
-    { l: 'T12', s: 'T', h: 32, w: 74, dx: -1 },
-    // Lumbar 5 — large, anterior bow again
-    { l: 'L1', s: 'L', h: 34, w: 80, dx: 3 },
-    { l: 'L2', s: 'L', h: 35, w: 82, dx: 6 },
-    { l: 'L3', s: 'L', h: 36, w: 84, dx: 8, pathology: 'compress' },
-    { l: 'L4', s: 'L', h: 37, w: 86, dx: 9, pathology: 'degen' },
-    { l: 'L5', s: 'L', h: 38, w: 88, dx: 8 },
-  ];
-  const startY = 40;
-  const cx = 380;
-  let cursorY = startY;
-  /* Pre-compute each vertebra rect and a polyline through their centers
-     so the natural spinal curve reads as one continuous line behind the
-     blocks (the way a sagittal X-ray shows the body axis). */
-  const blocks = vertebrae.map((v) => {
-    const y = cursorY;
-    cursorY += v.h + 3;
-    return { v, x: cx + v.dx - v.w / 2, y, midY: y + v.h / 2, midX: cx + v.dx };
-  });
-  const curvePoints = blocks.map((b) => `${b.midX},${b.midY}`).join(' ');
+function CaseVisualBreast() {
+  const SF_EMBED =
+    'https://sketchfab.com/models/725520fe8a0b4c74bfed69b0c4d31da3/embed'
+    + '?autospin=0.15'      // gentle rotation — ~8°/sec
+    + '&autostart=1'
+    + '&preload=1'
+    + '&transparent=1'      // no white background — show our dark card
+    + '&ui_theme=dark'
+    + '&ui_infos=0'         // hide top title + author line
+    + '&ui_stop=0'          // hide play button
+    + '&ui_watermark=0'     // hide watermark link (free tier ignores)
+    + '&ui_help=0'          // hide help "?" button
+    + '&ui_settings=0'      // hide gear icon
+    + '&ui_inspector=0'
+    + '&ui_ar=0'            // hide AR button
+    + '&ui_vr=0'
+    + '&ui_hint=0'          // hide "Click to interact" hint
+    + '&ui_fullscreen=0'
+    + '&ui_annotations=1'   // KEEP the numbered pins clickable
+    + '&camera=0';          // skip intro camera animation
   return (
-    <div className="case-visual">
-      <svg viewBox="0 0 800 550" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-        <defs>
-          {/* CT-console grid background */}
-          <pattern id="spine-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="oklch(0.22 0.008 230)" strokeWidth="0.5" />
-          </pattern>
-          <linearGradient id="vert-grad" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%" stopColor="oklch(0.55 0.06 220)" />
-            <stop offset="50%" stopColor="oklch(0.85 0.08 215)" />
-            <stop offset="100%" stopColor="oklch(0.45 0.05 225)" />
-          </linearGradient>
-          <linearGradient id="vert-grad-flag" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%" stopColor="oklch(0.50 0.16 25)" />
-            <stop offset="50%" stopColor="oklch(0.78 0.18 28)" />
-            <stop offset="100%" stopColor="oklch(0.45 0.18 25)" />
-          </linearGradient>
-          <filter id="spine-glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="1.2" />
-          </filter>
-        </defs>
-        <rect width="800" height="550" fill="url(#spine-grid)" />
-        {/* Section bands on the right for context */}
-        <g fontFamily="ui-monospace, monospace" fontSize="10" letterSpacing="2.5"
-           fill="oklch(0.55 0.04 220)">
-          <text x="610" y={blocks[0].y + 4}>CERVICAL</text>
-          <text x="610" y="78" textAnchor="start" fill="oklch(0.78 0.08 220)" fontWeight="600">C1-C7</text>
-          <text x="610" y={blocks[7].y + 4}>THORACIC</text>
-          <text x="610" y={blocks[7].y + 22} fill="oklch(0.78 0.08 220)" fontWeight="600">T1-T12</text>
-          <text x="610" y={blocks[19].y + 4}>LUMBAR</text>
-          <text x="610" y={blocks[19].y + 22} fill="oklch(0.78 0.08 220)" fontWeight="600">L1-L5</text>
-        </g>
-        {/* Soft spinal axis polyline */}
-        <polyline
-          points={curvePoints}
-          fill="none"
-          stroke="oklch(0.55 0.08 220)"
-          strokeWidth="2"
-          opacity="0.4"
-          filter="url(#spine-glow)"
-        />
-        {/* Vertebral bodies — rendered as small radiant blocks. Trapezoid
-            via skewed rect so the column reads as 3D thickness. */}
-        {blocks.map((b) => {
-          const isFlag = !!b.v.pathology;
-          return (
-            <g key={b.v.l}>
-              <rect
-                x={b.x}
-                y={b.y}
-                width={b.v.w}
-                height={b.v.h}
-                rx="2"
-                fill={isFlag ? 'url(#vert-grad-flag)' : 'url(#vert-grad)'}
-                stroke={isFlag ? 'oklch(0.78 0.18 28)' : 'oklch(0.55 0.06 220)'}
-                strokeWidth="0.6"
-                opacity={isFlag ? 1 : 0.92}
-              />
-              {/* Per-segment label, tiny mono */}
-              <text
-                x={b.x - 6}
-                y={b.midY + 3}
-                fontFamily="ui-monospace, monospace"
-                fontSize="9"
-                fill={isFlag ? 'oklch(0.85 0.18 28)' : 'oklch(0.65 0.04 220)'}
-                fontWeight={isFlag ? 700 : 400}
-                textAnchor="end"
-                letterSpacing="0.5"
-              >
-                {b.v.l}
-              </text>
-            </g>
-          );
-        })}
-        {/* Pathology callouts on the right side for the flagged segments. */}
-        {blocks.filter((b) => b.v.pathology).map((b) => {
-          const ax = b.x + b.v.w + 14;
-          const ay = b.midY;
-          const lx = ax + 90;
-          const tag = b.v.pathology === 'compress' ? 'compress. fx' : 'disc degen';
-          return (
-            <g key={b.v.l + '-flag'}>
-              <line x1={b.x + b.v.w} y1={ay} x2={ax + 8} y2={ay}
-                    stroke="oklch(0.78 0.18 28)" strokeWidth="0.8" strokeDasharray="2 2" />
-              <circle cx={ax + 8} cy={ay} r="1.8" fill="oklch(0.78 0.18 28)" />
-              <rect x={ax + 14} y={ay - 11} width={lx - ax - 6} height="22" rx="2"
-                    fill="oklch(0.15 0.02 25)" stroke="oklch(0.40 0.10 25)" strokeWidth="0.5" />
-              <text x={ax + 20} y={ay - 1} fontFamily="ui-monospace, monospace"
-                    fontSize="10" fontWeight="600" fill="oklch(0.85 0.18 28)" letterSpacing="0.5">
-                {b.v.l}
-              </text>
-              <text x={ax + 20} y={ay + 9} fontFamily="ui-monospace, monospace"
-                    fontSize="9" fill="oklch(0.72 0.08 28)" letterSpacing="0.5">
-                {tag}
-              </text>
-            </g>
-          );
-        })}
-        {/* Coordinate ticks on the left, evoking sagittal slice indices */}
-        <g fontFamily="ui-monospace, monospace" fontSize="9"
-           fill="oklch(0.45 0.04 220)" letterSpacing="0.5">
-          {[100, 200, 300, 400, 500].map((y) => (
-            <g key={y}>
-              <line x1="50" y1={y} x2="60" y2={y} stroke="oklch(0.35 0.04 220)" strokeWidth="0.5" />
-              <text x="35" y={y + 3}>{(y - 40).toString().padStart(3, '0')}</text>
-            </g>
-          ))}
-        </g>
-      </svg>
-      <span className="scan-corner tl"><b>TotalSegmentator</b> · nnU-Net</span>
-      <span className="scan-corner tr">Sagittal CT<br /><b>24 vert · C1-L5</b></span>
-      <span className="scan-corner bl">117 structures<br /><b>Dice 0.95</b></span>
-      <span className="scan-corner br"><b>2</b> pathology detected</span>
+    <div className="case-visual case-visual-embed">
+      <iframe
+        title="Mammary Gland Cross Section — 3D anatomy"
+        src={SF_EMBED}
+        allow="autoplay; fullscreen; xr-spatial-tracking"
+        allowFullScreen
+        loading="lazy"
+        className="case-embed-frame"
+      />
+      <span className="scan-corner tl"><b>BUSI</b> · BreastCancerSegmentor</span>
+      <span className="scan-corner tr">U-Net 2.16M<br /><b>+ BiomedCLIP</b></span>
+      <span className="scan-corner bl">DenseCRF refine<br /><b>BI-RADS</b></span>
+      <span className="scan-corner br">
+        <a href="https://sketchfab.com/3d-models/mammary-gland-cross-section-725520fe8a0b4c74bfed69b0c4d31da3"
+           target="_blank" rel="noopener noreferrer"
+           className="case-embed-credit">
+          Model · <b>arloopa</b>
+        </a>
+      </span>
     </div>
   );
 }
 
-/* ─── CaseVisualBreast: PACS workstation slice. The visual shows the
-       2D ultrasound on the left half (dark with sweep-grain, hypoechoic
-       mass + red mask contour) and a small 3D volume on the right half
-       (the reconstructed blob, lit from key + rim like the live viewer).
-       Pink accent — same hue as the in-app PACS workstation, so the
-       landing case reads as a preview of the actual UI. ───────────────── */
-
-function CaseVisualBreast() {
-  /* Mask outline points around a hypoechoic mass. Slightly irregular so
-     it reads as a real lesion contour, not a perfect ellipse. */
+/* Legacy SVG mockup — kept for reference, currently unused since we
+   embed the Sketchfab model above. Delete if the embed proves stable. */
+function CaseVisualBreastSvg() {
   const maskPath = blobPath(54, 18, 31, 0.15, 0.78);
-  /* The 3D blob is rendered as 3 stacked elliptical bands (back / middle /
-     front) with shaded fill — gives a clean depth read without WebGL. */
+  /* A handful of hyperechoic bright specks scattered around the mass —
+     bright dots reading as reflected tissue interfaces. Deterministic
+     from a seed so the composition doesn't change on hot-reload. */
+  const specks = Array.from({ length: 42 }, (_, i) => {
+    const a = (i * 137.508) % 360;
+    const r = 15 + ((i * 23) % 130);
+    const rad = (a * Math.PI) / 180;
+    return {
+      x: Math.cos(rad) * r,
+      y: Math.sin(rad) * r * 0.85,
+      s: 0.4 + ((i * 7) % 10) / 10,
+      op: 0.25 + ((i * 11) % 60) / 100,
+    };
+  });
+
   return (
     <div className="case-visual">
       <svg viewBox="0 0 800 550" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
         <defs>
-          {/* Ultrasound sweep grain — vertical streaks fading L→R, like a
-              real US image's beam profile. */}
-          <pattern id="us-grain" width="3" height="100%" patternUnits="userSpaceOnUse">
-            <rect width="1.5" height="100%" fill="oklch(0.18 0.005 25)" />
-            <rect x="1.5" width="1.5" height="100%" fill="oklch(0.12 0.005 25)" />
+          {/* Dense random speckle noise — the defining texture of any
+              real ultrasound frame. Turbulence + high-contrast color
+              matrix gives the grainy salt-and-pepper look. */}
+          <filter id="us-speckle" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="7" result="noise" />
+            <feColorMatrix in="noise" values="0 0 0 0 0.85  0 0 0 0 0.82  0 0 0 0 0.78  0 0 0 1.6 -0.7" />
+          </filter>
+          {/* Depth-based falloff — bright near the probe (top), fades
+              into dark posterior field as ultrasound attenuates. */}
+          <linearGradient id="us-depth" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"  stopColor="oklch(0.48 0.015 25)" />
+            <stop offset="35%" stopColor="oklch(0.32 0.012 25)" />
+            <stop offset="70%" stopColor="oklch(0.16 0.008 25)" />
+            <stop offset="100%" stopColor="oklch(0.09 0.005 25)" />
+          </linearGradient>
+          {/* Hyperechoic tissue cloud — bright around the mass to give
+              the lesion visual context (real breast US shows fatty
+              lobules surrounding a hypoechoic mass). */}
+          <radialGradient id="us-tissue" cx="45%" cy="52%" r="60%">
+            <stop offset="0%"   stopColor="oklch(0.58 0.015 25)" />
+            <stop offset="55%"  stopColor="oklch(0.32 0.010 25)" />
+            <stop offset="100%" stopColor="oklch(0.15 0.005 25)" />
+          </radialGradient>
+          {/* Hypoechoic mass — deep black core (cancer signature). */}
+          <radialGradient id="us-mass" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"  stopColor="oklch(0.04 0.002 25)" />
+            <stop offset="70%" stopColor="oklch(0.06 0.003 25)" />
+            <stop offset="100%" stopColor="oklch(0.15 0.006 25)" />
+          </radialGradient>
+          {/* Coordinate grid for the 3D viewport backdrop. */}
+          <pattern id="vol-grid" width="22" height="22" patternUnits="userSpaceOnUse">
+            <path d="M 22 0 L 0 0 0 22" fill="none"
+                  stroke="oklch(0.20 0.02 15)" strokeWidth="0.5" />
           </pattern>
-          <radialGradient id="us-sweep" cx="50%" cy="0%" r="100%">
-            <stop offset="0%" stopColor="oklch(0.42 0.02 25)" />
-            <stop offset="60%" stopColor="oklch(0.16 0.008 25)" />
-            <stop offset="100%" stopColor="oklch(0.08 0.005 25)" />
+          {/* 3D blob shading — muted salmon / dust rose. Reads as
+              tissue, not candy. Key light upper-left, no gloss. */}
+          <radialGradient id="blob-front" cx="34%" cy="30%" r="82%">
+            <stop offset="0%"   stopColor="oklch(0.72 0.10 15)" />
+            <stop offset="55%"  stopColor="oklch(0.48 0.13 10)" />
+            <stop offset="100%" stopColor="oklch(0.24 0.08 8)" />
           </radialGradient>
-          {/* 3D blob shading: jet colormap-ish pink/peach for a tissue
-              read. Highlight in upper-left (key light), shadow opposite. */}
-          <radialGradient id="blob-front" cx="35%" cy="32%" r="78%">
-            <stop offset="0%" stopColor="oklch(0.85 0.14 8)" />
-            <stop offset="55%" stopColor="oklch(0.65 0.20 5)" />
-            <stop offset="100%" stopColor="oklch(0.32 0.14 5)" />
+          <radialGradient id="blob-mid" cx="42%" cy="40%" r="82%">
+            <stop offset="0%"   stopColor="oklch(0.48 0.11 10)" />
+            <stop offset="100%" stopColor="oklch(0.22 0.07 8)" />
           </radialGradient>
-          <radialGradient id="blob-mid" cx="42%" cy="40%" r="80%">
-            <stop offset="0%" stopColor="oklch(0.62 0.18 5)" />
-            <stop offset="100%" stopColor="oklch(0.30 0.12 5)" />
-          </radialGradient>
-          <radialGradient id="blob-back" cx="50%" cy="50%" r="80%">
-            <stop offset="0%" stopColor="oklch(0.42 0.14 5)" />
-            <stop offset="100%" stopColor="oklch(0.20 0.08 5)" />
+          <radialGradient id="blob-back" cx="50%" cy="50%" r="82%">
+            <stop offset="0%"   stopColor="oklch(0.32 0.09 8)" />
+            <stop offset="100%" stopColor="oklch(0.16 0.05 8)" />
           </radialGradient>
           <filter id="lesion-glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="3" />
-          </filter>
-          <filter id="blob-rim" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="0.8" />
+            <feGaussianBlur stdDeviation="2.5" />
           </filter>
         </defs>
-        {/* Backdrop: deep PACS background */}
+
+        {/* Backdrop */}
         <rect width="800" height="550" fill="oklch(0.07 0.005 25)" />
-        {/* LEFT half: 2D ultrasound viewport */}
+
+        {/* ═══════════════ LEFT · 2D ULTRASOUND ═══════════════ */}
         <g>
+          {/* Panel container */}
           <rect x="20" y="50" width="430" height="470" rx="4"
-                fill="url(#us-sweep)" />
-          <rect x="20" y="50" width="430" height="470" rx="4"
-                fill="url(#us-grain)" opacity="0.45" />
-          {/* Hypoechoic mass — dark blob (cancer reads black on US) */}
-          <g transform="translate(195 285)">
-            <ellipse cx="0" cy="0" rx="68" ry="48" fill="oklch(0.04 0.003 25)" />
-            <ellipse cx="-10" cy="-8" rx="48" ry="32" fill="oklch(0.02 0.002 25)" />
-            {/* Mask contour overlay — red outline, the model's segmentation */}
-            <path d={maskPath} fill="none"
-                  stroke="oklch(0.72 0.22 8)" strokeWidth="2"
-                  filter="url(#lesion-glow)" opacity="0.6" />
-            <path d={maskPath} fill="none"
-                  stroke="oklch(0.78 0.22 5)" strokeWidth="1.3" />
-            {/* Bbox corners */}
-            <g stroke="oklch(0.95 0.06 5)" strokeWidth="1" fill="none">
-              <path d="M -75 -55 L -65 -55 L -65 -45" />
-              <path d="M 75 -55 L 65 -55 L 65 -45" />
-              <path d="M -75 55 L -65 55 L -65 45" />
-              <path d="M 75 55 L 65 55 L 65 45" />
+                fill="oklch(0.08 0.005 25)"
+                stroke="oklch(0.20 0.015 25)" strokeWidth="0.5" />
+          {/* Depth-based US background inside the panel */}
+          <rect x="22" y="52" width="426" height="466" rx="3"
+                fill="url(#us-depth)" />
+          {/* Speckle noise overlay — this is what makes it read as
+              actual ultrasound instead of a black rectangle. */}
+          <rect x="22" y="52" width="426" height="466" rx="3"
+                fill="oklch(0.7 0 0)"
+                filter="url(#us-speckle)"
+                opacity="0.55" />
+          {/* Hyperechoic tissue wash around the lesion */}
+          <ellipse cx="235" cy="290" rx="140" ry="130"
+                   fill="url(#us-tissue)" opacity="0.55" />
+          {/* Depth ruler on the left edge — mm markers */}
+          <g fontFamily="ui-monospace, monospace" fontSize="8"
+             fill="oklch(0.60 0.03 25)" letterSpacing="0.3">
+            {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+              <g key={i} transform={`translate(30 ${90 + i * 62})`}>
+                <line x1="0" y1="0" x2="6" y2="0"
+                      stroke="oklch(0.52 0.02 25)" strokeWidth="0.6" />
+                <text x="10" y="3">{i * 1.5}cm</text>
+              </g>
+            ))}
+          </g>
+
+          {/* Hypoechoic mass + posterior acoustic shadow + mask overlay */}
+          <g transform="translate(235 290)">
+            {/* Posterior shadow — dark column BELOW the mass, a classic
+                breast-US feature indicating attenuating tissue. */}
+            <rect x="-52" y="42" width="104" height="140"
+                  fill="oklch(0.04 0.002 25)" opacity="0.72" />
+            {/* Dark hypoechoic mass */}
+            <ellipse cx="0" cy="0" rx="68" ry="48" fill="url(#us-mass)" />
+            <ellipse cx="-8" cy="-6" rx="46" ry="30" fill="oklch(0.03 0.002 25)" />
+            {/* Bright specks scattered in the surrounding tissue */}
+            <g fill="oklch(0.90 0.02 25)">
+              {specks.map((s, i) => (
+                <circle key={i} cx={s.x} cy={s.y} r={s.s} opacity={s.op} />
+              ))}
             </g>
-            <text x="78" y="-58" fontFamily="ui-monospace, monospace"
+            {/* Mask contour — AI segmentation output, red halo + line */}
+            <path d={maskPath} fill="none"
+                  stroke="oklch(0.72 0.22 8)" strokeWidth="2.4"
+                  filter="url(#lesion-glow)" opacity="0.55" />
+            <path d={maskPath} fill="none"
+                  stroke="oklch(0.82 0.22 5)" strokeWidth="1.5" />
+            {/* Caliper corners */}
+            <g stroke="oklch(0.92 0.06 5)" strokeWidth="1" fill="none">
+              <path d="M -78 -58 L -66 -58 L -66 -46" />
+              <path d="M  78 -58 L  66 -58 L  66 -46" />
+              <path d="M -78  58 L -66  58 L -66  46" />
+              <path d="M  78  58 L  66  58 L  66  46" />
+            </g>
+            <text x="82" y="-60" fontFamily="ui-monospace, monospace"
                   fontSize="11" fontWeight="600" fill="oklch(0.92 0.06 5)"
                   letterSpacing="0.5">
               ø 28.5 mm
             </text>
           </g>
-          {/* US viewport label */}
-          <text x="36" y="76" fontFamily="ui-monospace, monospace" fontSize="10"
-                fill="oklch(0.65 0.04 25)" letterSpacing="2.5">
+
+          {/* Panel label — top-left */}
+          <text x="40" y="76" fontFamily="ui-monospace, monospace" fontSize="10"
+                fill="oklch(0.68 0.04 25)" letterSpacing="2.5" fontWeight="500">
             2D · ULTRASOUND
           </text>
-          <text x="36" y="510" fontFamily="ui-monospace, monospace" fontSize="9"
-                fill="oklch(0.55 0.04 25)" letterSpacing="0.5">
-            W 256 · L 128 · BUSI · case 173
-          </text>
         </g>
-        {/* RIGHT half: 3D volume reconstruction */}
+
+        {/* ═══════════════ RIGHT · 3D VOLUME ═══════════════ */}
         <g>
           <rect x="470" y="50" width="310" height="470" rx="4"
-                fill="oklch(0.10 0.006 5)" />
-          {/* Soft radial wash to evoke the WebGL scene's lighting */}
-          <ellipse cx="625" cy="285" rx="190" ry="180" fill="oklch(0.16 0.04 5)" opacity="0.6" />
-          {/* Stacked depth bands — back slice (smallest), mid, front. Each
-              is the mask outline scaled by an ellipsoidal taper factor.
-              Front band is offset down-right to fake 3D parallax. */}
-          <g transform="translate(625 285)">
-            <g transform="translate(-12 -8) scale(0.78)">
-              <path d={maskPath} fill="url(#blob-back)" opacity="0.85" />
-            </g>
-            <g transform="translate(-4 -2) scale(0.94)">
-              <path d={maskPath} fill="url(#blob-mid)" opacity="0.92" />
-            </g>
-            <g transform="scale(1.08)">
-              <path d={maskPath} fill="url(#blob-front)" />
-              {/* Rim light highlight along the top-left edge */}
+                fill="oklch(0.08 0.005 15)"
+                stroke="oklch(0.20 0.015 15)" strokeWidth="0.5" />
+          {/* Coordinate grid backdrop */}
+          <rect x="472" y="52" width="306" height="466" rx="3"
+                fill="url(#vol-grid)" opacity="0.55" />
+          {/* Center crosshairs — subtle */}
+          <line x1="625" y1="80" x2="625" y2="500"
+                stroke="oklch(0.22 0.02 15)" strokeWidth="0.5" opacity="0.4" />
+          <line x1="490" y1="290" x2="760" y2="290"
+                stroke="oklch(0.22 0.02 15)" strokeWidth="0.5" opacity="0.4" />
+
+          {/* Volume rendering — 3 depth bands with wireframe overlay on
+              the front band so it reads as a triangulated mesh, not a
+              smooth candy blob. */}
+          <g transform="translate(625 290)">
+            {/* Back slice */}
+            <g transform="translate(-16 -12) scale(0.72)">
+              <path d={maskPath} fill="url(#blob-back)" opacity="0.72" />
               <path d={maskPath} fill="none"
-                    stroke="oklch(0.95 0.06 5 / 0.5)" strokeWidth="1.5"
-                    filter="url(#blob-rim)" />
+                    stroke="oklch(0.55 0.09 8 / 0.5)" strokeWidth="0.8" />
             </g>
-            {/* Key-light specular hotspot */}
-            <ellipse cx="-22" cy="-18" rx="14" ry="9"
-                     fill="oklch(0.95 0.06 5)" opacity="0.35"
-                     filter="url(#blob-rim)" />
+            {/* Mid slice */}
+            <g transform="translate(-6 -4) scale(0.88)">
+              <path d={maskPath} fill="url(#blob-mid)" opacity="0.85" />
+              <path d={maskPath} fill="none"
+                    stroke="oklch(0.62 0.11 8 / 0.5)" strokeWidth="0.8" />
+            </g>
+            {/* Front slice + wireframe triangulation hint */}
+            <g transform="scale(1.05)">
+              <path d={maskPath} fill="url(#blob-front)" opacity="0.94" />
+              {/* Interior wireframe triangles — reads as mesh facets */}
+              <g fill="none" stroke="oklch(0.88 0.05 8 / 0.32)" strokeWidth="0.5">
+                <path d={maskPath} />
+                <path d="M -42 -32 L 20 -22 L -10 20 Z" />
+                <path d="M  20 -22 L 50  10 L  20 32 Z" />
+                <path d="M -42 -32 L -10 20 L -50 12 Z" />
+                <path d="M -10  20 L 20  32 L   0 48 Z" />
+                <path d="M -50  12 L -10 20 L -42 46 Z" />
+              </g>
+              {/* Tiny vertex dots at triangle corners */}
+              <g fill="oklch(0.95 0.04 8)">
+                {[[-42,-32],[20,-22],[50,10],[20,32],[-10,20],[-50,12],[0,48],[-42,46]].map(([x,y], i) => (
+                  <circle key={i} cx={x} cy={y} r="0.8" opacity="0.65" />
+                ))}
+              </g>
+            </g>
           </g>
-          {/* 3D viewport label + stats */}
+
+          {/* Panel label */}
           <text x="486" y="76" fontFamily="ui-monospace, monospace" fontSize="10"
-                fill="oklch(0.65 0.04 25)" letterSpacing="2.5">
+                fill="oklch(0.68 0.04 25)" letterSpacing="2.5" fontWeight="500">
             3D · VOLUME
           </text>
-          {/* Stats overlay top-right (matches in-app workstation) */}
-          <g transform="translate(486 92)" fontFamily="ui-monospace, monospace" fontSize="10"
+          {/* Stats — verts / vol / diameter */}
+          <g transform="translate(486 94)" fontFamily="ui-monospace, monospace" fontSize="10"
              fill="oklch(0.78 0.04 25)" letterSpacing="0.5">
-            <text x="0" y="0">verts <tspan fontWeight="600" fill="oklch(0.95 0.04 25)">2814</tspan></text>
-            <text x="100" y="0">vol <tspan fontWeight="600" fill="oklch(0.95 0.04 25)">8.4 cm³</tspan></text>
-            <text x="200" y="0">Ø <tspan fontWeight="600" fill="oklch(0.95 0.04 25)">28 mm</tspan></text>
+            <text x="0"   y="0">verts <tspan fontWeight="600" fill="oklch(0.95 0.04 25)">2814</tspan></text>
+            <text x="100" y="0">vol   <tspan fontWeight="600" fill="oklch(0.95 0.04 25)">8.4 cm³</tspan></text>
+            <text x="200" y="0">ø     <tspan fontWeight="600" fill="oklch(0.95 0.04 25)">28 mm</tspan></text>
           </g>
-          {/* XYZ axis gizmo bottom-left */}
+          {/* XYZ axis gizmo */}
           <g fontFamily="ui-monospace, monospace" fontSize="9" fontWeight="700"
-             letterSpacing="0.5" transform="translate(486 504)">
+             letterSpacing="0.5" transform="translate(486 494)">
             <rect x="0" y="0" width="18" height="14" fill="oklch(0.16 0.06 25)"
                   stroke="oklch(0.32 0.02 25)" strokeWidth="0.5" rx="2" />
             <text x="9" y="10" textAnchor="middle" fill="oklch(0.72 0.15 25)">X</text>
@@ -1007,17 +977,21 @@ function CaseVisualBreast() {
             <text x="53" y="10" textAnchor="middle" fill="oklch(0.72 0.14 235)">Z</text>
           </g>
         </g>
-        {/* AI verdict pill — bridges left and right viewports */}
-        <g transform="translate(225 535)">
-          <rect x="0" y="-22" width="350" height="20" rx="10"
-                fill="oklch(0.12 0.02 5)" stroke="oklch(0.45 0.10 5)" strokeWidth="0.5" />
-          <circle cx="14" cy="-12" r="4" fill="oklch(0.72 0.22 5)" />
-          <text x="26" y="-7" fontFamily="ui-monospace, monospace" fontSize="11"
+
+        {/* AI verdict pill — sits INSIDE the 2D panel at the bottom so
+            it doesn't stack with the HTML corner labels overlaid on the
+            container. */}
+        <g transform="translate(56 494)">
+          <rect x="0" y="0" width="378" height="20" rx="10"
+                fill="oklch(0.12 0.02 5)"
+                stroke="oklch(0.48 0.10 5)" strokeWidth="0.6" />
+          <circle cx="14" cy="10" r="4" fill="oklch(0.72 0.22 5)" />
+          <text x="26" y="14" fontFamily="ui-monospace, monospace" fontSize="11"
                 fontWeight="600" fill="oklch(0.92 0.06 5)" letterSpacing="0.5">
             BENIGN · BI-RADS 3 · 84% confidence
           </text>
-          <text x="270" y="-7" fontFamily="ui-monospace, monospace" fontSize="10"
-                fill="oklch(0.60 0.04 25)" letterSpacing="0.5">
+          <text x="298" y="14" fontFamily="ui-monospace, monospace" fontSize="10"
+                fill="oklch(0.62 0.04 25)" letterSpacing="0.5">
             ensemble
           </text>
         </g>
@@ -1398,7 +1372,7 @@ export default function Home() {
                 </svg>
               </Link>
             </div>
-            <CaseVisualSpine />
+            <SpineViewer />
           </article>
 
           <article className="case fx-reveal" data-case="06">
