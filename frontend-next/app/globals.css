@@ -1517,6 +1517,14 @@
   flex-shrink: 0;
   min-width: 36px;
 }
+/* Placeholder value — reads dimmer than a real link, italicized so
+   it's clearly a "not yet" state rather than a broken URL. */
+.footer-soon {
+  font-size: 14px;
+  color: var(--ink-60);
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
 .footer-bar {
   display: flex;
   justify-content: space-between;
@@ -1825,4 +1833,96 @@
   .credits-row { padding-block: 16px; }
   .brand-logo { height: 48px !important; }
   .brand-sub { font-size: 9.5px; letter-spacing: 0.16em; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE CASE-VISUAL POLISH — case cards contain 3D viewers + custom
+   HUD overlays (SpineViewer annotations, vert-rail, Sketchfab iframe).
+   These defaults are tuned for desktop; on portrait mobile screens they
+   crowd each other. Rework them per breakpoint.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Tablet + landscape phone (<= 768px) */
+@media (max-width: 768px) {
+  /* Sketchfab iframe zoom is too much on smaller viewports — the model
+     starts flying past the corner labels. Ease off to 1.05. */
+  .case-embed-frame {
+    transform: scale(1.05);
+  }
+}
+
+/* Portrait phone (<= 560px) */
+@media (max-width: 560px) {
+  /* Give 3D case visuals more vertical breathing room — 16/11 gets
+     cramped in a single narrow column. 4/3 fits the same content
+     with less horizontal fisheye. */
+  .case-visual {
+    aspect-ratio: 4 / 3;
+  }
+  /* Corner labels — quieter font + tighter padding so they don't
+     eat into the model's frame. */
+  .scan-corner {
+    font-size: 9px;
+    padding: 6px 8px;
+    letter-spacing: 0.06em;
+  }
+  .scan-corner br + b { display: block; margin-top: 2px; }
+
+  /* ── SpineViewer on mobile ─────────────────────────────────────
+     Desktop layout: vertical annots column left (7 buttons stacked)
+       + vert-rail worklist column right (24 items). On a 340px card
+       that leaves ~140px middle strip for the actual 3D — too tight.
+     Mobile: hide the vert-rail (worklist is a nice-to-have), move
+       annots to a horizontal row along the bottom edge. Info panel
+       floats above them. Model gets the whole card. */
+  .case-visual-spine .vert-rail {
+    display: none;
+  }
+  .case-visual-spine .spine-annots {
+    flex-direction: row;
+    top: auto;
+    bottom: 14px;
+    left: 12px;
+    right: 12px;
+    justify-content: center;
+    gap: 6px;
+  }
+  .case-visual-spine .spine-annot-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
+  }
+  .case-visual-spine .spine-info {
+    /* Sit above the horizontal annot row */
+    bottom: 56px;
+    max-width: 82%;
+    padding: 8px 12px;
+  }
+  .case-visual-spine .spine-info-label { font-size: 10px; }
+  .case-visual-spine .spine-info-desc { font-size: 9.5px; }
+  .case-visual-spine .spine-info-hint { font-size: 9px; }
+
+  /* Sketchfab iframe — no zoom on mobile; native framing is already
+     right-sized for narrow viewports. */
+  .case-embed-frame {
+    transform: none;
+  }
+}
+
+/* Small phone (<= 400px) — iPhone SE 1st gen, older Android */
+@media (max-width: 400px) {
+  .case-visual-spine .spine-annot-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 10.5px;
+  }
+  .case-visual-spine .spine-info {
+    max-width: 88%;
+    padding: 6px 10px;
+    bottom: 50px;
+  }
+  .scan-corner {
+    font-size: 8.5px;
+    padding: 5px 7px;
+  }
 }

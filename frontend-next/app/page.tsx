@@ -1465,9 +1465,7 @@ export default function Home() {
               </li>
               <li>
                 <span className="footer-k">repo</span>
-                <a href="https://github.com/TruongTanNghia/Project_Em_Dat" target="_blank" rel="noopener noreferrer">
-                  github · Project_Em_Dat
-                </a>
+                <span className="footer-soon">coming soon</span>
               </li>
               <li>
                 <span className="footer-k">demo</span>
