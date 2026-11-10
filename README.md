@@ -123,7 +123,7 @@ Giao diện và mô hình 3D đã có. Phần suy luận dùng TotalSegmentator 
 Trình duyệt chỉ nói chuyện với Vercel. Mọi request `/api/*` được Next.js chuyển tiếp tới backend Flask qua đường hầm ngrok, nên frontend không cần biết backend đang chạy ở đâu.
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#FCF6EC','primaryTextColor':'#0E4A63','primaryBorderColor':'#0E4A63','secondaryColor':'#F3E3CC','secondaryTextColor':'#0E4A63','secondaryBorderColor':'#1E8FA8','tertiaryColor':'#FFFDF8','tertiaryTextColor':'#0E4A63','tertiaryBorderColor':'#F28C1B','lineColor':'#1E8FA8','textColor':'#1E8FA8','titleColor':'#0E4A63','edgeLabelBackground':'#FCF6EC','clusterBkg':'#FFFDF8','clusterBorder':'#1E8FA8','actorBkg':'#FCF6EC','actorBorder':'#0E4A63','actorTextColor':'#0E4A63','actorLineColor':'#1E8FA8','signalColor':'#1E8FA8','signalTextColor':'#1E8FA8','sequenceNumberColor':'#FCF6EC','noteBkgColor':'#F3E3CC','noteTextColor':'#0E4A63','noteBorderColor':'#F28C1B','activationBkgColor':'#FFB547','activationBorderColor':'#F28C1B','labelBoxBkgColor':'#FCF6EC','labelBoxBorderColor':'#0E4A63','labelTextColor':'#0E4A63','cScale0':'#0E4A63','cScaleLabel0':'#FCF6EC','cScale1':'#1E8FA8','cScaleLabel1':'#FCF6EC','cScale2':'#3BB8C3','cScaleLabel2':'#0E4A63','cScale3':'#F28C1B','cScaleLabel3':'#0E4A63','cScale4':'#FFB547','cScaleLabel4':'#0E4A63','cScale5':'#F3E3CC','cScaleLabel5':'#0E4A63','cScale6':'#0E4A63','cScaleLabel6':'#FCF6EC','cScale7':'#1E8FA8','cScaleLabel7':'#FCF6EC','fontFamily':'Segoe UI, Helvetica Neue, Arial, sans-serif'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#FCF6EC','primaryTextColor':'#0E4A63','primaryBorderColor':'#0E4A63','secondaryColor':'#F3E3CC','secondaryTextColor':'#0E4A63','secondaryBorderColor':'#1E8FA8','tertiaryColor':'#FFFDF8','tertiaryTextColor':'#0E4A63','tertiaryBorderColor':'#F28C1B','lineColor':'#1E8FA8','textColor':'#1E8FA8','titleColor':'#0E4A63','edgeLabelBackground':'#FCF6EC','clusterBkg':'#FFFDF8','clusterBorder':'#1E8FA8','actorBkg':'#FCF6EC','actorBorder':'#0E4A63','actorTextColor':'#0E4A63','actorLineColor':'#1E8FA8','signalColor':'#1E8FA8','signalTextColor':'#1E8FA8','sequenceNumberColor':'#FCF6EC','noteBkgColor':'#F3E3CC','noteTextColor':'#0E4A63','noteBorderColor':'#F28C1B','activationBkgColor':'#FFB547','activationBorderColor':'#F28C1B','labelBoxBkgColor':'#FCF6EC','labelBoxBorderColor':'#0E4A63','labelTextColor':'#0E4A63','cScale0':'#0E4A63','cScaleLabel0':'#FCF6EC','cScale1':'#1E8FA8','cScaleLabel1':'#FCF6EC','cScale2':'#3BB8C3','cScaleLabel2':'#0E4A63','cScale3':'#F28C1B','cScaleLabel3':'#0E4A63','cScale4':'#FFB547','cScaleLabel4':'#0E4A63','cScale5':'#F3E3CC','cScaleLabel5':'#0E4A63','cScale6':'#0E4A63','cScaleLabel6':'#FCF6EC','cScale7':'#1E8FA8','cScaleLabel7':'#FCF6EC'}}}%%
 flowchart LR
     U([Người dùng]) --> FE["Next.js trên Vercel"]
     FE -->|"/api/*"| NG["ngrok HTTPS"]
@@ -148,7 +148,7 @@ flowchart LR
 ### Toàn cảnh hệ thống
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#FCF6EC','primaryTextColor':'#0E4A63','primaryBorderColor':'#0E4A63','secondaryColor':'#F3E3CC','secondaryTextColor':'#0E4A63','secondaryBorderColor':'#1E8FA8','tertiaryColor':'#FFFDF8','tertiaryTextColor':'#0E4A63','tertiaryBorderColor':'#F28C1B','lineColor':'#1E8FA8','textColor':'#1E8FA8','titleColor':'#0E4A63','edgeLabelBackground':'#FCF6EC','clusterBkg':'#FFFDF8','clusterBorder':'#1E8FA8','actorBkg':'#FCF6EC','actorBorder':'#0E4A63','actorTextColor':'#0E4A63','actorLineColor':'#1E8FA8','signalColor':'#1E8FA8','signalTextColor':'#1E8FA8','sequenceNumberColor':'#FCF6EC','noteBkgColor':'#F3E3CC','noteTextColor':'#0E4A63','noteBorderColor':'#F28C1B','activationBkgColor':'#FFB547','activationBorderColor':'#F28C1B','labelBoxBkgColor':'#FCF6EC','labelBoxBorderColor':'#0E4A63','labelTextColor':'#0E4A63','cScale0':'#0E4A63','cScaleLabel0':'#FCF6EC','cScale1':'#1E8FA8','cScaleLabel1':'#FCF6EC','cScale2':'#3BB8C3','cScaleLabel2':'#0E4A63','cScale3':'#F28C1B','cScaleLabel3':'#0E4A63','cScale4':'#FFB547','cScaleLabel4':'#0E4A63','cScale5':'#F3E3CC','cScaleLabel5':'#0E4A63','cScale6':'#0E4A63','cScaleLabel6':'#FCF6EC','cScale7':'#1E8FA8','cScaleLabel7':'#FCF6EC','fontFamily':'Segoe UI, Helvetica Neue, Arial, sans-serif'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#FCF6EC','primaryTextColor':'#0E4A63','primaryBorderColor':'#0E4A63','secondaryColor':'#F3E3CC','secondaryTextColor':'#0E4A63','secondaryBorderColor':'#1E8FA8','tertiaryColor':'#FFFDF8','tertiaryTextColor':'#0E4A63','tertiaryBorderColor':'#F28C1B','lineColor':'#1E8FA8','textColor':'#1E8FA8','titleColor':'#0E4A63','edgeLabelBackground':'#FCF6EC','clusterBkg':'#FFFDF8','clusterBorder':'#1E8FA8','actorBkg':'#FCF6EC','actorBorder':'#0E4A63','actorTextColor':'#0E4A63','actorLineColor':'#1E8FA8','signalColor':'#1E8FA8','signalTextColor':'#1E8FA8','sequenceNumberColor':'#FCF6EC','noteBkgColor':'#F3E3CC','noteTextColor':'#0E4A63','noteBorderColor':'#F28C1B','activationBkgColor':'#FFB547','activationBorderColor':'#F28C1B','labelBoxBkgColor':'#FCF6EC','labelBoxBorderColor':'#0E4A63','labelTextColor':'#0E4A63','cScale0':'#0E4A63','cScaleLabel0':'#FCF6EC','cScale1':'#1E8FA8','cScaleLabel1':'#FCF6EC','cScale2':'#3BB8C3','cScaleLabel2':'#0E4A63','cScale3':'#F28C1B','cScaleLabel3':'#0E4A63','cScale4':'#FFB547','cScaleLabel4':'#0E4A63','cScale5':'#F3E3CC','cScaleLabel5':'#0E4A63','cScale6':'#0E4A63','cScaleLabel6':'#FCF6EC','cScale7':'#1E8FA8','cScaleLabel7':'#FCF6EC'}}}%%
 mindmap
   root((Medical AI Suite))
     Frontend
@@ -179,7 +179,7 @@ mindmap
 ### Vòng đời một request
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#FCF6EC','primaryTextColor':'#0E4A63','primaryBorderColor':'#0E4A63','secondaryColor':'#F3E3CC','secondaryTextColor':'#0E4A63','secondaryBorderColor':'#1E8FA8','tertiaryColor':'#FFFDF8','tertiaryTextColor':'#0E4A63','tertiaryBorderColor':'#F28C1B','lineColor':'#1E8FA8','textColor':'#1E8FA8','titleColor':'#0E4A63','edgeLabelBackground':'#FCF6EC','clusterBkg':'#FFFDF8','clusterBorder':'#1E8FA8','actorBkg':'#FCF6EC','actorBorder':'#0E4A63','actorTextColor':'#0E4A63','actorLineColor':'#1E8FA8','signalColor':'#1E8FA8','signalTextColor':'#1E8FA8','sequenceNumberColor':'#FCF6EC','noteBkgColor':'#F3E3CC','noteTextColor':'#0E4A63','noteBorderColor':'#F28C1B','activationBkgColor':'#FFB547','activationBorderColor':'#F28C1B','labelBoxBkgColor':'#FCF6EC','labelBoxBorderColor':'#0E4A63','labelTextColor':'#0E4A63','cScale0':'#0E4A63','cScaleLabel0':'#FCF6EC','cScale1':'#1E8FA8','cScaleLabel1':'#FCF6EC','cScale2':'#3BB8C3','cScaleLabel2':'#0E4A63','cScale3':'#F28C1B','cScaleLabel3':'#0E4A63','cScale4':'#FFB547','cScaleLabel4':'#0E4A63','cScale5':'#F3E3CC','cScaleLabel5':'#0E4A63','cScale6':'#0E4A63','cScaleLabel6':'#FCF6EC','cScale7':'#1E8FA8','cScaleLabel7':'#FCF6EC','fontFamily':'Segoe UI, Helvetica Neue, Arial, sans-serif'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#FCF6EC','primaryTextColor':'#0E4A63','primaryBorderColor':'#0E4A63','secondaryColor':'#F3E3CC','secondaryTextColor':'#0E4A63','secondaryBorderColor':'#1E8FA8','tertiaryColor':'#FFFDF8','tertiaryTextColor':'#0E4A63','tertiaryBorderColor':'#F28C1B','lineColor':'#1E8FA8','textColor':'#1E8FA8','titleColor':'#0E4A63','edgeLabelBackground':'#FCF6EC','clusterBkg':'#FFFDF8','clusterBorder':'#1E8FA8','actorBkg':'#FCF6EC','actorBorder':'#0E4A63','actorTextColor':'#0E4A63','actorLineColor':'#1E8FA8','signalColor':'#1E8FA8','signalTextColor':'#1E8FA8','sequenceNumberColor':'#FCF6EC','noteBkgColor':'#F3E3CC','noteTextColor':'#0E4A63','noteBorderColor':'#F28C1B','activationBkgColor':'#FFB547','activationBorderColor':'#F28C1B','labelBoxBkgColor':'#FCF6EC','labelBoxBorderColor':'#0E4A63','labelTextColor':'#0E4A63','cScale0':'#0E4A63','cScaleLabel0':'#FCF6EC','cScale1':'#1E8FA8','cScaleLabel1':'#FCF6EC','cScale2':'#3BB8C3','cScaleLabel2':'#0E4A63','cScale3':'#F28C1B','cScaleLabel3':'#0E4A63','cScale4':'#FFB547','cScaleLabel4':'#0E4A63','cScale5':'#F3E3CC','cScaleLabel5':'#0E4A63','cScale6':'#0E4A63','cScaleLabel6':'#FCF6EC','cScale7':'#1E8FA8','cScaleLabel7':'#FCF6EC'}}}%%
 sequenceDiagram
     autonumber
     participant U as Trình duyệt
@@ -200,7 +200,7 @@ sequenceDiagram
 ### Các tầng của backend
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#FCF6EC','primaryTextColor':'#0E4A63','primaryBorderColor':'#0E4A63','secondaryColor':'#F3E3CC','secondaryTextColor':'#0E4A63','secondaryBorderColor':'#1E8FA8','tertiaryColor':'#FFFDF8','tertiaryTextColor':'#0E4A63','tertiaryBorderColor':'#F28C1B','lineColor':'#1E8FA8','textColor':'#1E8FA8','titleColor':'#0E4A63','edgeLabelBackground':'#FCF6EC','clusterBkg':'#FFFDF8','clusterBorder':'#1E8FA8','actorBkg':'#FCF6EC','actorBorder':'#0E4A63','actorTextColor':'#0E4A63','actorLineColor':'#1E8FA8','signalColor':'#1E8FA8','signalTextColor':'#1E8FA8','sequenceNumberColor':'#FCF6EC','noteBkgColor':'#F3E3CC','noteTextColor':'#0E4A63','noteBorderColor':'#F28C1B','activationBkgColor':'#FFB547','activationBorderColor':'#F28C1B','labelBoxBkgColor':'#FCF6EC','labelBoxBorderColor':'#0E4A63','labelTextColor':'#0E4A63','cScale0':'#0E4A63','cScaleLabel0':'#FCF6EC','cScale1':'#1E8FA8','cScaleLabel1':'#FCF6EC','cScale2':'#3BB8C3','cScaleLabel2':'#0E4A63','cScale3':'#F28C1B','cScaleLabel3':'#0E4A63','cScale4':'#FFB547','cScaleLabel4':'#0E4A63','cScale5':'#F3E3CC','cScaleLabel5':'#0E4A63','cScale6':'#0E4A63','cScaleLabel6':'#FCF6EC','cScale7':'#1E8FA8','cScaleLabel7':'#FCF6EC','fontFamily':'Segoe UI, Helvetica Neue, Arial, sans-serif'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#FCF6EC','primaryTextColor':'#0E4A63','primaryBorderColor':'#0E4A63','secondaryColor':'#F3E3CC','secondaryTextColor':'#0E4A63','secondaryBorderColor':'#1E8FA8','tertiaryColor':'#FFFDF8','tertiaryTextColor':'#0E4A63','tertiaryBorderColor':'#F28C1B','lineColor':'#1E8FA8','textColor':'#1E8FA8','titleColor':'#0E4A63','edgeLabelBackground':'#FCF6EC','clusterBkg':'#FFFDF8','clusterBorder':'#1E8FA8','actorBkg':'#FCF6EC','actorBorder':'#0E4A63','actorTextColor':'#0E4A63','actorLineColor':'#1E8FA8','signalColor':'#1E8FA8','signalTextColor':'#1E8FA8','sequenceNumberColor':'#FCF6EC','noteBkgColor':'#F3E3CC','noteTextColor':'#0E4A63','noteBorderColor':'#F28C1B','activationBkgColor':'#FFB547','activationBorderColor':'#F28C1B','labelBoxBkgColor':'#FCF6EC','labelBoxBorderColor':'#0E4A63','labelTextColor':'#0E4A63','cScale0':'#0E4A63','cScaleLabel0':'#FCF6EC','cScale1':'#1E8FA8','cScaleLabel1':'#FCF6EC','cScale2':'#3BB8C3','cScaleLabel2':'#0E4A63','cScale3':'#F28C1B','cScaleLabel3':'#0E4A63','cScale4':'#FFB547','cScaleLabel4':'#0E4A63','cScale5':'#F3E3CC','cScaleLabel5':'#0E4A63','cScale6':'#0E4A63','cScaleLabel6':'#FCF6EC','cScale7':'#1E8FA8','cScaleLabel7':'#FCF6EC'}}}%%
 flowchart TD
     A["python_api.py<br/>điểm khởi động"] --> B["create_app()<br/>tạo ứng dụng Flask"]
     B --> C["app/router.py<br/>gắn mọi blueprint, prefix /api"]
@@ -213,14 +213,12 @@ flowchart TD
     CFG -.-> G
 ```
 
-<table>
-<tr>
-<td width="50%" valign="top">
+### Route nghiệp vụ theo chuyên khoa
 
-**23 route nghiệp vụ theo chuyên khoa**
+23 route chia cho 6 chuyên khoa. Cộng thêm 5 route hệ thống (`/health` và các route tương thích) là đủ 28.
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'pie1':'#3BB8C3','pie2':'#F28C1B','pie3':'#FFB547','pie4':'#F3E3CC','pie5':'#1E8FA8','pie6':'#FCF6EC','pieOpacity':'1','pieStrokeColor':'#0E4A63','pieStrokeWidth':'2px','pieOuterStrokeColor':'#0E4A63','pieOuterStrokeWidth':'2px','pieSectionTextColor':'#0E4A63','pieSectionTextSize':'15px','pieLegendTextColor':'#1E8FA8','pieTitleTextColor':'#1E8FA8','fontFamily':'Segoe UI, Helvetica Neue, Arial, sans-serif'}}}%%
+%%{init: {'theme':'base','themeVariables':{'pie1':'#3BB8C3','pie2':'#F28C1B','pie3':'#FFB547','pie4':'#F3E3CC','pie5':'#1E8FA8','pie6':'#FCF6EC','pieOpacity':'1','pieStrokeColor':'#0E4A63','pieStrokeWidth':'2px','pieOuterStrokeColor':'#0E4A63','pieOuterStrokeWidth':'2px','pieSectionTextColor':'#0E4A63','pieSectionTextSize':'15px','pieLegendTextColor':'#1E8FA8','pieTitleTextColor':'#1E8FA8'}}}%%
 pie showData
     "CT phổi" : 6
     "MRI não" : 6
@@ -230,15 +228,10 @@ pie showData
     "Cột sống" : 2
 ```
 
-Cộng thêm 5 route hệ thống (`/health` và các route tương thích) là đủ 28.
-
-</td>
-<td width="50%" valign="top">
-
-**Agent xét nghiệm máu chọn LLM thế nào**
+### Agent xét nghiệm máu chọn LLM thế nào
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#FCF6EC','primaryTextColor':'#0E4A63','primaryBorderColor':'#0E4A63','secondaryColor':'#F3E3CC','secondaryTextColor':'#0E4A63','secondaryBorderColor':'#1E8FA8','tertiaryColor':'#FFFDF8','tertiaryTextColor':'#0E4A63','tertiaryBorderColor':'#F28C1B','lineColor':'#1E8FA8','textColor':'#1E8FA8','titleColor':'#0E4A63','edgeLabelBackground':'#FCF6EC','clusterBkg':'#FFFDF8','clusterBorder':'#1E8FA8','actorBkg':'#FCF6EC','actorBorder':'#0E4A63','actorTextColor':'#0E4A63','actorLineColor':'#1E8FA8','signalColor':'#1E8FA8','signalTextColor':'#1E8FA8','sequenceNumberColor':'#FCF6EC','noteBkgColor':'#F3E3CC','noteTextColor':'#0E4A63','noteBorderColor':'#F28C1B','activationBkgColor':'#FFB547','activationBorderColor':'#F28C1B','labelBoxBkgColor':'#FCF6EC','labelBoxBorderColor':'#0E4A63','labelTextColor':'#0E4A63','cScale0':'#0E4A63','cScaleLabel0':'#FCF6EC','cScale1':'#1E8FA8','cScaleLabel1':'#FCF6EC','cScale2':'#3BB8C3','cScaleLabel2':'#0E4A63','cScale3':'#F28C1B','cScaleLabel3':'#0E4A63','cScale4':'#FFB547','cScaleLabel4':'#0E4A63','cScale5':'#F3E3CC','cScaleLabel5':'#0E4A63','cScale6':'#0E4A63','cScaleLabel6':'#FCF6EC','cScale7':'#1E8FA8','cScaleLabel7':'#FCF6EC','fontFamily':'Segoe UI, Helvetica Neue, Arial, sans-serif'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#FCF6EC','primaryTextColor':'#0E4A63','primaryBorderColor':'#0E4A63','secondaryColor':'#F3E3CC','secondaryTextColor':'#0E4A63','secondaryBorderColor':'#1E8FA8','tertiaryColor':'#FFFDF8','tertiaryTextColor':'#0E4A63','tertiaryBorderColor':'#F28C1B','lineColor':'#1E8FA8','textColor':'#1E8FA8','titleColor':'#0E4A63','edgeLabelBackground':'#FCF6EC','clusterBkg':'#FFFDF8','clusterBorder':'#1E8FA8','actorBkg':'#FCF6EC','actorBorder':'#0E4A63','actorTextColor':'#0E4A63','actorLineColor':'#1E8FA8','signalColor':'#1E8FA8','signalTextColor':'#1E8FA8','sequenceNumberColor':'#FCF6EC','noteBkgColor':'#F3E3CC','noteTextColor':'#0E4A63','noteBorderColor':'#F28C1B','activationBkgColor':'#FFB547','activationBorderColor':'#F28C1B','labelBoxBkgColor':'#FCF6EC','labelBoxBorderColor':'#0E4A63','labelTextColor':'#0E4A63','cScale0':'#0E4A63','cScaleLabel0':'#FCF6EC','cScale1':'#1E8FA8','cScaleLabel1':'#FCF6EC','cScale2':'#3BB8C3','cScaleLabel2':'#0E4A63','cScale3':'#F28C1B','cScaleLabel3':'#0E4A63','cScale4':'#FFB547','cScaleLabel4':'#0E4A63','cScale5':'#F3E3CC','cScaleLabel5':'#0E4A63','cScale6':'#0E4A63','cScaleLabel6':'#FCF6EC','cScale7':'#1E8FA8','cScaleLabel7':'#FCF6EC'}}}%%
 stateDiagram-v2
     direction TB
     state "Kiểm tra dữ liệu" as KT
@@ -259,16 +252,12 @@ stateDiagram-v2
     ERR --> [*]
 ```
 
-</td>
-</tr>
-</table>
-
 ### Lịch sử phát triển
 
 Các mốc dưới đây lấy từ `git log` của repository.
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#FCF6EC','primaryTextColor':'#0E4A63','primaryBorderColor':'#0E4A63','secondaryColor':'#F3E3CC','secondaryTextColor':'#0E4A63','secondaryBorderColor':'#1E8FA8','tertiaryColor':'#FFFDF8','tertiaryTextColor':'#0E4A63','tertiaryBorderColor':'#F28C1B','lineColor':'#1E8FA8','textColor':'#1E8FA8','titleColor':'#0E4A63','edgeLabelBackground':'#FCF6EC','clusterBkg':'#FFFDF8','clusterBorder':'#1E8FA8','actorBkg':'#FCF6EC','actorBorder':'#0E4A63','actorTextColor':'#0E4A63','actorLineColor':'#1E8FA8','signalColor':'#1E8FA8','signalTextColor':'#1E8FA8','sequenceNumberColor':'#FCF6EC','noteBkgColor':'#F3E3CC','noteTextColor':'#0E4A63','noteBorderColor':'#F28C1B','activationBkgColor':'#FFB547','activationBorderColor':'#F28C1B','labelBoxBkgColor':'#FCF6EC','labelBoxBorderColor':'#0E4A63','labelTextColor':'#0E4A63','cScale0':'#0E4A63','cScaleLabel0':'#FCF6EC','cScale1':'#1E8FA8','cScaleLabel1':'#FCF6EC','cScale2':'#3BB8C3','cScaleLabel2':'#0E4A63','cScale3':'#F28C1B','cScaleLabel3':'#0E4A63','cScale4':'#FFB547','cScaleLabel4':'#0E4A63','cScale5':'#F3E3CC','cScaleLabel5':'#0E4A63','cScale6':'#0E4A63','cScaleLabel6':'#FCF6EC','cScale7':'#1E8FA8','cScaleLabel7':'#FCF6EC','fontFamily':'Segoe UI, Helvetica Neue, Arial, sans-serif'}}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#FCF6EC','primaryTextColor':'#0E4A63','primaryBorderColor':'#0E4A63','secondaryColor':'#F3E3CC','secondaryTextColor':'#0E4A63','secondaryBorderColor':'#1E8FA8','tertiaryColor':'#FFFDF8','tertiaryTextColor':'#0E4A63','tertiaryBorderColor':'#F28C1B','lineColor':'#1E8FA8','textColor':'#1E8FA8','titleColor':'#0E4A63','edgeLabelBackground':'#FCF6EC','clusterBkg':'#FFFDF8','clusterBorder':'#1E8FA8','actorBkg':'#FCF6EC','actorBorder':'#0E4A63','actorTextColor':'#0E4A63','actorLineColor':'#1E8FA8','signalColor':'#1E8FA8','signalTextColor':'#1E8FA8','sequenceNumberColor':'#FCF6EC','noteBkgColor':'#F3E3CC','noteTextColor':'#0E4A63','noteBorderColor':'#F28C1B','activationBkgColor':'#FFB547','activationBorderColor':'#F28C1B','labelBoxBkgColor':'#FCF6EC','labelBoxBorderColor':'#0E4A63','labelTextColor':'#0E4A63','cScale0':'#0E4A63','cScaleLabel0':'#FCF6EC','cScale1':'#1E8FA8','cScaleLabel1':'#FCF6EC','cScale2':'#3BB8C3','cScaleLabel2':'#0E4A63','cScale3':'#F28C1B','cScaleLabel3':'#0E4A63','cScale4':'#FFB547','cScaleLabel4':'#0E4A63','cScale5':'#F3E3CC','cScaleLabel5':'#0E4A63','cScale6':'#0E4A63','cScaleLabel6':'#FCF6EC','cScale7':'#1E8FA8','cScaleLabel7':'#FCF6EC'}}}%%
 timeline
     04/2026 : Khởi tạo mã nguồn : Module CT phổi
     05/2026 : Module MRI não, lưới 3D : Next.js 16 + React 19 : Triển khai Vercel
