@@ -1,0 +1,80 @@
+ALL RIGHTS RESERVED / BẢO LƯU MỌI QUYỀN
+
+Copyright (c) 2026 Trương Tấn Nghĩa (AI Học Lập Trình)
+https://github.com/TruongTanNghia
+
+================================================================================
+TIẾNG VIỆT
+================================================================================
+
+Toàn bộ mã nguồn, tài liệu, hình ảnh, thiết kế giao diện và các tài sản khác
+trong repository này ("Tác phẩm") thuộc quyền sở hữu của Trương Tấn Nghĩa
+(AI Học Lập Trình). Mọi quyền đều được bảo lưu.
+
+Việc bạn xem được, tải được hoặc được cấp quyền truy cập vào repository này
+KHÔNG đồng nghĩa với việc bạn được cấp phép sử dụng Tác phẩm.
+
+Khi chưa có văn bản đồng ý của tác giả, bạn KHÔNG được:
+
+  1. Sao chép, tái bản hoặc lưu trữ lại Tác phẩm, toàn bộ hay một phần.
+  2. Sửa đổi, chuyển thể, dịch hoặc tạo sản phẩm phái sinh từ Tác phẩm.
+  3. Phân phối, công bố, chia sẻ, cho thuê, bán hoặc cấp phép lại Tác phẩm.
+  4. Sử dụng Tác phẩm cho mục đích thương mại hoặc đưa vào sản phẩm, dịch vụ
+     của bạn.
+  5. Dùng Tác phẩm để huấn luyện mô hình học máy.
+  6. Gỡ bỏ hoặc thay đổi thông tin bản quyền, tên tác giả, logo, chữ ký.
+
+Bạn được phép xem mã nguồn trên GitHub để tham khảo và học tập cá nhân, và
+thực hiện các thao tác mà Điều khoản dịch vụ của GitHub cho phép với
+repository công khai.
+
+Thành phần của bên thứ ba (ví dụ three.js, Next.js, React và các thư viện
+khác) cùng các bộ dữ liệu được nhắc tới (CHB-MIT, BraTS, LIDC-IDRI, BUSI)
+thuộc về chủ sở hữu tương ứng và tuân theo giấy phép riêng của họ.
+
+MIỄN TRỪ TRÁCH NHIỆM Y KHOA: Tác phẩm phục vụ nghiên cứu và học tập. Kết quả
+do mô hình tạo ra không phải là chẩn đoán y khoa và không được dùng để chẩn
+đoán, điều trị hay ra quyết định lâm sàng.
+
+Tác phẩm được cung cấp "nguyên trạng", không kèm bất kỳ bảo đảm nào. Tác giả
+không chịu trách nhiệm cho thiệt hại phát sinh từ việc sử dụng Tác phẩm.
+
+Liên hệ xin phép sử dụng: https://github.com/TruongTanNghia
+
+================================================================================
+ENGLISH
+================================================================================
+
+All source code, documentation, images, interface designs and other assets in
+this repository (the "Work") are the property of Trương Tấn Nghĩa
+(AI Học Lập Trình). All rights are reserved.
+
+Being able to view, download or access this repository does NOT grant you a
+license to use the Work.
+
+Without prior written permission from the author, you may NOT:
+
+  1. Copy, reproduce or re-host the Work, in whole or in part.
+  2. Modify, adapt, translate or create derivative works from the Work.
+  3. Distribute, publish, share, rent, sell or sublicense the Work.
+  4. Use the Work for commercial purposes or include it in your own product
+     or service.
+  5. Use the Work to train machine learning models.
+  6. Remove or alter copyright notices, author names, logos or signatures.
+
+You may view the source code on GitHub for personal reference and study, and
+perform the actions that the GitHub Terms of Service allow for public
+repositories.
+
+Third-party components (for example three.js, Next.js, React and other
+libraries) and the datasets referred to (CHB-MIT, BraTS, LIDC-IDRI, BUSI)
+belong to their respective owners and remain under their own licenses.
+
+MEDICAL DISCLAIMER: The Work is for research and education. Model output is
+not a medical diagnosis and must not be used for diagnosis, treatment or
+clinical decisions.
+
+The Work is provided "as is", without warranty of any kind. The author is not
+liable for any damage arising from the use of the Work.
+
+To request permission: https://github.com/TruongTanNghia

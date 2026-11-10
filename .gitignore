@@ -1,8 +1,10 @@
 # Dependencies
 node_modules/
 
-# Environment
+# Environment + secrets
 .env
+*.key
+*.pem
 
 # Uploads
 uploads/

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 170" width="560" height="170" role="img" aria-label="Chu ky Truong Tan Nghia - AI Hoc Lap Trinh">
+  <defs>
+    <linearGradient id="sig" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0E4A63"/>
+      <stop offset="45%" stop-color="#1E8FA8"/>
+      <stop offset="75%" stop-color="#3BB8C3"/>
+      <stop offset="100%" stop-color="#F28C1B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Nen trong suot de hop ca theme sang lan toi -->
+  <text x="280" y="86" text-anchor="middle"
+        font-family="'Segoe Script','Brush Script MT','Snell Roundhand','Apple Chancery','Lucida Handwriting',cursive"
+        font-size="52" fill="none" stroke="url(#sig)" stroke-width="1.6"
+        stroke-dasharray="1400" stroke-dashoffset="1400">
+    Trương Tấn Nghĩa
+    <animate attributeName="stroke-dashoffset" from="1400" to="0" dur="3.2s" fill="freeze"/>
+  </text>
+  <text x="280" y="86" text-anchor="middle"
+        font-family="'Segoe Script','Brush Script MT','Snell Roundhand','Apple Chancery','Lucida Handwriting',cursive"
+        font-size="52" fill="url(#sig)" opacity="0">
+    Trương Tấn Nghĩa
+    <animate attributeName="opacity" values="0;1" dur="1.4s" begin="2.6s" fill="freeze"/>
+  </text>
+
+  <path d="M118 108 C 210 128, 350 92, 444 112" fill="none" stroke="#F28C1B" stroke-width="4"
+        stroke-linecap="round" stroke-dasharray="360" stroke-dashoffset="360">
+    <animate attributeName="stroke-dashoffset" from="360" to="0" dur="1.5s" begin="3s" fill="freeze"/>
+  </path>
+
+  <text x="280" y="142" text-anchor="middle"
+        font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="12.5"
+        font-weight="700" letter-spacing="4.5" fill="#1E8FA8" opacity="0">
+    AI HỌC LẬP TRÌNH · NEVER GIVE UP
+    <animate attributeName="opacity" values="0;0.95" dur="1.2s" begin="3.9s" fill="freeze"/>
+  </text>
+</svg>

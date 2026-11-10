@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 260" width="1200" height="260" role="img" aria-label="Luong xu ly mot ca: tai du lieu, Next.js, ngrok, Flask API, mo hinh AI, ket qua">
+  <defs>
+    <linearGradient id="line" gradientUnits="userSpaceOnUse" x1="104" y1="92" x2="1054" y2="92">
+      <stop offset="0%" stop-color="#3BB8C3"/><stop offset="100%" stop-color="#F28C1B"/>
+    </linearGradient>
+    <pattern id="d2" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.4" fill="#0E4A63" opacity="0.08"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="260" fill="#FCF6EC"/>
+  <rect width="1200" height="260" fill="url(#d2)"/>
+
+  <text x="62" y="42" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="15" font-weight="700" letter-spacing="3.5" fill="#1E8FA8">LUỒNG XỬ LÝ MỘT CA</text>
+
+  <path id="track" d="M104 92 H1054" stroke="url(#line)" stroke-width="5" fill="none" stroke-linecap="round" opacity="0.85"/>
+  <circle r="8" fill="#F28C1B">
+    <animateMotion dur="5.5s" repeatCount="indefinite" rotate="auto">
+      <mpath href="#track"/>
+    </animateMotion>
+    <animate attributeName="opacity" values="0;1;1;0" dur="5.5s" repeatCount="indefinite"/>
+  </circle>
+
+  <g transform="translate(104,92)">
+    <circle cx="0" cy="0" r="27" fill="#FCF6EC" stroke="#0E4A63" stroke-width="3"/>
+    <circle cx="0" cy="0" r="27" fill="none" stroke="#F28C1B" stroke-width="3" opacity="0">
+      <animate attributeName="opacity" values="0;1;0" dur="3.6s" begin="0s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="27;37;27" dur="3.6s" begin="0s" repeatCount="indefinite"/>
+    </circle>
+    <text y="8" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="22" font-weight="800" fill="#0E4A63">1</text>
+    <text y="62" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="16" font-weight="700" fill="#0E4A63">Tải dữ liệu</text>
+    <text y="84" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1E8FA8">EDF · MRI · CT · siêu âm</text>
+  </g>
+  <g transform="translate(294,92)">
+    <circle cx="0" cy="0" r="27" fill="#FCF6EC" stroke="#0E4A63" stroke-width="3"/>
+    <circle cx="0" cy="0" r="27" fill="none" stroke="#F28C1B" stroke-width="3" opacity="0">
+      <animate attributeName="opacity" values="0;1;0" dur="3.6s" begin="0.25s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="27;37;27" dur="3.6s" begin="0.25s" repeatCount="indefinite"/>
+    </circle>
+    <text y="8" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="22" font-weight="800" fill="#0E4A63">2</text>
+    <text y="62" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="16" font-weight="700" fill="#0E4A63">Next.js</text>
+    <text y="84" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1E8FA8">Vercel, proxy /api/*</text>
+  </g>
+  <g transform="translate(484,92)">
+    <circle cx="0" cy="0" r="27" fill="#FCF6EC" stroke="#0E4A63" stroke-width="3"/>
+    <circle cx="0" cy="0" r="27" fill="none" stroke="#F28C1B" stroke-width="3" opacity="0">
+      <animate attributeName="opacity" values="0;1;0" dur="3.6s" begin="0.5s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="27;37;27" dur="3.6s" begin="0.5s" repeatCount="indefinite"/>
+    </circle>
+    <text y="8" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="22" font-weight="800" fill="#0E4A63">3</text>
+    <text y="62" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="16" font-weight="700" fill="#0E4A63">ngrok</text>
+    <text y="84" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1E8FA8">Đường hầm HTTPS</text>
+  </g>
+  <g transform="translate(674,92)">
+    <circle cx="0" cy="0" r="27" fill="#FCF6EC" stroke="#0E4A63" stroke-width="3"/>
+    <circle cx="0" cy="0" r="27" fill="none" stroke="#F28C1B" stroke-width="3" opacity="0">
+      <animate attributeName="opacity" values="0;1;0" dur="3.6s" begin="0.75s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="27;37;27" dur="3.6s" begin="0.75s" repeatCount="indefinite"/>
+    </circle>
+    <text y="8" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="22" font-weight="800" fill="#0E4A63">4</text>
+    <text y="62" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="16" font-weight="700" fill="#0E4A63">Flask API</text>
+    <text y="84" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1E8FA8">Router → Controller</text>
+  </g>
+  <g transform="translate(864,92)">
+    <circle cx="0" cy="0" r="27" fill="#FCF6EC" stroke="#0E4A63" stroke-width="3"/>
+    <circle cx="0" cy="0" r="27" fill="none" stroke="#F28C1B" stroke-width="3" opacity="0">
+      <animate attributeName="opacity" values="0;1;0" dur="3.6s" begin="1s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="27;37;27" dur="3.6s" begin="1s" repeatCount="indefinite"/>
+    </circle>
+    <text y="8" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="22" font-weight="800" fill="#0E4A63">5</text>
+    <text y="62" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="16" font-weight="700" fill="#0E4A63">Mô hình AI</text>
+    <text y="84" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1E8FA8">PyTorch · Keras</text>
+  </g>
+  <g transform="translate(1054,92)">
+    <circle cx="0" cy="0" r="27" fill="#FCF6EC" stroke="#0E4A63" stroke-width="3"/>
+    <circle cx="0" cy="0" r="27" fill="none" stroke="#F28C1B" stroke-width="3" opacity="0">
+      <animate attributeName="opacity" values="0;1;0" dur="3.6s" begin="1.25s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="27;37;27" dur="3.6s" begin="1.25s" repeatCount="indefinite"/>
+    </circle>
+    <text y="8" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="22" font-weight="800" fill="#0E4A63">6</text>
+    <text y="62" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="16" font-weight="700" fill="#0E4A63">Kết quả</text>
+    <text y="84" text-anchor="middle" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#1E8FA8">Mask · overlay · JSON</text>
+  </g>
+
+  <text x="1138" y="236" text-anchor="end" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="12" fill="#0E4A63" opacity="0.6">© Trương Tấn Nghĩa · AI Học Lập Trình</text>
+</svg>

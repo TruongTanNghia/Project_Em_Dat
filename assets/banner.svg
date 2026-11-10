@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 380" width="1200" height="380" role="img" aria-label="Medical AI Suite - Sau pipeline AI y khoa tren mot phong doc duy nhat">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FCF6EC"/><stop offset="55%" stop-color="#F7EEDF"/><stop offset="100%" stop-color="#F3E3CC"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#F28C1B"/><stop offset="50%" stop-color="#FFB547"/><stop offset="100%" stop-color="#F28C1B"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3BB8C3"/><stop offset="100%" stop-color="#1E8FA8"/>
+    </linearGradient>
+    <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.6" fill="#0E4A63" opacity="0.10"/>
+    </pattern>
+    <filter id="soft"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+
+  <rect width="1200" height="380" fill="url(#bg)"/>
+  <rect width="1200" height="380" fill="url(#dots)"/>
+  <circle cx="950" cy="186" r="140" fill="#3BB8C3" opacity="0.16" filter="url(#soft)">
+    <animate attributeName="r" values="140;158;140" dur="7s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- NHAN -->
+  <g transform="translate(70,74)">
+    <rect x="0" y="-18" width="11" height="24" rx="3" fill="url(#ink)"/>
+    <text x="24" y="0" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="15" font-weight="700" letter-spacing="4" fill="#1E8FA8">ADA GROUP · MEDICAL AI RESEARCH</text>
+  </g>
+
+  <!-- TEN DU AN -->
+  <g transform="translate(70,160)">
+    <text font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="62" font-weight="800" letter-spacing="-1">
+      <tspan fill="#0E4A63">MEDICAL</tspan><tspan fill="#F28C1B" dx="16">AI SUITE</tspan>
+    </text>
+    <rect x="0" y="22" height="7" rx="3.5" fill="url(#ink)">
+      <animate attributeName="width" values="0;330;330" dur="2.6s" fill="freeze"/>
+    </rect>
+  </g>
+
+  <text x="70" y="246" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="19" fill="#0E4A63" opacity="0.88">Sáu pipeline AI y khoa trên một phòng đọc duy nhất</text>
+
+  <!-- CHIP CONG NGHE -->
+  <g font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="13" font-weight="700">
+    <g transform="translate(70,278)"><rect width="112" height="34" rx="17" fill="#0E4A63"/><text x="56" y="22" fill="#FCF6EC" text-anchor="middle">Next.js 16</text></g>
+    <g transform="translate(194,278)"><rect width="82" height="34" rx="17" fill="url(#teal)"/><text x="41" y="22" fill="#FCF6EC" text-anchor="middle">Flask</text></g>
+    <g transform="translate(288,278)"><rect width="100" height="34" rx="17" fill="#F28C1B"/><text x="50" y="22" fill="#FCF6EC" text-anchor="middle">PyTorch</text></g>
+    <g transform="translate(400,278)"><rect width="124" height="34" rx="17" fill="none" stroke="#0E4A63" stroke-width="2"/><text x="62" y="22" fill="#0E4A63" text-anchor="middle">TensorFlow</text></g>
+  </g>
+
+  <!-- NODE QUAY QUANH -->
+  <g>
+    <animateTransform attributeName="transform" type="rotate" from="0 950 186" to="360 950 186" dur="26s" repeatCount="indefinite"/>
+    <circle cx="950" cy="48" r="8" fill="#3BB8C3"/>
+    <circle cx="1088" cy="186" r="6" fill="#F28C1B"/>
+    <circle cx="950" cy="324" r="7" fill="#0E4A63"/>
+    <circle cx="812" cy="186" r="5" fill="#1E8FA8"/>
+  </g>
+
+  <!-- MINH HOA: MAN HINH EEG -->
+  <g>
+    <animateTransform attributeName="transform" type="translate" values="0,0; 0,-7; 0,0" dur="5s" repeatCount="indefinite"/>
+    <rect x="792" y="86" width="316" height="200" rx="14" fill="#FFFDF8" stroke="#0E4A63" stroke-width="2.5"/>
+    <rect x="792" y="86" width="316" height="40" rx="14" fill="#0E4A63"/>
+    <rect x="792" y="112" width="316" height="14" fill="#0E4A63"/>
+    <circle cx="812" cy="106" r="5" fill="#F28C1B"/><circle cx="828" cy="106" r="5" fill="#3BB8C3"/>
+    <text x="1090" y="111" text-anchor="end" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="13" font-weight="700" letter-spacing="1.5" fill="#FCF6EC">EEG · 256 Hz</text>
+    <g stroke="#0E4A63" stroke-width="1" opacity="0.10">
+      <line x1="814" y1="184" x2="1086" y2="184"/><line x1="814" y1="225" x2="1086" y2="225"/>
+    </g>
+    <!-- cua so bat thuong -->
+    <rect x="962" y="220" width="88" height="52" rx="8" fill="#F28C1B" opacity="0.14">
+      <animate attributeName="opacity" values="0.08;0.26;0.08" dur="2.4s" repeatCount="indefinite"/>
+    </rect>
+    <path d="M814 167.5 L820 167.7 L826 158.9 L832 164.5 L838 167.7 L844 162.3 L850 163.9 L856 168.1 L862 158.8 L868 159.6 L874 164.6 L880 168.4 L886 160.5 L892 164.7 L898 166.3 L904 159.4 L910 163.6 L916 168.7 L922 158.0 L928 160.4 L934 166.5 L940 167.2 L946 157.9 L952 165.6 L958 166.3 L964 162.0 L970 162.6 L976 170.9 L982 161.9 L988 158.6 L994 166.8 L1000 162.2 L1006 160.4 L1012 163.8 L1018 169.6 L1024 159.2 L1030 165.2 L1036 167.2 L1042 162.2 L1048 160.8 L1054 170.8 L1060 161.6 L1066 160.2 L1072 169.1 L1078 163.4 L1084 160.6" fill="none" stroke="#1E8FA8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"><animate attributeName="stroke-dashoffset" values="100;0;0;100" keyTimes="0;0.62;0.94;1" dur="6s" begin="0s" repeatCount="indefinite"/></path>
+    <path d="M814 209.6 L820 209.1 L826 199.6 L832 202.3 L838 207.1 L844 201.8 L850 201.6 L856 208.9 L862 201.8 L868 200.1 L874 208.4 L880 205.1 L886 198.3 L892 204.4 L898 207.1 L904 202.7 L910 204.0 L916 208.6 L922 204.5 L928 201.0 L934 206.9 L940 206.2 L946 201.2 L952 207.5 L958 207.2 L964 201.4 L970 203.5 L976 207.3 L982 200.3 L988 199.1 L994 208.4 L1000 201.6 L1006 202.0 L1012 205.3 L1018 204.7 L1024 199.3 L1030 207.1 L1036 206.4 L1042 201.9 L1048 199.9 L1054 206.2 L1060 205.5 L1066 201.0 L1072 204.6 L1078 207.7 L1084 199.6" fill="none" stroke="#3BB8C3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"><animate attributeName="stroke-dashoffset" values="100;0;0;100" keyTimes="0;0.62;0.94;1" dur="6s" begin="0.5s" repeatCount="indefinite"/></path>
+    <path d="M814 246.6 L820 246.3 L826 240.6 L832 245.7 L838 250.4 L844 242.1 L850 243.8 L856 251.0 L862 241.6 L868 240.5 L874 247.6 L880 246.4 L886 240.6 L892 247.7 L898 248.3 L904 243.5 L910 245.7 L916 250.7 L922 247.5 L928 242.2 L934 251.4 L940 249.4 L946 241.3 L952 249.7 L958 250.3 L964 241.6 L970 233.0 L976 258.8 L982 230.5 L988 263.0 L994 231.1 L1000 260.8 L1006 232.0 L1012 260.6 L1018 233.2 L1024 259.0 L1030 231.9 L1036 258.9 L1042 229.4 L1048 242.4 L1054 250.3 L1060 244.5 L1066 241.1 L1072 248.5 L1078 248.0 L1084 243.1" fill="none" stroke="#F28C1B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"><animate attributeName="stroke-dashoffset" values="100;0;0;100" keyTimes="0;0.62;0.94;1" dur="6s" begin="1.0s" repeatCount="indefinite"/></path>
+  </g>
+
+  <!-- MINH HOA: LAT CAT NAO + DIEM U -->
+  <g>
+    <animateTransform attributeName="transform" type="translate" values="0,0; 0,6; 0,0" dur="6s" repeatCount="indefinite"/>
+    <circle cx="806" cy="272" r="48" fill="#FFFDF8" stroke="#0E4A63" stroke-width="2.5"/>
+    <path d="M806 236 C 782 236, 770 256, 776 274 C 772 292, 788 308, 806 306 Z" fill="none" stroke="#1E8FA8" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M806 236 C 830 236, 842 256, 836 274 C 840 292, 824 308, 806 306 Z" fill="none" stroke="#1E8FA8" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M788 258 q8 6 0 14 M792 284 q8 -4 10 6 M822 256 q-8 8 2 14" fill="none" stroke="#3BB8C3" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="822" cy="286" r="7" fill="#F28C1B"/>
+    <circle cx="822" cy="286" r="7" fill="none" stroke="#F28C1B" stroke-width="2">
+      <animate attributeName="r" values="7;20" dur="2.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.9;0" dur="2.2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <text x="1130" y="356" text-anchor="end" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="12.5" fill="#0E4A63" opacity="0.62">© Trương Tấn Nghĩa · AI Học Lập Trình</text>
+</svg>
